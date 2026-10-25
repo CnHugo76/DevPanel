@@ -1,5 +1,15 @@
 # v0.4 实现与验收记录
 
+### 2026-10-25 首次公开下载、Topics 与 GIF
+
+- 用户在本轮明确要求发布可下载 Release、设置准确 Topics、制作 20～30 秒 GIF；本次联网发布按此新授权执行。日常安装、数据和 daemon 不参与此次发布。
+- 已推送源码提交 `7f8026bd1636c26804541c0be9090338c8b1a956` 与指向该提交的 `v0.4.2` 标签。干净源码构建的安装包位于 `.devpanel-dev/public-release/v0.4.2/DevPanel-0.4.2-macos-arm64.zip`，SHA-256 `26357daad2a02eb3dbbc506669cd1414a56deead5754c5a13a44c55e97fd8f7b`；同名 `.sha256` 与 `.json` 分别记录校验值和来源指纹。
+- 类型检查、workspace build、TypeScript/Web 259 tests（daemon 115、CLI 35、mock 57、Web 52）、Swift 361 tests / 61 suites 通过。独立包 smoke 在仓库外中文空格路径、隔离 HOME/data、无外部 Node 的 PATH 下通过，进程审计 remaining=[]。证据 `.devpanel-dev/public-{typecheck,tests,swift-tests,build,release-build,smoke}.log`。本次仅提供 arm64，Intel 及干净 Mac 的 Gatekeeper、登录项、通知交互未新增验证。
+- GitHub About Topics 已保存并读回：`macos`、`swiftui`、`developer-tools`、`cli`、`process-manager`、`local-development`、`ai-agents`、`log-viewer`、`git`、`maven`。
+- `docs/images/devpanel-demo.gif`：25,000 ms、125 帧、1180×976、335,140 bytes。由真实隔离 daemon 和两个演示服务的原生 snapshot 组成，叠加说明字幕和 CLI 指令；展示登记后 idle、Codex CLI 启动、就绪和实际端口、日志搜索、运行来源、原生 UI 停止与日志留存。字幕为讲解，非终端录屏；源画面不使用 mock。演示用临时目录，结束后正常停止并按 PID + 启动时间复核 0 残留；中间即时退出审计仍见的两个进程随后均退出，记录在 `.devpanel-dev/public-release/demo/evidence.json`。没有向日常服务发信号。
+- 源码 `7f8026b` 的 [GitHub CI](https://github.com/CnHugo76/DevPanel/actions/runs/40198272182) 已 completed/success，覆盖 TypeScript、workspace 构建、Swift 测试与原生 release 构建。
+- 两份 README 已准备新增下载入口、GIF 与显式 `VERSION=0.4.2` 的源码打包指令。GitHub 发行草稿已保存，含双语安装说明、验证范围和三个附件的说明；附件上传因 Chrome 扩展尚未允许访问文件网址受阻，已请用户开启后继续。正式发布与 README 推送结果待补记。
+
 后续用户授权的四轮优化（2026-10-25）见 [执行与验收记录](plan-four-rounds.md)。
 
 任务依据：[任务说明](../prompts/codex-v0.4.md)、[产品设计](product-design-v0.4.md)、冻结契约 v1.3-A～D。仅提交本地 main，不推送、不创建标签或 Release。所有开发和验收使用临时 DEVPANEL_HOME，不修改用户的稳定 App、CLI、数据和 daemon。
