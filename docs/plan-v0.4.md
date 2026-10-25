@@ -273,3 +273,9 @@ server/manager/mock 的配置、操作、任务与选项入口只传 Actor，sou
 - 维护者在整理后明确要求配置公开 GitHub 仓库并推送当前代码。GitHub connector 与浏览器均确认账号 `CnHugo76`，创建公开仓库 `CnHugo76/DevPanel`，MIT 与文档沿用本轮整理结果。
 - 当前 440 个源码文件与整理时审阅的源码快照一致。旧历史和当前源码在本地备份分支完整保留；本地 `main` 从全新根提交开始，采用 GitHub noreply 邮箱，不上传旧历史、标签、忽略目录或运行数据。配置 `origin` / `origin/main`，首次只推送 `main:main`；没有创建 GitHub Release 或升级已安装组件。
 - 这次提交前只更新公开状态记录；代码验证沿用本节前的 TypeScript / Web 245 项、Swift 320 项、构建与发布包 smoke 结果。首次 GitHub CI 的实际结果以远程 Actions 为准。
+
+### 2026-10-25 中英文仓库介绍
+
+- 按维护者要求补齐双语介绍：`README.md` 默认英文，`README.zh-CN.md` 保留完整简体中文，两者顶部互相切换；文档导航列出两个入口。
+- 两份说明覆盖同一组功能、安装与 CLI 引导、Agent 接入、源码构建、数据与升级、卸载、限制和 MIT 许可。英文页明确详细开发文档 / demo / skill 仍主要使用中文，两份说明均注明原生界面尚未完成多语言支持。
+- GitHub About 简介同步使用简体中文与英文。此轮只修改介绍与文档，检查本地链接、两份说明的命令 / 代码块一致性及 `git diff --check`，不重复运行产品测试。

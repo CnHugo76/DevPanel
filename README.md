@@ -1,35 +1,39 @@
 # DevPanel
 
-macOS 上供开发者和 AI 共用的本地项目运行面板：统一启动服务、查看日志与实际端口，并把项目参数留在可检查的配置中。
+**English** | [简体中文](README.zh-CN.md)
 
-AI 通过 CLI 注册、启动与查询，人通过原生界面查看、调整和接管。两者使用同一个本地管理服务。保存配置不会执行命令，关闭界面不会停止服务。就绪条件、日志摘要、操作来源与项目动态帮助 AI 确认结果；暂停和锁定帮助人控制 AI 的操作。
+A native macOS panel and CLI for developers and AI agents to manage local projects: start services, inspect logs and actual listening ports, and keep launch settings in configurations you can review.
 
-- **服务管理**：前台进程托管、实际监听端口、CPU / 内存、历史运行与可调整的启动选项。
-- **AI 接入**：JSON CLI、一次性就绪判断、增量日志与摘要、可安装的 Agent skill；无需配置 MCP 服务。
-- **人工接管**：原生服务面板、操作来源与动态、暂停和锁定。
-- **工程工具**：快捷操作、Maven 模块与 Profiles、Git 改动与独立差异窗口，支持显式登记多个工程和仓库。
+AI agents register, start, and query projects through the CLI. You inspect, adjust, and take over through the native app. Both use the same local daemon. Saving a configuration does not execute commands, and closing the app does not stop services. Readiness signals, log digests, operation attribution, and project activity help agents verify results; holds and locks let you control their actions.
 
-[试用演示](examples/demo/README.md) · [文档导航](docs/README.md) · [参与贡献](CONTRIBUTING.md) · [第三方声明](THIRD_PARTY_NOTICES.md)
+- **Service management**: manage foreground processes, inspect listening ports and CPU / memory usage, browse past runs, and adjust launch parameters.
+- **AI integration**: a JSON CLI, one-time readiness checks, incremental logs and digests, and an installable agent skill. No MCP server setup required.
+- **Human oversight**: a native service panel, operation attribution and activity, holds, and locks.
+- **Project tools**: saved actions, Maven modules and profiles, Git changes, and separate diff windows, with explicitly configured repositories and Maven projects.
 
-![DevPanel 就绪状态与日志（mock 演示数据）](docs/images/devpanel-v04.png)
+[Try the demo](examples/demo/README.md) · [Documentation](docs/README.md) · [Contributing](CONTRIBUTING.md) · [Third-party notices](THIRD_PARTY_NOTICES.md)
 
-## 系统要求与下载
+The detailed development guides, demo instructions, and agent skill are currently written in Simplified Chinese. Issues and pull requests are welcome in English or Chinese.
 
-- macOS 14 或更新版本；发布包按 Apple Silicon / Intel 本机架构分别构建。
-- 发布后，在本仓库 GitHub 页面右侧的 **Releases** 下载对应架构的 `DevPanel-<version>-macos-<arch>.zip`（`arm64` 为 Apple Silicon，`x64` 为 Intel），可用随附的 `.sha256` 核验。当前版本为 0.4.1，尚未创建公开的 GitHub Release；现在可从源码构建。
-- App 内含 Node 运行时、管理服务、CLI 与采样辅助进程，使用发布包不需要另装 Node 或保留源码仓库。运行你自己的项目仍需相应的 JDK、包管理器等工具。
+![DevPanel readiness and logs using mock demo data](docs/images/devpanel-v04.png)
 
-解压后将 `DevPanel.app` 放入准备长期保留的位置。首次打开可能被 macOS 拦截：先尝试打开，再到 **系统设置 → 隐私与安全性 → 仍要打开**，按系统提示确认。发布包采用本机 ad-hoc 签名，未做开发者签名或公证。
+## Requirements and downloads
 
-## 首次打开与 CLI
+- macOS 14 or later. Distribution packages are built separately on Apple Silicon and Intel Macs.
+- When releases are available, download `DevPanel-<version>-macos-<arch>.zip` from this repository's **Releases** section (`arm64` for Apple Silicon, `x64` for Intel). Verify it with the accompanying `.sha256` file. The current version is 0.4.1; no public GitHub Release has been published yet. You can build from source now.
+- The standalone app bundles Node.js, the daemon, the CLI, and a process sampling helper. It does not require a separate Node.js installation or a source checkout. Your own projects still need their tools, such as a JDK or package manager.
 
-引导可以跳过，也可以从 DevPanel 菜单的“安装 CLI 与登录启动…”重新打开：
+Extract `DevPanel.app` and place it somewhere you intend to keep it. If macOS blocks the first launch, try opening it once, then use **System Settings → Privacy & Security → Open Anyway** and follow the system prompts. Distribution packages use ad-hoc signing; they are not Developer ID signed or notarized.
 
-1. 选择命令目录，默认 `~/.local/bin`。界面先展示 `devpanel` / `devpaneld` 的写入路径；目标已存在时展示现有文件内容或软链接目标，确认后才替换。
-2. 自行将该目录加入终端和 Agent 的 `PATH`。安装器不修改 shell 配置。
-3. “登录时启动管理服务”默认关闭；勾选后使用用户 LaunchAgent，只启动管理服务，不启动项目。
+## First launch and CLI setup
 
-App 优先使用包内 CLI，移动或删除 App 后，已安装的 CLI 链接和登录启动路径需要重新安装。管理服务未运行时可在界面点“启动管理服务”。
+You can skip onboarding and reopen it from the DevPanel menu using “安装 CLI 与登录启动…” (Install CLI and start at login):
+
+1. Choose a command directory; the default is `~/.local/bin`. The app previews the destination paths for `devpanel` and `devpaneld`. If a destination already exists, it shows the current file contents or symlink target and asks before replacing it.
+2. Add that directory to the `PATH` used by your terminal and agents. The installer does not edit shell configuration files.
+3. Starting the daemon at login is off by default. Enabling it installs a user LaunchAgent that starts only the daemon, without starting any project services.
+
+The app prefers its bundled CLI. If you move or delete the app, reinstall the CLI links and login item to update their paths. When the daemon is not running, use “启动管理服务” (Start daemon) in the app.
 
 ```sh
 devpanel daemon status --json
@@ -39,17 +43,17 @@ devpanel logs <project-id> --service backend --digest
 devpanel activity <project-id> --json
 ```
 
-项目 ID 以注册响应为准，命令示例里的占位 ID 不可直接使用。就绪是日志或监听端口的单次信号，不代表业务验证。
+Use the project ID returned by registration; replace the placeholder IDs in these examples. Readiness is a one-time signal from logs or a listening port. It does not verify application behavior.
 
-## 给 Agent 配置
+## Configure your AI agent
 
-仓库内的 [skills/devpanel](skills/devpanel/SKILL.md) 提供 DevPanel skill；将该目录安装到所用 Agent 支持的 skill 目录，保留 `references/`。在 **Agent 自身的环境配置** 中设置自报名称，例如 Codex 使用 `DEVPANEL_AGENT=codex`、Claude Code 使用 `DEVPANEL_AGENT=claude-code`。CLI 也支持 `--agent`，名称不是认证。
+The [skills/devpanel](skills/devpanel/SKILL.md) directory contains the DevPanel skill. Install that directory in your agent's supported skill location, keeping its `references/` directory. Set a self-reported name in **each agent's own environment**, for example `DEVPANEL_AGENT=codex` for Codex or `DEVPANEL_AGENT=claude-code` for Claude Code. The CLI also accepts `--agent`. These names are labels, not authentication.
 
-接入项目时让 Agent 读取实际启动方式、提炼参数并登记就绪条件；注册后显式请求启动。运行后用 `--wait-ready` 得到启动报告，读日志优先用 `--digest`，后续使用 `--after-seq` 读取增量。托管规则只在界面修改；`--override-hold` 只能用于用户在本轮对话中明确要求的启动。
+When onboarding a project, have the agent inspect its actual launch commands, identify adjustable parameters, and configure readiness signals. Explicitly request a start after registration. Use `--wait-ready` for a startup report, prefer `--digest` when reading logs, and use `--after-seq` for subsequent incremental reads. Supervision policies are edited through the app. An agent may use `--override-hold` only when you explicitly authorize the start in the current conversation.
 
-## 从源码构建
+## Build from source
 
-需要 Node ≥24、pnpm 12、Xcode 工具链与 macOS。下载或检出本仓库，在仓库根目录执行：
+You need macOS, Node.js ≥24, pnpm 12, and an Xcode toolchain with Swift 6 support. Download or clone this repository, then run these commands from its root:
 
 ```sh
 pnpm install --frozen-lockfile
@@ -62,39 +66,40 @@ swift test --package-path apps/mac
 apps/mac/scripts/bundle.sh
 ```
 
-`apps/mac/build/DevPanel.app` 是界面开发包。独立运行所需的完整分发包另用：
+`apps/mac/build/DevPanel.app` is an app bundle for UI development. To build the complete standalone distribution instead, run the following in the same terminal:
 
 ```sh
 pnpm release:local
 node scripts/release-smoke.mjs
 ```
 
-发布脚本从 Node.js 官方站点获取固定版本的当前架构运行时并核验 SHA-256，复制生产依赖和原生采样器，执行 ad-hoc 签名，在 `.devpanel-dev/codex/v04/release/` 生成 App、ZIP 与校验文件。它不安装、不推送、不创建标签或 GitHub Release。单独构建另一架构需在对应 Mac 上执行；不承诺通用二进制。
+The release script downloads a pinned Node.js runtime for the current architecture from the official Node.js site and verifies its SHA-256. It copies production dependencies and the native sampling helper, applies ad-hoc signatures, and writes the app, ZIP, and checksum to `.devpanel-dev/codex/v04/release/`. It does not install the app, push code, create tags, or publish a GitHub Release. Build the other architecture on a corresponding Mac; a universal binary is not provided.
 
-ZIP 文件名包含 `macos-arm64` 或 `macos-x64`，校验文件内使用相同文件名。完整开发流程与提交约定见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+ZIP names include `macos-arm64` or `macos-x64`, and checksum files reference the same filename. See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and contribution guidelines.
 
-开发与测试始终使用短路径临时 `DEVPANEL_HOME`，Unix socket 路径在 macOS 上须 ≤103 字节。源码 CLI 使用 `node packages/cli/src/main.ts`。开发安装入口必须显式指定临时目录：`pnpm setup:cli --bin-dir /tmp/devpanel-bin`。不要让开发包连接日常数据，或替换正在使用的 App、CLI、daemon。
+Always use a short, temporary `DEVPANEL_HOME` for development and tests: macOS Unix socket paths must be at most 103 bytes. Run the source CLI with `node packages/cli/src/main.ts`. Development CLI installation must specify a temporary destination, such as `pnpm setup:cli --bin-dir /tmp/devpanel-bin`. Keep development builds separate from your daily data, installed app, CLI, and daemon.
 
-## 数据与升级
+## Data and upgrades
 
-默认数据目录为 `~/Library/Application Support/DevPanel`，包含项目配置、敏感值、运行记录和有上限的日志；目录为 0700、文件为 0600。`DEVPANEL_HOME` 可切换独立环境。移除项目不删除项目源码。敏感值按标记遮盖；应用自行编码或变形后的秘密无法自动识别。
+The default data directory is `~/Library/Application Support/DevPanel`. It contains project configurations, sensitive values, run records, and bounded logs. Directory permissions are 0700 and file permissions are 0600. Set `DEVPANEL_HOME` to use a separate environment. Removing a project from DevPanel does not delete its source files. Values marked as sensitive are redacted; secrets encoded or transformed by your application cannot be recognized automatically.
 
-从手工稳定版迁移到完整 App 的步骤见 [迁移说明](docs/release-v0.4.md)。升级前先停止受管服务并备份数据，再切换 App、CLI 和登录项。同一数据目录只允许一个 daemon；旧版和新版可保留在不同目录，不能同时管理同一份数据。稳定版升级、版本标签、GitHub 发布由用户决定。
+See the [migration guide](docs/release-v0.4.md) for moving from a manually installed version to the standalone app. Before upgrading, stop managed services and back up the data, then switch the app, CLI, and login item. Only one daemon may use a data directory. You can keep versions in separate locations, but they must not manage the same data simultaneously. Upgrades, version tags, and GitHub releases remain the maintainer's decision.
 
-## 卸载
+## Uninstall
 
-先确认可以停止受管服务，再执行 `devpanel daemon uninstall --stop-services` 移除登录项（未安装登录项时无副作用），并执行 `devpanel daemon stop --stop-services` 确认手动启动的管理服务也已停止；若提示不可达，表示当前已停止。退出界面后，删除 App 及所选命令目录里的 `devpanel` / `devpaneld` 链接，删除前核对它们确实指向该 App。
+First make sure managed services can be stopped. Run `devpanel daemon uninstall --stop-services` to remove the login item; it has no side effects if none is installed. Then run `devpanel daemon stop --stop-services` to ensure a manually started daemon is also stopped. An unreachable-daemon response means it is already stopped. Quit the app, then delete it and the `devpanel` / `devpaneld` links from your chosen command directory, checking that the links point to this app before deleting them.
 
-是否删除数据目录由你决定；保留它便于重新安装后继续使用。卸载不会删除任何项目源码，也不会修改 shell 配置。
+You decide whether to delete the data directory. Keep it if you want to reuse your configuration later. Uninstalling does not delete project source files or change shell configuration.
 
-## 已知限制
+## Known limitations
 
-- 只管理由 DevPanel 启动的本机前台进程；不接管已有进程，不支持容器与远程主机。
-- 没有自动重启、HTTP 就绪探测、持续健康检查、服务依赖编排或 AI 诊断。
-- 暂停、锁定与 AI 强制停止限制用于防误操作；同用户程序可取得本地接口凭据，它们不是安全边界。
-- daemon 故障后不能接回旧管道时会显示未知状态和日志缺口，不承诺无损恢复。
-- 未做公证、自动更新、包管理器分发或 Linux / Windows 安装包。干净 Mac 的完整安装交互仍需人工验收。
+- Manages only local foreground processes started by DevPanel. It does not adopt existing processes or manage containers or remote hosts.
+- No automatic restarts, HTTP readiness probes, continuous health checks, service dependency orchestration, or AI diagnosis.
+- Holds, locks, and agent force-stop restrictions help prevent unintended operations. Programs running as the same user can access local API credentials; these controls are not a security boundary.
+- After a daemon failure, runs whose output pipes cannot be reattached show an unknown state and a log gap. Lossless recovery is not guaranteed.
+- No notarization, automatic updates, package manager distribution, or Linux / Windows installers. The complete installation flow on a clean Mac still needs manual verification.
+- The native UI is currently primarily in Simplified Chinese. Bilingual READMEs do not imply that the app UI is localized.
 
-## 许可证
+## License
 
-采用 [MIT License](LICENSE)，允许商用、修改和再分发，须保留版权和许可声明。第三方组件按各自的 [许可证声明](THIRD_PARTY_NOTICES.md) 分发。
+Released under the [MIT License](LICENSE). Commercial use, modification, and redistribution are permitted, provided the copyright and license notice are retained. Third-party components retain their [own licenses](THIRD_PARTY_NOTICES.md).
