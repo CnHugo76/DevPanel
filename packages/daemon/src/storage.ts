@@ -10,7 +10,9 @@ import { dirname, join } from "node:path";
 import { homedir } from "node:os";
 import type { ErrorCode, ApiError, Limits } from "@devpanel/contract";
 
-export const VERSION = "0.4.1";
+export const VERSION = (JSON.parse(
+  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+) as { version: string }).version;
 export const now = () => new Date().toISOString();
 export const homePath = () =>
   process.env.DEVPANEL_HOME ||

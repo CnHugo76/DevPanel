@@ -66,3 +66,9 @@
 - 检索样本：180,000 行、32,462,704 字节；无命中扫描 9.24 ms/响应 113 bytes，50 处命中 5.40 ms/响应 41,973 bytes。仅为本机一次已构造缓冲区测量，不包含采集耗时，不是所有分布的性能上限。证据 `four-rounds/search-benchmark.json`。
 - 最终本地预览包路径为 `.devpanel-dev/four-rounds/release/DevPanel-0.4.2-preview-macos-arm64.zip`。打包时冻结源码；来源提交、dirty 状态、逐文件指纹、ZIP SHA-256 和实际 smoke 结果汇总到 `.devpanel-dev/four-rounds/final-acceptance.json`，以该生成记录为最终发行验收依据。
 - 完整 smoke 覆盖仓库外中文空格目录、临时 HOME/data、无外部 Node、CLI 链接、日志脱敏/全文检索、随包示例就绪、配置导出/预览/显式导入、实例独立且保持 idle、中文工作名称与动态筛选，以及服务/daemon 退出后的进程身份审计。Gatekeeper、真实登录/通知交互及 Intel 架构仍需目标机器验收。
+
+### 本地安装升级（用户另行授权）
+
+- 2026-10-25，用户在四轮验收后明确要求创建 tag 并升级本地安装，使用 `v0.4.2-preview`。先提交源码，再从 tag 对应的干净工作区重建；带来源提交的包位于 `.devpanel-dev/four-rounds/tagged-release/`，不推送远端。
+- 安装前检查发现 daemon 的版本仍写死为 `0.4.1`，已改为读取所属包的版本；完整包 smoke 同时核对 daemon 响应及发现文件版本与发布清单一致。
+- 升级先备份旧 App 和停止后的数据，保留 CLI 的长期 App 路径，只恢复升级前仍在运行的服务。机器本地的备份位置、安装版本与服务恢复结果写入 `.devpanel-dev/four-rounds/local-upgrade-result.json`，不把用户数据纳入仓库。

@@ -80,6 +80,9 @@ try {
   const daemon = command(['daemon', 'start']);
   started = true;
   remember(daemon.pid);
+  assert.equal(daemon.version, metadata.version, 'daemon 返回版本必须与发布包一致');
+  const discovery = JSON.parse(readFileSync(join(env.DEVPANEL_HOME, 'daemon.json'), 'utf8'));
+  assert.equal(discovery.version, metadata.version, '发现文件版本必须与发布包一致');
   project = command(['project', 'register', '--config', join(home, 'config.json')]).project.id;
   const operation = command(['start', project]);
   remember();
