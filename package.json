@@ -1,0 +1,24 @@
+{
+  "name": "devpanel",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.4.1",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm -r --if-present test",
+    "build": "pnpm -r --if-present build",
+    "devpanel": "pnpm --filter @devpanel/cli devpanel",
+    "devpaneld": "pnpm --filter @devpanel/daemon start",
+    "dev:mock": "pnpm --filter @devpanel/mock-daemon start",
+    "dev:ui": "pnpm --filter @devpanel/ui dev",
+    "dev:ui:real": "DEVPANEL_TARGET=real pnpm --filter @devpanel/ui dev",
+    "setup:cli": "node packages/cli/src/setup-cli.ts",
+    "release:local": "node scripts/release.mjs"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

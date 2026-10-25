@@ -1,0 +1,20 @@
+{
+  "name": "@devpanel/mock-daemon",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "按 contract/api.md 模拟的 DevPanel 管理服务，供 UI 独立开发与演示",
+  "scripts": {
+    "start": "node src/main.ts",
+    "ctl": "node src/ctl.ts",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "node --test --test-timeout=30000 --test-force-exit --test-reporter=spec test/*.test.ts"
+  },
+  "dependencies": {
+    "@devpanel/contract": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "typescript": "^5.9.3"
+  }
+}

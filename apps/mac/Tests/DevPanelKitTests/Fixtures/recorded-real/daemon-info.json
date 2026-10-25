@@ -1,0 +1,24 @@
+{
+  "version": "0.1.0",
+  "apiVersion": 1,
+  "pid": 6407,
+  "startedAt": "2026-10-20T10:21:36.241Z",
+  "home": "/tmp/devpanel-fixture",
+  "limits": {
+    "logBytesPerRun": 33554432,
+    "runsKeptPerService": 3,
+    "logBytesGlobal": 1073741824,
+    "logLineMaxBytes": 65536,
+    "logPageMaxLines": 2000,
+    "statsIntervalMs": 2000,
+    "startGraceMs": 1000,
+    "defaultStopTimeoutSec": 10
+  },
+  "self": {
+    "status": "ok",
+    "sampledAt": "2026-10-20T10:22:00.691Z",
+    "cpuPercent": 1.145602620867456,
+    "rssBytes": 85655552,
+    "processCount": 1
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "error": {
+    "code": "CONFIG_CONFLICT",
+    "message": "该根目录已注册为另一份配置；如需修改请使用更新",
+    "details": {
+      "projectId": "p_fayl6lvpih",
+      "revision": 5,
+      "diff": [
+        {
+          "path": "name",
+          "existing": "demo",
+          "incoming": "other"
+        },
+        {
+          "path": "env.PORT",
+          "existing": "4000",
+          "incoming": "${port}"
+        },
+        {
+          "path": "params[0].key",
+          "existing": "secs",
+          "incoming": "port"
+        },
+        {
+          "path": "params[0].label",
+          "existing": "秒数",
+          "incoming": "端口"
+        },
+        {
+          "path": "params[0].type",
+          "existing": "string",
+          "incoming": "number"
+        },
+        {
+          "path": "params[0].value",
+          "existing": "1000",
+          "incoming": 3000
+        },
+        {
+          "path": "params[0].description",
+          "existing": "sleep 时长",
+          "incoming": null
+        },
+        {
+          "path": "params[0].min",
+          "existing": null,
+          "incoming": 1024
+        },
+        {
+          "path": "params[0].max",
+          "existing": null,
+          "incoming": 65535
+        },
+        {
+          "path": "params[1].key",
+          "existing": null,
+          "incoming": "secs"
+        },
+        {
+          "path": "params[1].label",
+          "existing": null,
+          "incoming": "秒数"
+        },
+        {
+          "path": "params[1].type",
+          "existing": null,
+          "incoming": "string"
+        },
+        {
+          "path": "params[1].value",
+          "existing": null,
+          "incoming": "1000"
+        },
+        {
+          "path": "params[1].description",
+          "existing": null,
+          "incoming": "sleep 时长"
+        }
+      ]
+    }
+  }
+}

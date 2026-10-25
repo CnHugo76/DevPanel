@@ -1,0 +1,17 @@
+{
+  "id": "op_01JC8ZC0000000000000000000",
+  "projectId": "p_7k2m9q4tza",
+  "action": "restart",
+  "serviceIds": ["backend", "frontend"],
+  "source": "ui",
+  "state": "partial",
+  "createdAt": "2026-10-20T02:42:06.002Z",
+  "finishedAt": "2026-10-20T02:42:16.120Z",
+  "cancelledBy": null,
+  "results": [
+    {"serviceId": "backend", "outcome": "failed", "runId": "r_01JC8ZB3P1",
+     "error": {"code": "STOP_TIMEOUT", "message": "10 秒内未全部退出", "details": {"timeoutSec": 10, "remaining": 3}}},
+    {"serviceId": "frontend", "outcome": "stop-timeout", "runId": "r_01JC8ZB3P2",
+     "error": {"code": "STOP_TIMEOUT", "message": "10 秒内未全部退出", "details": {"timeoutSec": 10, "remaining": 1}}}
+  ]
+}

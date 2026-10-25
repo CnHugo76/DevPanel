@@ -1,0 +1,11 @@
+{
+  "total": {
+    "status": "unavailable",
+    "sampledAt": null,
+    "cpuPercent": null,
+    "rssBytes": null,
+    "processCount": null,
+    "note": "没有运行中的服务"
+  },
+  "services": {}
+}

@@ -1,0 +1,5 @@
+[digest r_repeat · 行 1–5 · 错误块 0，省略 0 · 省略 0 字节]
+── 末尾 5 行 ──
+1 O starting
+2 O ready  ×3
+5 O done

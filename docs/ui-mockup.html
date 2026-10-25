@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DevPanel 视觉稿</title>
+<style>
+:root {
+  --bg: #f6f6f7; --panel: #ffffff; --sidebar: #efeff1; --line: #e2e2e6; --line-strong: #cfcfd5;
+  --text: #1d1d20; --text-2: #5f5f68; --text-3: #8d8d96;
+  --accent: #2f6fde; --accent-soft: #e6eefc;
+  --green: #1f9d55; --blue: #2f6fde; --amber: #c27c0e; --red: #d33a2c; --purple: #7d6b9c;
+  --log-bg: #fbfbfc; --err-bar: #e05a4e; --sel: #e8eefb; --warn-bg: #fff6e0; --warn-line: #f0d48a;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1c1c1f; --panel: #232327; --sidebar: #19191c; --line: #34343a; --line-strong: #44444b;
+    --text: #e9e9ec; --text-2: #a6a6af; --text-3: #75757e;
+    --accent: #5b8ff0; --accent-soft: #263552;
+    --green: #3fbf75; --blue: #5b8ff0; --amber: #e0a23a; --red: #ef6a5c; --purple: #a493c4;
+    --log-bg: #1a1a1d; --err-bar: #ef6a5c; --sel: #2a3550; --warn-bg: #3a3020; --warn-line: #6b5426;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1c1c1f; --panel: #232327; --sidebar: #19191c; --line: #34343a; --line-strong: #44444b;
+  --text: #e9e9ec; --text-2: #a6a6af; --text-3: #75757e;
+  --accent: #5b8ff0; --accent-soft: #263552;
+  --green: #3fbf75; --blue: #5b8ff0; --amber: #e0a23a; --red: #ef6a5c; --purple: #a493c4;
+  --log-bg: #1a1a1d; --err-bar: #ef6a5c; --sel: #2a3550; --warn-bg: #3a3020; --warn-line: #6b5426;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--bg); color: var(--text); font: 13px/1.45 -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; }
+button { font: inherit; color: inherit; }
+
+/* scenario switcher (mockup only) */
+.switcher { display: flex; gap: 6px; padding: 8px 12px; border-bottom: 1px dashed var(--line-strong); background: var(--bg); flex-wrap: wrap; align-items: center; }
+.switcher span { color: var(--text-3); margin-right: 4px; }
+.switcher button { border: 1px solid var(--line-strong); background: var(--panel); border-radius: 6px; padding: 3px 10px; cursor: pointer; }
+.switcher button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.window { display: flex; height: calc(100vh - 45px); min-height: 560px; }
+
+/* sidebar */
+.sidebar { width: 248px; flex: none; background: var(--sidebar); border-right: 1px solid var(--line); display: flex; flex-direction: column; }
+.side-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 12px 10px 16px; }
+.side-head b { font-size: 14px; }
+.btn-add { border: 1px solid var(--line-strong); background: var(--panel); border-radius: 6px; padding: 3px 9px; cursor: pointer; }
+.plist { flex: 1; overflow: auto; padding: 2px 8px; }
+.pitem { padding: 7px 8px; border-radius: 7px; cursor: default; margin-bottom: 2px; }
+.pitem.sel { background: var(--sel); }
+.pitem .r1 { display: flex; align-items: center; gap: 7px; }
+.pitem .name { font-weight: 550; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pitem .name em { font-style: normal; font-weight: 400; color: var(--text-3); }
+.pitem .count { font-size: 11px; color: var(--text-2); background: var(--panel); border: 1px solid var(--line); border-radius: 9px; padding: 0 6px; font-variant-numeric: tabular-nums; }
+.pitem .r2 { color: var(--text-3); font-size: 12px; padding-left: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.side-foot { border-top: 1px solid var(--line); padding: 9px 16px; font-size: 12px; color: var(--text-2); display: flex; align-items: center; gap: 6px; }
+.side-foot.bad { color: var(--amber); background: var(--warn-bg); }
+
+/* status icons */
+.st { display: inline-flex; width: 12px; height: 12px; flex: none; align-items: center; justify-content: center; }
+.st::before { content: ""; display: block; width: 9px; height: 9px; border-radius: 50%; }
+.st.idle::before { border: 1.5px solid var(--text-3); width: 7px; height: 7px; }
+.st.running::before { background: var(--green); }
+.st.starting::before { background: conic-gradient(var(--blue) 0 25%, transparent 25%); border: 1.5px solid var(--blue); width: 7px; height: 7px; }
+.st.stopping::before { background: conic-gradient(var(--amber) 0 50%, transparent 50%); border: 1.5px solid var(--amber); width: 7px; height: 7px; }
+.st.stopped::before, .st.exited::before { background: var(--text-3); border-radius: 2px; width: 8px; height: 8px; }
+.st.failed::before { width: 0; height: 0; border-radius: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 9px solid var(--red); }
+.st.unknown::before { border: 1.5px dashed var(--purple); width: 7px; height: 7px; }
+.stale .st, .stale .val { opacity: .45; filter: grayscale(1); }
+
+.badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; padding: 1px 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--text-2); }
+.badge.green { color: var(--green); }
+.badge.amber { color: var(--amber); }
+.badge.red { color: var(--red); }
+
+/* main */
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--panel); }
+.banner { background: var(--warn-bg); border-bottom: 1px solid var(--warn-line); color: var(--text); padding: 7px 18px; font-size: 12px; }
+.head { padding: 14px 18px 10px; display: flex; gap: 12px; align-items: flex-start; border-bottom: 1px solid var(--line); }
+.head .t { flex: 1; min-width: 0; }
+.head h1 { font-size: 17px; margin: 0; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+.head .path { font: 11.5px var(--mono); color: var(--text-3); margin-top: 3px; }
+.acts { display: flex; gap: 6px; flex: none; }
+.b { border: 1px solid var(--line-strong); background: var(--panel); border-radius: 6px; padding: 4px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.b:disabled { opacity: .42; cursor: not-allowed; }
+.b.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.b.danger { color: var(--red); border-color: color-mix(in srgb, var(--red) 45%, var(--line-strong)); }
+.b.sm { padding: 1px 7px; font-size: 12px; }
+.result { margin: 8px 18px 0; padding: 7px 10px; border-radius: 6px; border: 1px solid var(--warn-line); background: var(--warn-bg); font-size: 12px; display: flex; gap: 8px; }
+.result b { font-weight: 600; }
+.result .x { margin-left: auto; color: var(--text-3); cursor: pointer; }
+
+.res { display: flex; gap: 18px; padding: 9px 18px; border-bottom: 1px solid var(--line); color: var(--text-2); font-size: 12px; font-variant-numeric: tabular-nums; flex-wrap: wrap; }
+.res .val { color: var(--text); font-weight: 600; font-size: 13px; }
+.res .tag { font-size: 11px; color: var(--amber); border: 1px solid var(--warn-line); border-radius: 4px; padding: 0 4px; margin-left: 4px; }
+.res .muted { color: var(--text-3); }
+
+table.svc { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.svc th { text-align: left; font-weight: 500; color: var(--text-3); font-size: 11.5px; padding: 6px 10px; border-bottom: 1px solid var(--line); }
+.svc th:first-child, .svc td:first-child { padding-left: 18px; }
+.svc td { padding: 6px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.svc tr.sel td { background: var(--sel); }
+.svc .sname { font-weight: 550; }
+.svc .note { font-size: 11.5px; color: var(--text-3); }
+.svc .note.warn { color: var(--amber); }
+.svc .stcell { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.svc .ops { display: flex; gap: 4px; justify-content: flex-end; padding-right: 18px; }
+.ib { width: 24px; height: 22px; border: 1px solid var(--line); background: var(--panel); border-radius: 5px; cursor: pointer; font-size: 11px; display: inline-flex; align-items: center; justify-content: center; }
+.ib:disabled { opacity: .35; }
+
+/* logs */
+.logs { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.ltool { display: flex; gap: 8px; align-items: center; padding: 7px 18px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; background: var(--panel); padding: 3px 11px; cursor: pointer; border-right: 1px solid var(--line); }
+.seg button:last-child { border-right: 0; }
+.seg button.on { background: var(--accent-soft); color: var(--accent); font-weight: 550; }
+.sel-run { border: 1px solid var(--line-strong); border-radius: 6px; padding: 3px 8px; background: var(--panel); }
+.search { display: flex; align-items: center; gap: 6px; border: 1px solid var(--line-strong); border-radius: 6px; padding: 2px 8px; min-width: 220px; background: var(--panel); }
+.search input { border: 0; outline: 0; background: transparent; color: var(--text); font: inherit; flex: 1; }
+.search .cnt { color: var(--text-3); font-size: 11.5px; }
+.tog { display: inline-flex; align-items: center; gap: 4px; color: var(--text-2); font-size: 12px; }
+.spacer { flex: 1; }
+.lbody { flex: 1; min-height: 0; overflow: auto; background: var(--log-bg); font: 12px/1.6 var(--mono); padding: 6px 0; position: relative; }
+.ln { padding: 0 18px 0 16px; border-left: 2px solid transparent; white-space: pre-wrap; word-break: break-all; }
+.ln.err { border-left-color: var(--err-bar); }
+.ln.sys { color: var(--text-3); font-style: italic; }
+.ln.sys::before { content: "devpanel › "; }
+.ln mark { background: #ffe58a; color: #000; border-radius: 2px; }
+.ln mark.cur { background: #ffb340; }
+.a-green { color: var(--green); } .a-yellow { color: var(--amber); } .a-red { color: var(--red); } .a-blue { color: var(--blue); } .a-dim { color: var(--text-3); }
+.newpill { position: sticky; bottom: 8px; margin-left: auto; margin-right: 18px; width: max-content; background: var(--accent); color: #fff; border-radius: 14px; padding: 4px 12px; font: 12px -apple-system, sans-serif; box-shadow: 0 2px 8px rgba(0,0,0,.18); }
+.lfoot { border-top: 1px solid var(--line); padding: 5px 18px; font-size: 11.5px; color: var(--text-3); display: flex; gap: 14px; }
+.lfoot .w { color: var(--amber); }
+.histbar { background: var(--accent-soft); color: var(--text); padding: 5px 18px; font-size: 12px; }
+.histbar a { color: var(--accent); cursor: pointer; }
+
+.empty { flex: 1; display: flex; align-items: center; justify-content: center; text-align: center; color: var(--text-2); padding: 30px; }
+.empty .box { max-width: 460px; }
+.empty h2 { font-size: 16px; color: var(--text); margin: 0 0 8px; }
+.empty pre { text-align: left; background: var(--log-bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px; font: 12px var(--mono); }
+
+/* drawer */
+.scrim { position: fixed; inset: 45px 0 0 0; background: rgba(0,0,0,.18); display: none; }
+.drawer { position: fixed; top: 45px; right: 0; bottom: 0; width: 560px; max-width: 100%; background: var(--panel); border-left: 1px solid var(--line); box-shadow: -6px 0 24px rgba(0,0,0,.12); display: none; flex-direction: column; }
+.show-drawer .scrim { display: block; }
+.show-drawer .drawer { display: flex; }
+.dhead { padding: 14px 18px 0; border-bottom: 1px solid var(--line); }
+.dhead h3 { margin: 0 0 10px; font-size: 15px; }
+.tabs { display: flex; gap: 16px; }
+.tabs span { padding: 6px 0; cursor: pointer; color: var(--text-2); border-bottom: 2px solid transparent; }
+.tabs span.on { color: var(--accent); border-bottom-color: var(--accent); font-weight: 550; }
+.dbody { flex: 1; overflow: auto; padding: 14px 18px; }
+.f { margin-bottom: 12px; }
+.f label:not(.tog) { display: block; font-size: 12px; color: var(--text-2); margin-bottom: 4px; }
+.f label i { color: var(--red); font-style: normal; }
+.in { width: 100%; border: 1px solid var(--line-strong); border-radius: 6px; padding: 5px 8px; background: var(--panel); color: var(--text); font: inherit; }
+.in.mono { font-family: var(--mono); font-size: 12px; }
+.hint { font-size: 11.5px; color: var(--text-3); margin-top: 4px; }
+.hint.ok { color: var(--green); } .hint.bad { color: var(--red); } .hint.warn { color: var(--amber); }
+.card { border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+.card .ch { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-weight: 600; }
+.card .ch .sp { flex: 1; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.argv { font: 11.5px var(--mono); color: var(--text-2); margin-top: 4px; }
+details summary { cursor: pointer; color: var(--text-2); font-size: 12px; margin: 4px 0 8px; }
+.envt { width: 100%; border-collapse: collapse; font-size: 12px; }
+.envt td { padding: 3px 4px; }
+.dfoot { border-top: 1px solid var(--line); padding: 10px 18px; display: flex; gap: 8px; align-items: center; }
+.dfoot .note { flex: 1; font-size: 12px; color: var(--amber); }
+</style>
+</head>
+<body>
+<div class="switcher">
+  <span>视觉稿场景：</span>
+  <button data-s="multi" class="on">多服务 · 运行中</button>
+  <button data-s="single">单服务 · 停止超时</button>
+  <button data-s="history">查看历史运行</button>
+  <button data-s="idle">未运行项目</button>
+  <button data-s="empty">无项目</button>
+  <button data-s="drawer">编辑配置</button>
+  <button data-s="offline">管理服务断连</button>
+  <span style="margin-left:auto"></span>
+  <button id="theme">切换深浅色</button>
+</div>
+<div class="window" id="win"></div>
+<div class="scrim"></div>
+<aside class="drawer">
+  <div class="dhead">
+    <h3>编辑项目 · order-service</h3>
+    <div class="tabs"><span class="on">表单</span><span>JSON</span></div>
+  </div>
+  <div class="dbody">
+    <div class="row2">
+      <div class="f"><label>项目名称 <i>*</i></label><input class="in" value="order-service"></div>
+      <div class="f"><label>根目录 <i>*</i></label><input class="in mono" value="/Users/demo/Projects/order-service"><div class="hint ok">✓ 目录存在</div></div>
+    </div>
+    <div class="card">
+      <div class="ch"><span>① 后端</span><span class="note" style="font-weight:400;color:var(--text-3);font-size:12px">id: backend</span><span class="sp"></span><button class="ib">↑</button><button class="ib">↓</button><button class="ib">✕</button></div>
+      <div class="row2">
+        <div class="f"><label>名称 <i>*</i></label><input class="in" value="后端"></div>
+        <div class="f"><label>工作目录</label><input class="in mono" value="backend"></div>
+      </div>
+      <div class="f"><label>启动命令 <i>*</i></label><input class="in mono" value="./mvnw spring-boot:run -Dspring-boot.run.profiles=dev">
+        <div class="argv">argv: ["./mvnw", "spring-boot:run", "-Dspring-boot.run.profiles=dev"]</div>
+        <div class="hint ok">✓ 将执行 /Users/demo/Projects/order-service/backend/mvnw</div>
+        <label class="tog" style="margin-top:6px"><input type="checkbox"> 通过 Shell 运行（/bin/zsh -lc）</label>
+      </div>
+      <details open><summary>高级：环境变量 · 停止等待</summary>
+        <table class="envt">
+          <tr><td><input class="in mono" value="JAVA_HOME"></td><td><input class="in mono" value="/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home"></td><td>🔓</td></tr>
+          <tr><td><input class="in mono" value="DB_PASSWORD"></td><td><input class="in mono" placeholder="已设置（留空则保持不变）"></td><td>🔒</td></tr>
+        </table>
+        <button class="b sm" style="margin:6px 0 10px">＋ 变量</button>
+        <div class="f" style="max-width:200px"><label>正常停止等待（秒）</label><input class="in" value="10"></div>
+      </details>
+    </div>
+    <div class="card">
+      <div class="ch"><span>② 前端</span><span class="note" style="font-weight:400;color:var(--text-3);font-size:12px">id: frontend</span><span class="sp"></span><button class="ib">↑</button><button class="ib">↓</button><button class="ib">✕</button></div>
+      <div class="row2">
+        <div class="f"><label>名称 <i>*</i></label><input class="in" value="前端"></div>
+        <div class="f"><label>工作目录</label><input class="in mono" value="frontend"></div>
+      </div>
+      <div class="f"><label>启动命令 <i>*</i></label><input class="in mono" value="pnpm dev &">
+        <div class="argv">argv: ["pnpm", "dev", "&"]</div>
+        <div class="hint warn">⚠ 检测到 “&amp;”：请使用前台运行方式，后台化的进程无法被管理</div>
+        <div class="hint bad">✕ 在 PATH 中找不到 pnpm（当前 PATH：/usr/bin:/bin:/usr/sbin:/sbin）</div>
+      </div>
+    </div>
+    <button class="b">＋ 添加服务</button>
+  </div>
+  <div class="dfoot"><span class="note">项目运行中：保存后在下次启动时生效，不会自动重启</span><button class="b">取消</button><button class="b primary">保存</button></div>
+</aside>
+
+<script>
+const P = [
+  { name: "order-service", st: "running", count: "2/2", r2: "运行中 · 132.4% · 1.21 GiB" },
+  { name: "web-admin", st: "stopping", count: "0/1", r2: "尚未停止" },
+  { name: "ml-api", st: "idle", count: "0/1", r2: "未启动 · ~/Project/ml-api" },
+  { name: "order-service", dup: "(archive/)", st: "failed", count: "0/1", r2: "异常 · 退出（1）" },
+  { name: "docs-site", st: "exited", count: "0/1", r2: "已退出（0）· ~/Project/docs-site" },
+];
+function sidebar(sel, offline, none) {
+  const items = none ? '' : P.map((p, i) => `
+    <div class="pitem ${i === sel ? 'sel' : ''}">
+      <div class="r1"><span class="st ${p.st}"></span><span class="name">${p.name} ${p.dup ? `<em>${p.dup}</em>` : ''}</span><span class="count">${p.count}</span></div>
+      <div class="r2">${p.r2}</div>
+    </div>`).join('');
+  const foot = offline
+    ? `<div class="side-foot bad">⚠ 管理服务连接中断 · 5 秒后重连</div>`
+    : `<div class="side-foot"><span class="st running"></span>管理服务已连接 · v0.1.0</div>`;
+  return `<nav class="sidebar ${offline ? 'stale' : ''}"><div class="side-head"><b>DevPanel</b><button class="btn-add">＋ 添加项目</button></div><div class="plist">${items}</div>${foot}</nav>`;
+}
+const LOG_BACK = [
+  ['sys', '已启动 · 运行 r_01JC8Z · PID 41823 · ./mvnw spring-boot:run'],
+  ['out', '<span class="a-dim">[INFO]</span> Scanning for projects...'],
+  ['out', '<span class="a-dim">[INFO]</span> --- <span class="a-green">spring-boot:3.4.1:run</span> (default-cli) @ order-backend ---'],
+  ['out', '  .   ____          _            __ _ _\n /\\\\ / ___\'_ __ _ _(_)_ __  __ _ \\ \\ \\ \\\n( ( )\\___ | \'_ | \'_| | \'_ \\/ _` | \\ \\ \\ \\\n \\\\/  ___)| |_)| | | | | || (_| |  ) ) ) )'],
+  ['out', '2026-10-20T10:42:07.118+08:00  <span class="a-green">INFO</span> 41901 --- [main] c.e.order.OrderApplication : Starting OrderApplication using Java 21.0.4'],
+  ['out', '2026-10-20T10:42:09.402+08:00  <span class="a-green">INFO</span> 41901 --- [main] o.s.b.w.e.tomcat.TomcatWebServer : Tomcat initialized with port 8080 (http)'],
+  ['err', '2026-10-20T10:42:10.977+08:00  <span class="a-yellow">WARN</span> 41901 --- [main] o.h.e.j.e.i.JdbcEnvironmentInitiator : HHH000342: Could not obtain connection to query metadata'],
+  ['err', 'java.net.ConnectException: Connection refused\n\tat java.base/sun.nio.ch.Net.pollConnect(Native Method)\n\tat java.base/sun.nio.ch.NioSocketImpl.timedFinishConnect(NioSocketImpl.java:554)\n\tat org.postgresql.core.PGStream.createSocket(PGStream.java:243)'],
+  ['out', '2026-10-20T10:42:12.311+08:00  <span class="a-green">INFO</span> 41901 --- [main] c.e.order.OrderApplication : Started OrderApplication in 5.62 seconds'],
+  ['out', '2026-10-20T10:44:31.006+08:00  <span class="a-green">INFO</span> 41901 --- [nio-8080-exec-1] c.e.order.web.<mark class="cur">OrderController</mark> : GET /api/orders?page=1 200 12ms'],
+  ['out', '2026-10-20T10:44:31.552+08:00  <span class="a-green">INFO</span> 41901 --- [nio-8080-exec-2] c.e.order.web.<mark>OrderController</mark> : GET /api/orders/1832 200 4ms'],
+  ['out', '2026-10-20T10:45:02.880+08:00  <span class="a-green">INFO</span> 41901 --- [nio-8080-exec-3] c.e.order.web.<mark>OrderController</mark> : POST /api/orders 201 38ms'],
+];
+function logs(lines) { return lines.map(([s, t]) => `<div class="ln ${s}">${t}</div>`).join(''); }
+function logTool(segs, run) {
+  return `<div class="ltool">
+    ${segs ? `<div class="seg">${segs.map((s, i) => `<button class="${i === 0 ? 'on' : ''}">${s}</button>`).join('')}</div>` : ''}
+    <select class="sel-run">${run}</select>
+    <div class="search">🔍<input value="OrderController" placeholder="搜索已加载的日志"><span class="cnt">1 / 3</span></div>
+    <span class="spacer"></span>
+    <label class="tog"><input type="checkbox"> 跟随</label>
+    <label class="tog"><input type="checkbox" checked> 自动换行</label>
+    <button class="b sm">复制</button>
+  </div>`;
+}
+const RUNS = `<option>当前运行 · 10:42 起</option><option>上一次 · 09:15–10:41 · 已停止</option><option>更早 · 昨天 18:02–19:30 · 异常（1）</option>`;
+
+const S = {
+  multi: () => `${sidebar(0)}
+  <main class="main">
+    <div class="head"><div class="t"><h1>order-service <span class="badge green"><span class="st running"></span>运行中 2/2</span></h1><div class="path">~/Project/order-service</div></div>
+      <div class="acts"><button class="b" disabled>▶ 启动</button><button class="b">■ 停止</button><button class="b">↻ 重启</button><button class="b">⚙ 配置</button><button class="b">⋯</button></div></div>
+    <div class="res"><span>CPU <span class="val">132.4%</span></span><span>内存 <span class="val">1.21 GiB</span> <span class="muted">RSS 估算</span></span><span>7 个进程</span><span class="muted">采样于 2 秒前</span></div>
+    <table class="svc"><thead><tr><th>状态</th><th>服务</th><th>CPU</th><th>内存</th><th>运行时长</th><th></th></tr></thead><tbody>
+      <tr class="sel"><td><span class="stcell"><span class="st running"></span>运行中</span></td><td><div class="sname">后端</div><div class="note warn">配置已修改 · 下次启动生效</div></td><td>128.0%</td><td>1.02 GiB</td><td>1h12m</td><td><div class="ops"><button class="ib" disabled>▶</button><button class="ib">■</button><button class="ib">↻</button></div></td></tr>
+      <tr><td><span class="stcell"><span class="st running"></span>运行中</span></td><td><div class="sname">前端</div><div class="note">pnpm dev · 3 个进程</div></td><td>4.4%</td><td>190 MiB</td><td>1h12m</td><td><div class="ops"><button class="ib" disabled>▶</button><button class="ib">■</button><button class="ib">↻</button></div></td></tr>
+    </tbody></table>
+    <section class="logs">${logTool(['后端', '前端'], RUNS)}
+      <div class="lbody">${logs(LOG_BACK)}<div class="newpill">↓ 12 条新日志 · 跳到最新</div></div>
+      <div class="lfoot"><span>已加载 12,304 行</span><span>stdout / stderr 按采集顺序合并显示</span></div>
+    </section>
+  </main>`,
+
+  single: () => `${sidebar(1)}
+  <main class="main">
+    <div class="head"><div class="t"><h1>web-admin <span class="badge amber"><span class="st stopping"></span>尚未停止（已等待 10 秒）</span></h1><div class="path">~/Project/web-admin</div></div>
+      <div class="acts"><button class="b" disabled>▶ 启动</button><button class="b danger">⚠ 强制停止</button><button class="b" disabled>↻ 重启</button><button class="b">⚙ 配置</button><button class="b">⋯</button></div></div>
+    <div class="result"><b>停止未完成：</b>已向 3 个受管进程发送 SIGTERM，10 秒内未全部退出。可继续等待，或强制停止。<span class="x">✕</span></div>
+    <div class="res"><span>CPU <span class="val">0.3%</span></span><span>内存 <span class="val">214 MiB</span> <span class="muted">RSS 估算</span></span><span>3 个进程</span><span>运行时长 <span class="val">26m14s</span></span><span class="muted">运行 r_01JC9A · PID 52210</span><span class="muted">采样于 1 秒前</span></div>
+    <section class="logs">${logTool(null, '<option>当前运行 · 10:20 起</option>')}
+      <div class="lbody">${logs([
+        ['sys', '已启动 · 运行 r_01JC9A · PID 52210 · pnpm dev'],
+        ['out', '<span class="a-green">  VITE v6.0.7</span>  ready in 412 ms'],
+        ['out', '  ➜  <b>Local</b>:   <span class="a-blue">http://localhost:5173/</span>'],
+        ['out', '<span class="a-dim">10:31:02</span> <span class="a-green">[vite]</span> hmr update /src/pages/Users.tsx'],
+        ['sys', '用户在面板请求停止 · 向进程组 52210 发送 SIGTERM'],
+        ['err', ' ELIFECYCLE  Command failed.'],
+        ['sys', '等待退出中：仍有 3 个受管进程（52210, 52231, 52240）'],
+      ])}</div>
+      <div class="lfoot"><span>已加载 438 行</span></div>
+    </section>
+  </main>`,
+
+  history: () => `${sidebar(0)}
+  <main class="main">
+    <div class="head"><div class="t"><h1>order-service <span class="badge green"><span class="st running"></span>运行中 2/2</span></h1><div class="path">~/Project/order-service</div></div>
+      <div class="acts"><button class="b" disabled>▶ 启动</button><button class="b">■ 停止</button><button class="b">↻ 重启</button><button class="b">⚙ 配置</button><button class="b">⋯</button></div></div>
+    <div class="res"><span>CPU <span class="val">132.4%</span></span><span>内存 <span class="val">1.21 GiB</span> <span class="muted">RSS 估算</span></span><span>7 个进程</span><span class="muted">采样于 2 秒前</span></div>
+    <section class="logs">${logTool(['后端', '前端'], '<option>更早 · 昨天 18:02–19:30 · 异常（1）</option>')}
+      <div class="histbar">正在查看历史运行 r_01JB2K（昨天 18:02–19:30），不会追加新日志 · <a>回到当前运行</a></div>
+      <div class="lbody">${logs([
+        ['sys', '已启动 · 运行 r_01JB2K · PID 30112 · ./mvnw spring-boot:run'],
+        ['out', '…'],
+        ['err', '***************************\nAPPLICATION FAILED TO START\n***************************\n\nDescription:\n\nWeb server failed to start. Port 8080 was already in use.'],
+        ['sys', '进程自行退出 · code=1 · 运行时长 1h28m'],
+      ])}</div>
+      <div class="lfoot"><span class="w">较早内容已按上限截断（每次运行 32 MiB）</span><span>已加载 2,000 行</span></div>
+    </section>
+  </main>`,
+
+  idle: () => `${sidebar(2)}
+  <main class="main">
+    <div class="head"><div class="t"><h1>ml-api <span class="badge"><span class="st idle"></span>未启动</span></h1><div class="path">~/Project/ml-api</div></div>
+      <div class="acts"><button class="b primary">▶ 启动</button><button class="b" disabled>■ 停止</button><button class="b" disabled>↻ 重启</button><button class="b">⚙ 配置</button><button class="b">⋯</button></div></div>
+    <div class="res"><span class="muted">未运行 · 无资源数据</span></div>
+    <section class="logs">
+      <div class="empty"><div class="box"><h2>该服务尚未运行</h2>点击「启动」后，日志会显示在这里。<br>注册项目不会自动启动。<br><br><span style="font:12px var(--mono);color:var(--text-3)">uv run uvicorn app.main:app --port 8000</span></div></div>
+    </section>
+  </main>`,
+
+  empty: () => `${sidebar(-1, false, true)}
+  <main class="main"><div class="empty"><div class="box">
+    <h2>还没有项目</h2>
+    <p>在你的编程 Agent 里说「把当前项目加入 DevPanel」，它会读取项目的真实启动方式并注册；也可以手动添加。</p>
+    <pre>devpanel project register --config ./devpanel.json --json</pre>
+    <button class="b primary">＋ 添加项目</button>
+  </div></div></main>`,
+
+  offline: () => `${sidebar(0, true)}
+  <main class="main stale">
+    <div class="banner">⚠ 与管理服务的连接中断。下面显示的是 <b>10:46:12</b> 的状态，可能已过期；操作已暂时禁用。</div>
+    <div class="head"><div class="t"><h1>order-service <span class="badge"><span class="st unknown"></span>状态未知</span></h1><div class="path">~/Project/order-service</div></div>
+      <div class="acts"><button class="b" disabled>▶ 启动</button><button class="b" disabled>■ 停止</button><button class="b" disabled>↻ 重启</button><button class="b">⚙ 配置</button><button class="b">⋯</button></div></div>
+    <div class="res"><span>CPU <span class="val">132.4%</span></span><span>内存 <span class="val">1.21 GiB</span></span><span class="tag" style="color:var(--text-3)">已过期 · 10:46:12</span></div>
+    <section class="logs">${logTool(['后端', '前端'], RUNS)}
+      <div class="lbody">${logs(LOG_BACK.slice(0, 9))}</div>
+      <div class="lfoot"><span class="w">日志流已断开，重连后从第 12,304 行续接</span></div>
+    </section>
+  </main>`,
+};
+S.drawer = S.multi;
+
+const win = document.getElementById('win');
+function show(name) {
+  win.innerHTML = S[name]();
+  document.body.classList.toggle('show-drawer', name === 'drawer');
+  document.querySelectorAll('.switcher button[data-s]').forEach(b => b.classList.toggle('on', b.dataset.s === name));
+}
+document.querySelectorAll('.switcher button[data-s]').forEach(b => b.onclick = () => show(b.dataset.s));
+document.querySelector('.scrim').onclick = () => show('multi');
+document.getElementById('theme').onclick = () => {
+  const r = document.documentElement;
+  const dark = r.dataset.theme ? r.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  r.dataset.theme = dark ? 'light' : 'dark';
+};
+show('multi');
+</script>
+</body>
+</html>

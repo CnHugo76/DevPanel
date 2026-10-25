@@ -1,0 +1,77 @@
+{
+  "source": [
+    {
+      "seq": 1,
+      "ts": "2026-10-22T00:00:00.000Z",
+      "stream": "err",
+      "text": "Traceback (most recent call last):"
+    },
+    {
+      "seq": 2,
+      "ts": "2026-10-22T00:00:00.000Z",
+      "stream": "err",
+      "text": "  File \"x.py\", line 1"
+    },
+    {
+      "seq": 3,
+      "ts": "2026-10-22T00:00:00.000Z",
+      "stream": "err",
+      "text": "    raise ValueError()"
+    },
+    {
+      "seq": 4,
+      "ts": "2026-10-22T00:00:00.000Z",
+      "stream": "err",
+      "text": "ValueError: bad 1"
+    },
+    {
+      "seq": 5,
+      "ts": "2026-10-22T00:00:00.000Z",
+      "stream": "err",
+      "text": "Traceback (most recent call last):"
+    },
+    {
+      "seq": 6,
+      "ts": "2026-10-22T00:00:00.000Z",
+      "stream": "err",
+      "text": "  File \"y.py\", line 2"
+    },
+    {
+      "seq": 7,
+      "ts": "2026-10-22T00:00:00.000Z",
+      "stream": "err",
+      "text": "    raise TypeError()"
+    },
+    {
+      "seq": 8,
+      "ts": "2026-10-22T00:00:00.000Z",
+      "stream": "err",
+      "text": "TypeError: other"
+    },
+    {
+      "seq": 9,
+      "ts": "2026-10-22T00:00:00.000Z",
+      "stream": "err",
+      "text": "Traceback (most recent call last):"
+    },
+    {
+      "seq": 10,
+      "ts": "2026-10-22T00:00:00.000Z",
+      "stream": "err",
+      "text": "  File \"x.py\", line 3"
+    },
+    {
+      "seq": 11,
+      "ts": "2026-10-22T00:00:00.000Z",
+      "stream": "err",
+      "text": "    raise ValueError()"
+    },
+    {
+      "seq": 12,
+      "ts": "2026-10-22T00:00:00.000Z",
+      "stream": "err",
+      "text": "ValueError: bad 9"
+    }
+  ],
+  "params": ""
+}

@@ -1,0 +1,24 @@
+[digest r_python · 行 1–12 · 错误块 2，省略 0 · 省略 0 字节]
+── ERROR ×2 · 行 1，最后 9 ──
+1 E Traceback (most recent call last):
+2 E   File "x.py", line 1
+3 E     raise ValueError()
+4 E ValueError: bad 1
+── ERROR ×1 · 行 5，最后 5 ──
+5 E Traceback (most recent call last):
+6 E   File "y.py", line 2
+7 E     raise TypeError()
+8 E TypeError: other
+── 末尾 12 行 ──
+1 E Traceback (most recent call last):
+2 E   File "x.py", line 1
+3 E     raise ValueError()
+4 E ValueError: bad 1
+5 E Traceback (most recent call last):
+6 E   File "y.py", line 2
+7 E     raise TypeError()
+8 E TypeError: other
+9 E Traceback (most recent call last):
+10 E   File "x.py", line 3
+11 E     raise ValueError()
+12 E ValueError: bad 9

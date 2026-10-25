@@ -1,0 +1,370 @@
+{
+  "type": "snapshot",
+  "daemon": {
+    "version": "0.1.0-mock",
+    "apiVersion": 1,
+    "pid": 2355,
+    "startedAt": "2026-10-20T10:11:57.250Z",
+    "home": "/tmp/devpanel-fixture/mockhome",
+    "limits": {
+      "logBytesPerRun": 33554432,
+      "runsKeptPerService": 3,
+      "logBytesGlobal": 1073741824,
+      "logLineMaxBytes": 65536,
+      "logPageMaxLines": 2000,
+      "statsIntervalMs": 2000,
+      "startGraceMs": 1000,
+      "defaultStopTimeoutSec": 10
+    },
+    "self": {
+      "status": "ok",
+      "sampledAt": "2026-10-20T10:12:45.290Z",
+      "cpuPercent": 0.1,
+      "rssBytes": 31932416,
+      "processCount": 1
+    }
+  },
+  "projects": [
+    {
+      "id": "p_ordersvc2a",
+      "name": "order-service",
+      "root": "/Users/demo/Project/order-service",
+      "revision": 3,
+      "aggregate": "running",
+      "runningCount": 2,
+      "serviceCount": 2,
+      "services": [
+        {
+          "id": "backend",
+          "name": "后端",
+          "state": "running",
+          "stateSince": "2026-10-20T08:59:58.250Z",
+          "currentRun": {
+            "id": "r_01M5C8KVY2MVHJ6CD31E4V4RBW",
+            "projectId": "p_ordersvc2a",
+            "serviceId": "backend",
+            "configRevision": 2,
+            "startedAt": "2026-10-20T08:59:57.250Z",
+            "endedAt": null,
+            "pid": 35494,
+            "state": "running",
+            "exit": null
+          },
+          "lastRun": {
+            "id": "r_01M5C8KVY2MVHJ6CD31E4V4RBW",
+            "projectId": "p_ordersvc2a",
+            "serviceId": "backend",
+            "configRevision": 2,
+            "startedAt": "2026-10-20T08:59:57.250Z",
+            "endedAt": null,
+            "pid": 35494,
+            "state": "running",
+            "exit": null
+          },
+          "stopTimedOut": false,
+          "pendingOperationId": null,
+          "configChangedSinceStart": true,
+          "error": null
+        },
+        {
+          "id": "frontend",
+          "name": "前端",
+          "state": "running",
+          "stateSince": "2026-10-20T09:00:02.250Z",
+          "currentRun": {
+            "id": "r_01M5C8KZV2N4KWXK6XMY9E4G58",
+            "projectId": "p_ordersvc2a",
+            "serviceId": "frontend",
+            "configRevision": 2,
+            "startedAt": "2026-10-20T09:00:01.250Z",
+            "endedAt": null,
+            "pid": 62569,
+            "state": "running",
+            "exit": null
+          },
+          "lastRun": {
+            "id": "r_01M5C8KZV2N4KWXK6XMY9E4G58",
+            "projectId": "p_ordersvc2a",
+            "serviceId": "frontend",
+            "configRevision": 2,
+            "startedAt": "2026-10-20T09:00:01.250Z",
+            "endedAt": null,
+            "pid": 62569,
+            "state": "running",
+            "exit": null
+          },
+          "stopTimedOut": false,
+          "pendingOperationId": null,
+          "configChangedSinceStart": false,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "p_webadmin22",
+      "name": "web-admin",
+      "root": "/Users/demo/Project/web-admin",
+      "revision": 1,
+      "aggregate": "running",
+      "runningCount": 1,
+      "serviceCount": 1,
+      "services": [
+        {
+          "id": "web",
+          "name": "web-admin",
+          "state": "running",
+          "stateSince": "2026-10-20T09:45:58.250Z",
+          "currentRun": {
+            "id": "r_01M5CB838203SMGG4DC396S2TA",
+            "projectId": "p_webadmin22",
+            "serviceId": "web",
+            "configRevision": 1,
+            "startedAt": "2026-10-20T09:45:57.250Z",
+            "endedAt": null,
+            "pid": 30371,
+            "state": "running",
+            "exit": null
+          },
+          "lastRun": {
+            "id": "r_01M5CB838203SMGG4DC396S2TA",
+            "projectId": "p_webadmin22",
+            "serviceId": "web",
+            "configRevision": 1,
+            "startedAt": "2026-10-20T09:45:57.250Z",
+            "endedAt": null,
+            "pid": 30371,
+            "state": "running",
+            "exit": null
+          },
+          "stopTimedOut": false,
+          "pendingOperationId": null,
+          "configChangedSinceStart": false,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "p_mlapi22222",
+      "name": "ml-api",
+      "root": "/Users/demo/Project/ml-api",
+      "revision": 1,
+      "aggregate": "idle",
+      "runningCount": 0,
+      "serviceCount": 1,
+      "services": [
+        {
+          "id": "api",
+          "name": "ml-api",
+          "state": "idle",
+          "stateSince": null,
+          "currentRun": null,
+          "lastRun": null,
+          "stopTimedOut": false,
+          "pendingOperationId": null,
+          "configChangedSinceStart": false,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "p_archorder2",
+      "name": "order-service",
+      "root": "/Users/demo/Project/archive/order-service",
+      "revision": 2,
+      "aggregate": "failed",
+      "runningCount": 0,
+      "serviceCount": 1,
+      "services": [
+        {
+          "id": "backend",
+          "name": "order-service",
+          "state": "failed",
+          "stateSince": "2026-10-20T08:12:03.250Z",
+          "currentRun": null,
+          "lastRun": {
+            "id": "r_01M5C5VZE24B4QKEBK4WDEA2ZC",
+            "projectId": "p_archorder2",
+            "serviceId": "backend",
+            "configRevision": 2,
+            "startedAt": "2026-10-20T08:11:57.250Z",
+            "endedAt": "2026-10-20T08:12:03.250Z",
+            "pid": 69309,
+            "state": "failed",
+            "exit": {
+              "reason": "self-exit",
+              "code": 1,
+              "signal": null,
+              "at": "2026-10-20T08:12:03.250Z"
+            }
+          },
+          "stopTimedOut": false,
+          "pendingOperationId": null,
+          "configChangedSinceStart": false,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "p_docssite22",
+      "name": "docs-site",
+      "root": "/Users/demo/Project/docs-site",
+      "revision": 1,
+      "aggregate": "stopped",
+      "runningCount": 0,
+      "serviceCount": 1,
+      "services": [
+        {
+          "id": "docs",
+          "name": "docs-site",
+          "state": "exited",
+          "stateSince": "2026-10-20T07:51:57.250Z",
+          "currentRun": null,
+          "lastRun": {
+            "id": "r_01M5C2E3T2KZCGF9693R603W9M",
+            "projectId": "p_docssite22",
+            "serviceId": "docs",
+            "configRevision": 1,
+            "startedAt": "2026-10-20T07:11:57.250Z",
+            "endedAt": "2026-10-20T07:51:57.250Z",
+            "pid": 54520,
+            "state": "exited",
+            "exit": {
+              "reason": "self-exit",
+              "code": 0,
+              "signal": null,
+              "at": "2026-10-20T07:51:57.250Z"
+            }
+          },
+          "stopTimedOut": false,
+          "pendingOperationId": null,
+          "configChangedSinceStart": false,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "p_shopportal",
+      "name": "shop-portal",
+      "root": "/Users/demo/Project/shop-portal",
+      "revision": 1,
+      "aggregate": "idle",
+      "runningCount": 0,
+      "serviceCount": 2,
+      "services": [
+        {
+          "id": "api",
+          "name": "接口",
+          "state": "idle",
+          "stateSince": null,
+          "currentRun": null,
+          "lastRun": null,
+          "stopTimedOut": false,
+          "pendingOperationId": null,
+          "configChangedSinceStart": false,
+          "error": null
+        },
+        {
+          "id": "web",
+          "name": "前端",
+          "state": "idle",
+          "stateSince": null,
+          "currentRun": null,
+          "lastRun": null,
+          "stopTimedOut": false,
+          "pendingOperationId": null,
+          "configChangedSinceStart": false,
+          "error": null
+        }
+      ]
+    }
+  ],
+  "operations": [],
+  "stats": {
+    "sampledAt": "2026-10-20T10:12:45.290Z",
+    "intervalMs": 2000,
+    "projects": {
+      "p_ordersvc2a": {
+        "total": {
+          "status": "ok",
+          "sampledAt": "2026-10-20T10:12:45.290Z",
+          "cpuPercent": 140.8,
+          "rssBytes": 1517657136,
+          "processCount": 6
+        },
+        "services": {
+          "backend": {
+            "runId": "r_01M5C8KVY2MVHJ6CD31E4V4RBW",
+            "status": "ok",
+            "sampledAt": "2026-10-20T10:12:45.290Z",
+            "cpuPercent": 135.4,
+            "rssBytes": 1078662271,
+            "processCount": 4,
+            "listening": [
+              {
+                "port": 8081,
+                "address": "127.0.0.1",
+                "family": "ipv4",
+                "scope": "loopback",
+                "pid": 35501
+              },
+              {
+                "port": 35729,
+                "address": "0.0.0.0",
+                "family": "ipv4",
+                "scope": "all",
+                "pid": 35501
+              }
+            ]
+          },
+          "frontend": {
+            "runId": "r_01M5C8KZV2N4KWXK6XMY9E4G58",
+            "status": "ok",
+            "sampledAt": "2026-10-20T10:12:45.290Z",
+            "cpuPercent": 5.4,
+            "rssBytes": 438994865,
+            "processCount": 2,
+            "listening": [
+              {
+                "port": 3000,
+                "address": "::",
+                "family": "ipv6",
+                "scope": "all",
+                "pid": 62587
+              }
+            ]
+          }
+        }
+      },
+      "p_webadmin22": {
+        "total": {
+          "status": "partial",
+          "sampledAt": "2026-10-20T10:12:45.290Z",
+          "cpuPercent": 0.3,
+          "rssBytes": 196296888,
+          "processCount": 3,
+          "note": "部分进程无法读取，合计偏低"
+        },
+        "services": {
+          "web": {
+            "runId": "r_01M5CB838203SMGG4DC396S2TA",
+            "status": "partial",
+            "sampledAt": "2026-10-20T10:12:45.290Z",
+            "cpuPercent": 0.3,
+            "rssBytes": 196296888,
+            "processCount": 3,
+            "note": "3 个进程中有 1 个无法读取（权限不足或已退出），数值偏低",
+            "listening": [
+              {
+                "port": 5173,
+                "address": "::1",
+                "family": "ipv6",
+                "scope": "loopback",
+                "pid": 30378
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

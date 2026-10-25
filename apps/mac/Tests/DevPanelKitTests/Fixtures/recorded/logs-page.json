@@ -1,0 +1,41 @@
+{
+  "runId": "r_01M5C8KVY2MVHJ6CD31E4V4RBW",
+  "lines": [
+    {
+      "seq": 3364,
+      "ts": "2026-10-20T10:12:44.342Z",
+      "stream": "out",
+      "text": "\u001b[2m2026-10-20T18:12:44.342+08:00\u001b[0m  \u001b[32m INFO\u001b[0m \u001b[35m35501\u001b[0m \u001b[2m---\u001b[0m \u001b[2m[nio-8081-exec-2]\u001b[0m \u001b[36mc.e.order.web.OrderController           \u001b[0m \u001b[2m:\u001b[0m GET /api/orders?page=1 200 57ms"
+    },
+    {
+      "seq": 3365,
+      "ts": "2026-10-20T10:12:45.220Z",
+      "stream": "out",
+      "text": "\u001b[2m2026-10-20T18:12:45.220+08:00\u001b[0m  \u001b[32m INFO\u001b[0m \u001b[35m35501\u001b[0m \u001b[2m---\u001b[0m \u001b[2m[nio-8081-exec-1]\u001b[0m \u001b[36mc.e.order.web.OrderController           \u001b[0m \u001b[2m:\u001b[0m PUT /api/orders/1832 200 56ms"
+    },
+    {
+      "seq": 3366,
+      "ts": "2026-10-20T10:12:45.928Z",
+      "stream": "err",
+      "text": "\u001b[2m2026-10-20T18:12:45.928+08:00\u001b[0m  \u001b[33m WARN\u001b[0m \u001b[35m35501\u001b[0m \u001b[2m---\u001b[0m \u001b[2m[nio-8081-exec-4]\u001b[0m \u001b[36mo.s.web.servlet.PageNotFound            \u001b[0m \u001b[2m:\u001b[0m No mapping for GET /favicon.ico"
+    },
+    {
+      "seq": 3367,
+      "ts": "2026-10-20T10:12:46.706Z",
+      "stream": "out",
+      "text": "\u001b[2m2026-10-20T18:12:46.706+08:00\u001b[0m  \u001b[32m INFO\u001b[0m \u001b[35m35501\u001b[0m \u001b[2m---\u001b[0m \u001b[2m[nio-8081-exec-2]\u001b[0m \u001b[36mc.e.order.web.OrderController           \u001b[0m \u001b[2m:\u001b[0m POST /api/orders?page=1 201 22ms"
+    },
+    {
+      "seq": 3368,
+      "ts": "2026-10-20T10:12:47.685Z",
+      "stream": "out",
+      "text": "\u001b[2m2026-10-20T18:12:47.685+08:00\u001b[0m  \u001b[32m INFO\u001b[0m \u001b[35m35501\u001b[0m \u001b[2m---\u001b[0m \u001b[2m[nio-8081-exec-6]\u001b[0m \u001b[36mc.e.order.web.OrderController           \u001b[0m \u001b[2m:\u001b[0m PUT /api/orders?status=PAID 200 49ms"
+    }
+  ],
+  "firstSeq": 1,
+  "lastSeq": 3368,
+  "truncated": false,
+  "hasMoreBefore": true,
+  "hasMoreAfter": false,
+  "runEnded": false
+}

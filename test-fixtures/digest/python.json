@@ -1,0 +1,142 @@
+{
+  "runId": "r_python",
+  "afterSeq": null,
+  "lastSeq": 12,
+  "scannedLines": 12,
+  "errorBlocks": 2,
+  "blocks": [
+    {
+      "kind": "error",
+      "firstSeq": 1,
+      "lastSeq": 4,
+      "occurrences": 2,
+      "lastOccurrenceSeq": 9,
+      "lines": [
+        {
+          "seq": 1,
+          "stream": "err",
+          "text": "Traceback (most recent call last):"
+        },
+        {
+          "seq": 2,
+          "stream": "err",
+          "text": "  File \"x.py\", line 1"
+        },
+        {
+          "seq": 3,
+          "stream": "err",
+          "text": "    raise ValueError()"
+        },
+        {
+          "seq": 4,
+          "stream": "err",
+          "text": "ValueError: bad 1"
+        }
+      ]
+    },
+    {
+      "kind": "error",
+      "firstSeq": 5,
+      "lastSeq": 8,
+      "occurrences": 1,
+      "lastOccurrenceSeq": 5,
+      "lines": [
+        {
+          "seq": 5,
+          "stream": "err",
+          "text": "Traceback (most recent call last):"
+        },
+        {
+          "seq": 6,
+          "stream": "err",
+          "text": "  File \"y.py\", line 2"
+        },
+        {
+          "seq": 7,
+          "stream": "err",
+          "text": "    raise TypeError()"
+        },
+        {
+          "seq": 8,
+          "stream": "err",
+          "text": "TypeError: other"
+        }
+      ]
+    },
+    {
+      "kind": "tail",
+      "firstSeq": 1,
+      "lastSeq": 12,
+      "occurrences": 1,
+      "lastOccurrenceSeq": 1,
+      "lines": [
+        {
+          "seq": 1,
+          "stream": "err",
+          "text": "Traceback (most recent call last):"
+        },
+        {
+          "seq": 2,
+          "stream": "err",
+          "text": "  File \"x.py\", line 1"
+        },
+        {
+          "seq": 3,
+          "stream": "err",
+          "text": "    raise ValueError()"
+        },
+        {
+          "seq": 4,
+          "stream": "err",
+          "text": "ValueError: bad 1"
+        },
+        {
+          "seq": 5,
+          "stream": "err",
+          "text": "Traceback (most recent call last):"
+        },
+        {
+          "seq": 6,
+          "stream": "err",
+          "text": "  File \"y.py\", line 2"
+        },
+        {
+          "seq": 7,
+          "stream": "err",
+          "text": "    raise TypeError()"
+        },
+        {
+          "seq": 8,
+          "stream": "err",
+          "text": "TypeError: other"
+        },
+        {
+          "seq": 9,
+          "stream": "err",
+          "text": "Traceback (most recent call last):"
+        },
+        {
+          "seq": 10,
+          "stream": "err",
+          "text": "  File \"x.py\", line 3"
+        },
+        {
+          "seq": 11,
+          "stream": "err",
+          "text": "    raise ValueError()"
+        },
+        {
+          "seq": 12,
+          "stream": "err",
+          "text": "ValueError: bad 9"
+        }
+      ]
+    }
+  ],
+  "omitted": {
+    "errorBlocks": 0,
+    "bytes": 0
+  },
+  "truncated": false,
+  "runEnded": true
+}

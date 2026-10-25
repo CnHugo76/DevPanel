@@ -1,0 +1,98 @@
+{
+  "created": true,
+  "project": {
+    "id": "p_jfntr2jtjj",
+    "revision": 1,
+    "createdAt": "2026-10-20T10:21:51.534Z",
+    "updatedAt": "2026-10-20T10:21:51.534Z",
+    "config": {
+      "schemaVersion": 1,
+      "name": "fixture",
+      "root": "/tmp/devpanel-fixture/proj",
+      "env": {
+        "TOKEN": {
+          "secret": true
+        },
+        "MODE": "${mode}"
+      },
+      "services": [
+        {
+          "id": "app",
+          "name": "应用",
+          "cwd": "app",
+          "command": [
+            "sleep",
+            "${secs}"
+          ]
+        }
+      ],
+      "params": [
+        {
+          "key": "secs",
+          "label": "秒数",
+          "type": "number",
+          "value": 300,
+          "min": 1,
+          "max": 3600,
+          "description": "sleep 时长",
+          "setBy": "agent",
+          "valueUpdatedAt": "2026-10-20T10:21:51.533Z",
+          "describedBy": "agent",
+          "usedBy": [
+            {
+              "serviceId": "app",
+              "where": "command",
+              "index": 1
+            }
+          ]
+        },
+        {
+          "key": "mode",
+          "label": "模式",
+          "type": "enum",
+          "value": "a",
+          "choices": [
+            {
+              "value": "a",
+              "label": "A",
+              "description": "甲"
+            },
+            {
+              "value": "b"
+            }
+          ],
+          "setBy": "agent",
+          "valueUpdatedAt": "2026-10-20T10:21:51.533Z",
+          "describedBy": "agent",
+          "usedBy": [
+            {
+              "serviceId": "*",
+              "where": "env",
+              "envKey": "MODE"
+            }
+          ]
+        },
+        {
+          "key": "flag",
+          "label": "开关",
+          "type": "boolean",
+          "value": true,
+          "setBy": "agent",
+          "valueUpdatedAt": "2026-10-20T10:21:51.533Z",
+          "describedBy": "agent",
+          "usedBy": []
+        },
+        {
+          "key": "tok",
+          "label": "令牌",
+          "type": "string",
+          "secret": true,
+          "setBy": "agent",
+          "valueUpdatedAt": "2026-10-20T10:21:51.533Z",
+          "describedBy": "agent",
+          "usedBy": []
+        }
+      ]
+    }
+  }
+}

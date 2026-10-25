@@ -1,0 +1,39 @@
+{
+  "runId": "r_no-errors",
+  "afterSeq": null,
+  "lastSeq": 3,
+  "scannedLines": 3,
+  "errorBlocks": 0,
+  "blocks": [
+    {
+      "kind": "tail",
+      "firstSeq": 1,
+      "lastSeq": 3,
+      "occurrences": 1,
+      "lastOccurrenceSeq": 1,
+      "lines": [
+        {
+          "seq": 1,
+          "stream": "out",
+          "text": "starting"
+        },
+        {
+          "seq": 2,
+          "stream": "out",
+          "text": "ready"
+        },
+        {
+          "seq": 3,
+          "stream": "out",
+          "text": "done"
+        }
+      ]
+    }
+  ],
+  "omitted": {
+    "errorBlocks": 0,
+    "bytes": 0
+  },
+  "truncated": false,
+  "runEnded": true
+}

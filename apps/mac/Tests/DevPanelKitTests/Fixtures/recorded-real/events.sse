@@ -1,0 +1,42 @@
+event: snapshot
+data: {"type":"snapshot","daemon":{"version":"0.1.0","apiVersion":1,"pid":6407,"startedAt":"2026-10-20T10:21:36.241Z","home":"/tmp/devpanel-fixture","limits":{"logBytesPerRun":33554432,"runsKeptPerService":3,"logBytesGlobal":1073741824,"logLineMaxBytes":65536,"logPageMaxLines":2000,"statsIntervalMs":2000,"startGraceMs":1000,"defaultStopTimeoutSec":10},"self":{"status":"ok","sampledAt":"2026-10-20T10:21:50.253Z","cpuPercent":0.10294156776144278,"rssBytes":41025536,"processCount":1}},"projects":[{"id":"p_jfntr2jtjj","name":"fixture","root":"/tmp/devpanel-fixture/proj","revision":2,"aggregate":"idle","runningCount":0,"serviceCount":1,"services":[{"id":"app","name":"应用","state":"idle","stateSince":null,"currentRun":null,"lastRun":null,"stopTimedOut":false,"pendingOperationId":null,"configChangedSinceStart":false,"error":null}]}],"operations":[],"stats":null}
+
+event: operation
+data: {"type":"operation","operation":{"id":"op_01M5CD9VKK1YW39D1QAPDZKYZA","projectId":"p_jfntr2jtjj","action":"start","serviceIds":["app"],"source":"ui","state":"queued","createdAt":"2026-10-20T10:21:52.115Z","finishedAt":null,"results":[{"serviceId":"app","outcome":"pending","runId":null,"error":null}],"cancelledBy":null}}
+
+event: project.upsert
+data: {"type":"project.upsert","project":{"id":"p_jfntr2jtjj","name":"fixture","root":"/tmp/devpanel-fixture/proj","revision":2,"aggregate":"idle","runningCount":0,"serviceCount":1,"services":[{"id":"app","name":"应用","state":"idle","stateSince":null,"currentRun":null,"lastRun":null,"stopTimedOut":false,"pendingOperationId":"op_01M5CD9VKK1YW39D1QAPDZKYZA","configChangedSinceStart":false,"error":null}]}}
+
+event: operation
+data: {"type":"operation","operation":{"id":"op_01M5CD9VKK1YW39D1QAPDZKYZA","projectId":"p_jfntr2jtjj","action":"start","serviceIds":["app"],"source":"ui","state":"running","createdAt":"2026-10-20T10:21:52.115Z","finishedAt":null,"results":[{"serviceId":"app","outcome":"pending","runId":null,"error":null}],"cancelledBy":null}}
+
+event: project.upsert
+data: {"type":"project.upsert","project":{"id":"p_jfntr2jtjj","name":"fixture","root":"/tmp/devpanel-fixture/proj","revision":2,"aggregate":"idle","runningCount":0,"serviceCount":1,"services":[{"id":"app","name":"应用","state":"idle","stateSince":null,"currentRun":null,"lastRun":null,"stopTimedOut":false,"pendingOperationId":"op_01M5CD9VKK1YW39D1QAPDZKYZA","configChangedSinceStart":false,"error":null}]}}
+
+event: project.upsert
+data: {"type":"project.upsert","project":{"id":"p_jfntr2jtjj","name":"fixture","root":"/tmp/devpanel-fixture/proj","revision":2,"aggregate":"transition","runningCount":0,"serviceCount":1,"services":[{"id":"app","name":"应用","state":"starting","stateSince":"2026-10-20T10:21:52.116Z","currentRun":{"id":"r_01M5CD9VKM6RCQWCWMRA820017","projectId":"p_jfntr2jtjj","serviceId":"app","configRevision":2,"startedAt":"2026-10-20T10:21:52.116Z","endedAt":null,"pid":null,"state":"starting","exit":null},"lastRun":{"id":"r_01M5CD9VKM6RCQWCWMRA820017","projectId":"p_jfntr2jtjj","serviceId":"app","configRevision":2,"startedAt":"2026-10-20T10:21:52.116Z","endedAt":null,"pid":null,"state":"starting","exit":null},"stopTimedOut":false,"pendingOperationId":"op_01M5CD9VKK1YW39D1QAPDZKYZA","configChangedSinceStart":false,"error":null}]}}
+
+event: stats
+data: {"type":"stats","stats":{"sampledAt":"2026-10-20T10:21:52.480Z","intervalMs":2000,"projects":{"p_jfntr2jtjj":{"total":{"status":"sampling","sampledAt":"2026-10-20T10:21:52.480Z","cpuPercent":null,"rssBytes":1081344,"processCount":1},"services":{"app":{"status":"sampling","sampledAt":"2026-10-20T10:21:52.480Z","cpuPercent":null,"rssBytes":1081344,"processCount":1,"runId":"r_01M5CD9VKM6RCQWCWMRA820017","listening":[]}}}}}}
+
+event: project.upsert
+data: {"type":"project.upsert","project":{"id":"p_jfntr2jtjj","name":"fixture","root":"/tmp/devpanel-fixture/proj","revision":2,"aggregate":"running","runningCount":1,"serviceCount":1,"services":[{"id":"app","name":"应用","state":"running","stateSince":"2026-10-20T10:21:53.237Z","currentRun":{"id":"r_01M5CD9VKM6RCQWCWMRA820017","projectId":"p_jfntr2jtjj","serviceId":"app","configRevision":2,"startedAt":"2026-10-20T10:21:52.116Z","endedAt":null,"pid":6507,"state":"running","exit":null},"lastRun":{"id":"r_01M5CD9VKM6RCQWCWMRA820017","projectId":"p_jfntr2jtjj","serviceId":"app","configRevision":2,"startedAt":"2026-10-20T10:21:52.116Z","endedAt":null,"pid":6507,"state":"running","exit":null},"stopTimedOut":false,"pendingOperationId":null,"configChangedSinceStart":false,"error":null}]}}
+
+event: project.upsert
+data: {"type":"project.upsert","project":{"id":"p_jfntr2jtjj","name":"fixture","root":"/tmp/devpanel-fixture/proj","revision":2,"aggregate":"running","runningCount":1,"serviceCount":1,"services":[{"id":"app","name":"应用","state":"running","stateSince":"2026-10-20T10:21:53.237Z","currentRun":{"id":"r_01M5CD9VKM6RCQWCWMRA820017","projectId":"p_jfntr2jtjj","serviceId":"app","configRevision":2,"startedAt":"2026-10-20T10:21:52.116Z","endedAt":null,"pid":6507,"state":"running","exit":null},"lastRun":{"id":"r_01M5CD9VKM6RCQWCWMRA820017","projectId":"p_jfntr2jtjj","serviceId":"app","configRevision":2,"startedAt":"2026-10-20T10:21:52.116Z","endedAt":null,"pid":6507,"state":"running","exit":null},"stopTimedOut":false,"pendingOperationId":null,"configChangedSinceStart":false,"error":null}]}}
+
+event: operation
+data: {"type":"operation","operation":{"id":"op_01M5CD9VKK1YW39D1QAPDZKYZA","projectId":"p_jfntr2jtjj","action":"start","serviceIds":["app"],"source":"ui","state":"succeeded","createdAt":"2026-10-20T10:21:52.115Z","finishedAt":"2026-10-20T10:21:53.238Z","results":[{"serviceId":"app","outcome":"started","runId":"r_01M5CD9VKM6RCQWCWMRA820017","error":null}],"cancelledBy":null}}
+
+event: project.upsert
+data: {"type":"project.upsert","project":{"id":"p_jfntr2jtjj","name":"fixture","root":"/tmp/devpanel-fixture/proj","revision":2,"aggregate":"running","runningCount":1,"serviceCount":1,"services":[{"id":"app","name":"应用","state":"running","stateSince":"2026-10-20T10:21:53.237Z","currentRun":{"id":"r_01M5CD9VKM6RCQWCWMRA820017","projectId":"p_jfntr2jtjj","serviceId":"app","configRevision":2,"startedAt":"2026-10-20T10:21:52.116Z","endedAt":null,"pid":6507,"state":"running","exit":null},"lastRun":{"id":"r_01M5CD9VKM6RCQWCWMRA820017","projectId":"p_jfntr2jtjj","serviceId":"app","configRevision":2,"startedAt":"2026-10-20T10:21:52.116Z","endedAt":null,"pid":6507,"state":"running","exit":null},"stopTimedOut":false,"pendingOperationId":null,"configChangedSinceStart":false,"error":null}]}}
+
+event: stats
+data: {"type":"stats","stats":{"sampledAt":"2026-10-20T10:21:54.742Z","intervalMs":2000,"projects":{"p_jfntr2jtjj":{"total":{"status":"ok","sampledAt":"2026-10-20T10:21:54.742Z","cpuPercent":0,"rssBytes":1081344,"processCount":1},"services":{"app":{"status":"ok","sampledAt":"2026-10-20T10:21:54.742Z","cpuPercent":0,"rssBytes":1081344,"processCount":1,"runId":"r_01M5CD9VKM6RCQWCWMRA820017","listening":[]}}}}}}
+
+event: stats
+data: {"type":"stats","stats":{"sampledAt":"2026-10-20T10:21:56.812Z","intervalMs":2000,"projects":{"p_jfntr2jtjj":{"total":{"status":"ok","sampledAt":"2026-10-20T10:21:56.812Z","cpuPercent":0,"rssBytes":229376,"processCount":1},"services":{"app":{"status":"ok","sampledAt":"2026-10-20T10:21:56.812Z","cpuPercent":0,"rssBytes":229376,"processCount":1,"runId":"r_01M5CD9VKM6RCQWCWMRA820017","listening":[]}}}}}}
+
+event: stats
+data: {"type":"stats","stats":{"sampledAt":"2026-10-20T10:21:59.625Z","intervalMs":2000,"projects":{"p_jfntr2jtjj":{"total":{"status":"ok","sampledAt":"2026-10-20T10:21:59.625Z","cpuPercent":0,"rssBytes":229376,"processCount":1},"services":{"app":{"status":"ok","sampledAt":"2026-10-20T10:21:59.625Z","cpuPercent":0,"rssBytes":229376,"processCount":1,"runId":"r_01M5CD9VKM6RCQWCWMRA820017","listening":[]}}}}}}
+

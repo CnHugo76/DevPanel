@@ -1,0 +1,27 @@
+{
+  "ok": true,
+  "issues": [
+    {
+      "path": "params[2]",
+      "message": "选项未被引用",
+      "code": "WARN_PARAM_UNUSED",
+      "severity": "warning"
+    },
+    {
+      "path": "params[3]",
+      "message": "选项未被引用",
+      "code": "WARN_PARAM_UNUSED",
+      "severity": "warning"
+    }
+  ],
+  "services": [
+    {
+      "serviceId": "app",
+      "cwdAbs": "/tmp/devpanel-fixture/proj/app",
+      "cwdExists": true,
+      "program": "sleep",
+      "programResolved": "/bin/sleep",
+      "pathUsed": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+    }
+  ]
+}

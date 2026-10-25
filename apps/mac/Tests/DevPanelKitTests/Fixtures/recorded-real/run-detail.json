@@ -1,0 +1,44 @@
+{
+  "id": "r_01M5CD9VKM6RCQWCWMRA820017",
+  "projectId": "p_jfntr2jtjj",
+  "serviceId": "app",
+  "configRevision": 2,
+  "startedAt": "2026-10-20T10:21:52.116Z",
+  "endedAt": null,
+  "pid": 6507,
+  "state": "running",
+  "exit": null,
+  "command": [
+    "sleep",
+    "600"
+  ],
+  "params": {
+    "secs": 600,
+    "mode": "a"
+  },
+  "cwd": "/tmp/devpanel-fixture/proj/app",
+  "envKeys": [
+    "HOME",
+    "USER",
+    "LOGNAME",
+    "SHELL",
+    "TMPDIR",
+    "PATH",
+    "TOKEN",
+    "MODE"
+  ],
+  "log": {
+    "firstSeq": 1,
+    "lastSeq": 1,
+    "bytes": 140,
+    "truncated": false
+  },
+  "processes": [
+    {
+      "pid": 6507,
+      "ppid": 6407,
+      "startedAt": "2026-10-20T10:21:52.000Z",
+      "command": "sleep"
+    }
+  ]
+}

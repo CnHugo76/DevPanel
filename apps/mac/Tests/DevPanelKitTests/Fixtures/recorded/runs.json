@@ -1,0 +1,45 @@
+[
+  {
+    "id": "r_01M5C8KVY2MVHJ6CD31E4V4RBW",
+    "projectId": "p_ordersvc2a",
+    "serviceId": "backend",
+    "configRevision": 2,
+    "startedAt": "2026-10-20T08:59:57.250Z",
+    "endedAt": null,
+    "pid": 35494,
+    "state": "running",
+    "exit": null
+  },
+  {
+    "id": "r_01M5C3JQP2HG8V2PPJV26N6V6M",
+    "projectId": "p_ordersvc2a",
+    "serviceId": "backend",
+    "configRevision": 2,
+    "startedAt": "2026-10-20T07:31:57.250Z",
+    "endedAt": "2026-10-20T08:58:57.250Z",
+    "pid": 39464,
+    "state": "stopped",
+    "exit": {
+      "reason": "user-stop",
+      "code": null,
+      "signal": "SIGTERM",
+      "at": "2026-10-20T08:58:57.250Z"
+    }
+  },
+  {
+    "id": "r_01M5AJC122B7BSY1BM2ZXKYPF9",
+    "projectId": "p_ordersvc2a",
+    "serviceId": "backend",
+    "configRevision": 1,
+    "startedAt": "2026-10-19T17:11:57.250Z",
+    "endedAt": "2026-10-19T18:39:57.250Z",
+    "pid": 72282,
+    "state": "failed",
+    "exit": {
+      "reason": "self-exit",
+      "code": 1,
+      "signal": null,
+      "at": "2026-10-19T18:39:57.250Z"
+    }
+  }
+]

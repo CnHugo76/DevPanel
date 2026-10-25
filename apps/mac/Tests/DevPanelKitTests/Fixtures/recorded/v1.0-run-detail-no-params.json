@@ -1,0 +1,53 @@
+{
+  "id": "r_01M5C7WJ6Q7HV1VV0FTMZTWPVA",
+  "projectId": "p_ordersvc2a",
+  "serviceId": "backend",
+  "configRevision": 2,
+  "startedAt": "2026-10-20T08:47:13.623Z",
+  "endedAt": null,
+  "pid": 76177,
+  "state": "running",
+  "exit": null,
+  "command": [
+    "./mvnw",
+    "spring-boot:run",
+    "-Dspring-boot.run.profiles=dev"
+  ],
+  "cwd": "/Users/demo/Project/order-service/backend",
+  "envKeys": [
+    "JAVA_HOME",
+    "DB_PASSWORD"
+  ],
+  "log": {
+    "firstSeq": 1,
+    "lastSeq": 3322,
+    "bytes": 1029641,
+    "truncated": false
+  },
+  "processes": [
+    {
+      "pid": 76177,
+      "ppid": 96544,
+      "startedAt": "2026-10-20T08:47:13.623Z",
+      "command": "sh"
+    },
+    {
+      "pid": 76203,
+      "ppid": 76177,
+      "startedAt": "2026-10-20T08:47:13.923Z",
+      "command": "java"
+    },
+    {
+      "pid": 76217,
+      "ppid": 76177,
+      "startedAt": "2026-10-20T08:47:14.223Z",
+      "command": "java"
+    },
+    {
+      "pid": 76237,
+      "ppid": 76177,
+      "startedAt": "2026-10-20T08:47:14.523Z",
+      "command": "java"
+    }
+  ]
+}

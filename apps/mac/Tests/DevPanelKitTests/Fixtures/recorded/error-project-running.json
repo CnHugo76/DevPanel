@@ -1,0 +1,6 @@
+{
+  "error": {
+    "code": "PROJECT_RUNNING",
+    "message": "有服务正在运行；如需一并停止请传 stopServices=true"
+  }
+}

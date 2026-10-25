@@ -1,0 +1,30 @@
+{
+  "id": "r_01M5C5VZE24B4QKEBK4WDEA2ZC",
+  "projectId": "p_archorder2",
+  "serviceId": "backend",
+  "configRevision": 2,
+  "startedAt": "2026-10-20T08:11:57.250Z",
+  "endedAt": "2026-10-20T08:12:03.250Z",
+  "pid": 69309,
+  "state": "failed",
+  "exit": {
+    "reason": "self-exit",
+    "code": 1,
+    "signal": null,
+    "at": "2026-10-20T08:12:03.250Z"
+  },
+  "command": [
+    "./mvnw",
+    "spring-boot:run"
+  ],
+  "cwd": "/Users/demo/Project/archive/order-service/backend",
+  "envKeys": [],
+  "params": {},
+  "log": {
+    "firstSeq": 1,
+    "lastSeq": 44,
+    "bytes": 2835,
+    "truncated": false
+  },
+  "processes": []
+}

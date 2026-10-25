@@ -1,0 +1,17 @@
+name: Feature request / 功能建议
+description: 描述使用场景与想解决的问题。
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 想解决的问题
+      description: 描述具体开发场景、当前操作方式与遇到的阻碍。
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 建议的行为
+      description: 可附示例；涉及接口时说明对 CLI、原生界面和旧配置的影响。
+    validations:
+      required: true

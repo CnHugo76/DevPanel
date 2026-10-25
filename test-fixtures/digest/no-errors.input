@@ -1,0 +1,23 @@
+{
+  "source": [
+    {
+      "seq": 1,
+      "ts": "2026-10-22T00:00:00.000Z",
+      "stream": "out",
+      "text": "starting"
+    },
+    {
+      "seq": 2,
+      "ts": "2026-10-22T00:00:00.000Z",
+      "stream": "out",
+      "text": "ready"
+    },
+    {
+      "seq": 3,
+      "ts": "2026-10-22T00:00:00.000Z",
+      "stream": "out",
+      "text": "done"
+    }
+  ],
+  "params": ""
+}

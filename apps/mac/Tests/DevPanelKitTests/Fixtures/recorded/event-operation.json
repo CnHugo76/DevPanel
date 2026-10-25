@@ -1,0 +1,24 @@
+{
+  "type": "operation",
+  "operation": {
+    "id": "op_01M5CCS8XWX71DCXTAAG5RAXGV",
+    "projectId": "p_mlapi22222",
+    "action": "start",
+    "serviceIds": [
+      "api"
+    ],
+    "source": "ui",
+    "state": "running",
+    "createdAt": "2026-10-20T10:12:48.701Z",
+    "finishedAt": null,
+    "results": [
+      {
+        "serviceId": "api",
+        "outcome": "pending",
+        "runId": null,
+        "error": null
+      }
+    ],
+    "cancelledBy": null
+  }
+}

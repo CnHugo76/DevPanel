@@ -1,0 +1,43 @@
+{
+  "id": "p_7k2m9q4tza",
+  "revision": 7,
+  "createdAt": "2026-10-19T08:00:00.000Z",
+  "updatedAt": "2026-10-20T03:02:11.000Z",
+  "config": {
+    "schemaVersion": 1,
+    "name": "reg-radar",
+    "root": "/Users/example/reg-radar",
+    "env": {"SPRING_OUTPUT_ANSI_ENABLED": "always", "BIND": "${host}", "DB_PASSWORD": {"secret": true}},
+    "services": [
+      {"id": "backend", "name": "后端", "cwd": "backend",
+       "command": ["./mvnw", "spring-boot:run", "-Dspring-boot.run.profiles=${profile}", "-Dserver.port=${apiPort}", "--debug=${debug}", "--token=${apiToken}"],
+       "env": {"JAVA_TOOL_OPTIONS": "-Xmx1g"}, "stopTimeoutSec": 15},
+      {"id": "frontend", "name": "前端", "cwd": "frontend", "command": ["sh", "-lc", "pnpm dev --port ${webPort} --host ${host}"]}
+    ],
+    "params": [
+      {"key": "profile", "label": "后端配置", "type": "enum", "value": "dev",
+       "description": "Spring profile。",
+       "choices": [
+         {"value": "dev", "label": "本地开发", "description": "连本机数据库"},
+         {"value": "test", "label": "测试数据"},
+         {"value": "prod"}
+       ],
+       "setBy": "agent", "valueUpdatedAt": "2026-10-19T08:00:00.000Z", "describedBy": "agent",
+       "usedBy": [{"serviceId": "backend", "where": "command", "index": 2}]},
+      {"key": "apiPort", "label": "API 端口", "type": "number", "value": 8081, "min": 1024, "max": 65535,
+       "setBy": "user", "valueUpdatedAt": "2026-10-20T03:02:11.000Z", "describedBy": "agent",
+       "usedBy": [{"serviceId": "backend", "where": "command", "index": 3}]},
+      {"key": "ratio", "label": "采样比例", "type": "number", "value": 0.25, "min": 0, "max": 1, "setBy": "agent", "usedBy": []},
+      {"key": "debug", "label": "调试日志", "type": "boolean", "value": false, "setBy": "user", "describedBy": "user",
+       "usedBy": [{"serviceId": "backend", "where": "command", "index": 4}]},
+      {"key": "host", "label": "监听地址", "type": "string", "value": "127.0.0.1", "setBy": "agent",
+       "usedBy": [{"serviceId": "*", "where": "env", "envKey": "BIND"}, {"serviceId": "frontend", "where": "command", "index": 2}]},
+      {"key": "webPort", "label": "前端端口", "type": "number", "value": 5173, "setBy": "agent",
+       "usedBy": [{"serviceId": "frontend", "where": "command", "index": 2}]},
+      {"key": "apiToken", "label": "接口令牌", "type": "string", "secret": true, "setBy": "user",
+       "valueUpdatedAt": "2026-10-20T01:00:00.000Z",
+       "usedBy": [{"serviceId": "backend", "where": "command", "index": 5}]},
+      {"key": "future", "label": "未来类型", "type": "color", "value": "#ff0000", "setBy": "robot"}
+    ]
+  }
+}

@@ -1,0 +1,9 @@
+[digest r_golden · 行 1–3204 · 错误块 1，省略 0 · 省略 0 字节]
+[较早的日志已被上限丢弃]
+── ERROR ×50 · 行 812，最后 3101 ──
+812 E java.lang.IllegalStateException: Failed to bind port 8080
+813 E     at org.example.Server.start(Server.java:42)
+      … 省略 37 行堆栈
+── 末尾 20 行 ──
+3185 O Shutting down  ×3
+3204 S 运行结束

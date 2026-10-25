@@ -1,0 +1,32 @@
+name: Bug report / 问题反馈
+description: 提供脱敏的最小复现，帮助定位问题。
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: "安全问题请按 SECURITY.md 私下报告。请勿上传 daemon.json、凭据、真实配置或完整日志。"
+  - type: textarea
+    id: environment
+    attributes:
+      label: 环境
+      description: DevPanel 版本 / 提交、macOS 版本、Apple Silicon 或 Intel、源码构建或 App 安装。
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤
+      description: 尽量使用临时 DEVPANEL_HOME 和虚构项目；可附脱敏配置片段。
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期与实际行为
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 脱敏截图或日志片段
+      description: 提交前检查其中的用户名、项目路径和环境变量值。

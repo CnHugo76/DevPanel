@@ -1,0 +1,21 @@
+event: lines
+data: {"type":"lines","runId":"r_01M5CCS8XYP6R49KW849JT7E14","lines":[{"seq":1,"ts":"2026-10-20T10:12:48.702Z","stream":"sys","text":"已启动 · 运行 r_01M5CCS8XYP6R49KW849JT7E14 · PID 77515 · uv run uvicorn app.main:app --port 8000"},{"seq":2,"ts":"2026-10-20T10:12:48.703Z","stream":"err","text":"\u001b[32mINFO\u001b[0m:     Will watch for changes in these directories: ['/Users/demo/Project/ml-api']"},{"seq":3,"ts":"2026-10-20T10:12:48.916Z","stream":"err","text":"\u001b[32mINFO\u001b[0m:     Uvicorn running on \u001b[1mhttp://127.0.0.1:8000\u001b[0m (Press CTRL+C to quit)"},{"seq":4,"ts":"2026-10-20T10:12:49.132Z","stream":"err","text":"\u001b[32mINFO\u001b[0m:     Started reloader process [\u001b[36m\u001b[1m77515\u001b[0m] using \u001b[36m\u001b[1mWatchFiles\u001b[0m"},{"seq":5,"ts":"2026-10-20T10:12:49.347Z","stream":"err","text":"\u001b[32mINFO\u001b[0m:     Started server process [\u001b[36m77529\u001b[0m]"},{"seq":6,"ts":"2026-10-20T10:12:49.559Z","stream":"err","text":"\u001b[32mINFO\u001b[0m:     Waiting for application startup."},{"seq":7,"ts":"2026-10-20T10:12:49.773Z","stream":"out","text":"Loading model weights from ./models/classifier-v3.onnx (412.7 MB)…"}]}
+
+event: lines
+data: {"type":"lines","runId":"r_01M5CCS8XYP6R49KW849JT7E14","lines":[{"seq":8,"ts":"2026-10-20T10:12:49.989Z","stream":"err","text":"\u001b[32mINFO\u001b[0m:     Application startup complete."}]}
+
+event: lines
+data: {"type":"lines","runId":"r_01M5CCS8XYP6R49KW849JT7E14","lines":[{"seq":9,"ts":"2026-10-20T10:12:50.704Z","stream":"err","text":"\u001b[32mINFO\u001b[0m:     127.0.0.1:64634 - \"POST /predict HTTP/1.1\" \u001b[32m200 OK\u001b[0m"}]}
+
+event: lines
+data: {"type":"lines","runId":"r_01M5CCS8XYP6R49KW849JT7E14","lines":[{"seq":10,"ts":"2026-10-20T10:12:52.845Z","stream":"sys","text":"用户在面板请求停止 · 向进程组 77515 发送 SIGTERM"}]}
+
+event: lines
+data: {"type":"lines","runId":"r_01M5CCS8XYP6R49KW849JT7E14","lines":[{"seq":11,"ts":"2026-10-20T10:12:53.035Z","stream":"err","text":"\u001b[32mINFO\u001b[0m:     Shutting down"},{"seq":12,"ts":"2026-10-20T10:12:53.035Z","stream":"err","text":"\u001b[32mINFO\u001b[0m:     Waiting for application shutdown."},{"seq":13,"ts":"2026-10-20T10:12:53.035Z","stream":"err","text":"\u001b[32mINFO\u001b[0m:     Application shutdown complete."},{"seq":14,"ts":"2026-10-20T10:12:53.035Z","stream":"err","text":"\u001b[32mINFO\u001b[0m:     Finished server process [\u001b[36m77529\u001b[0m]"},{"seq":15,"ts":"2026-10-20T10:12:53.035Z","stream":"err","text":"\u001b[32mINFO\u001b[0m:     Stopping reloader process [\u001b[36m\u001b[1m77515\u001b[0m]"}]}
+
+event: lines
+data: {"type":"lines","runId":"r_01M5CCS8XYP6R49KW849JT7E14","lines":[{"seq":16,"ts":"2026-10-20T10:12:54.319Z","stream":"sys","text":"进程已退出 · signal=SIGTERM · 运行时长 0m05s"}]}
+
+event: end
+data: {"type":"end","runId":"r_01M5CCS8XYP6R49KW849JT7E14","run":{"id":"r_01M5CCS8XYP6R49KW849JT7E14","projectId":"p_mlapi22222","serviceId":"api","configRevision":1,"startedAt":"2026-10-20T10:12:48.702Z","endedAt":"2026-10-20T10:12:54.318Z","pid":77515,"state":"stopped","exit":{"reason":"user-stop","code":null,"signal":"SIGTERM","at":"2026-10-20T10:12:54.318Z"}}}
+

@@ -1,0 +1,9 @@
+{
+  "id": "backend", "name": "后端", "state": "stopping", "stateSince": "2026-10-20T02:42:06.000Z",
+  "currentRun": {"id": "r_01JC8ZB3P1", "projectId": "p_7k2m9q4tza", "serviceId": "backend", "configRevision": 6,
+    "startedAt": "2026-10-20T01:00:00.000Z", "endedAt": null, "pid": 501, "state": "stopping", "exit": null},
+  "lastRun": {"id": "r_01JC8ZB3P1", "projectId": "p_7k2m9q4tza", "serviceId": "backend", "configRevision": 6,
+    "startedAt": "2026-10-20T01:00:00.000Z", "endedAt": null, "pid": 501, "state": "stopping", "exit": null},
+  "stopTimedOut": true, "pendingOperationId": "op_01JC8ZC0000000000000000000", "configChangedSinceStart": true,
+  "error": {"code": "STOP_TIMEOUT", "message": "10 秒内未全部退出", "details": {"timeoutSec": 10, "remaining": 3}}
+}

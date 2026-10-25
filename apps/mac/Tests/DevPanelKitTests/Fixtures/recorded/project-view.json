@@ -1,0 +1,75 @@
+{
+  "id": "p_ordersvc2a",
+  "name": "order-service",
+  "root": "/Users/demo/Project/order-service",
+  "revision": 3,
+  "aggregate": "running",
+  "runningCount": 2,
+  "serviceCount": 2,
+  "services": [
+    {
+      "id": "backend",
+      "name": "后端",
+      "state": "running",
+      "stateSince": "2026-10-20T08:59:58.250Z",
+      "currentRun": {
+        "id": "r_01M5C8KVY2MVHJ6CD31E4V4RBW",
+        "projectId": "p_ordersvc2a",
+        "serviceId": "backend",
+        "configRevision": 2,
+        "startedAt": "2026-10-20T08:59:57.250Z",
+        "endedAt": null,
+        "pid": 35494,
+        "state": "running",
+        "exit": null
+      },
+      "lastRun": {
+        "id": "r_01M5C8KVY2MVHJ6CD31E4V4RBW",
+        "projectId": "p_ordersvc2a",
+        "serviceId": "backend",
+        "configRevision": 2,
+        "startedAt": "2026-10-20T08:59:57.250Z",
+        "endedAt": null,
+        "pid": 35494,
+        "state": "running",
+        "exit": null
+      },
+      "stopTimedOut": false,
+      "pendingOperationId": null,
+      "configChangedSinceStart": true,
+      "error": null
+    },
+    {
+      "id": "frontend",
+      "name": "前端",
+      "state": "running",
+      "stateSince": "2026-10-20T09:00:02.250Z",
+      "currentRun": {
+        "id": "r_01M5C8KZV2N4KWXK6XMY9E4G58",
+        "projectId": "p_ordersvc2a",
+        "serviceId": "frontend",
+        "configRevision": 2,
+        "startedAt": "2026-10-20T09:00:01.250Z",
+        "endedAt": null,
+        "pid": 62569,
+        "state": "running",
+        "exit": null
+      },
+      "lastRun": {
+        "id": "r_01M5C8KZV2N4KWXK6XMY9E4G58",
+        "projectId": "p_ordersvc2a",
+        "serviceId": "frontend",
+        "configRevision": 2,
+        "startedAt": "2026-10-20T09:00:01.250Z",
+        "endedAt": null,
+        "pid": 62569,
+        "state": "running",
+        "exit": null
+      },
+      "stopTimedOut": false,
+      "pendingOperationId": null,
+      "configChangedSinceStart": false,
+      "error": null
+    }
+  ]
+}

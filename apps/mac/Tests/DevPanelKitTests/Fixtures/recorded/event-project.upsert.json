@@ -1,0 +1,46 @@
+{
+  "type": "project.upsert",
+  "project": {
+    "id": "p_mlapi22222",
+    "name": "ml-api",
+    "root": "/Users/demo/Project/ml-api",
+    "revision": 1,
+    "aggregate": "transition",
+    "runningCount": 0,
+    "serviceCount": 1,
+    "services": [
+      {
+        "id": "api",
+        "name": "ml-api",
+        "state": "starting",
+        "stateSince": "2026-10-20T10:12:48.702Z",
+        "currentRun": {
+          "id": "r_01M5CCS8XYP6R49KW849JT7E14",
+          "projectId": "p_mlapi22222",
+          "serviceId": "api",
+          "configRevision": 1,
+          "startedAt": "2026-10-20T10:12:48.702Z",
+          "endedAt": null,
+          "pid": 77515,
+          "state": "starting",
+          "exit": null
+        },
+        "lastRun": {
+          "id": "r_01M5CCS8XYP6R49KW849JT7E14",
+          "projectId": "p_mlapi22222",
+          "serviceId": "api",
+          "configRevision": 1,
+          "startedAt": "2026-10-20T10:12:48.702Z",
+          "endedAt": null,
+          "pid": 77515,
+          "state": "starting",
+          "exit": null
+        },
+        "stopTimedOut": false,
+        "pendingOperationId": "op_01M5CCS8XWX71DCXTAAG5RAXGV",
+        "configChangedSinceStart": false,
+        "error": null
+      }
+    ]
+  }
+}

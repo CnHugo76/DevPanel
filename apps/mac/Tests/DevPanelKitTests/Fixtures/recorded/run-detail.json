@@ -1,0 +1,59 @@
+{
+  "id": "r_01M5C8KVY2MVHJ6CD31E4V4RBW",
+  "projectId": "p_ordersvc2a",
+  "serviceId": "backend",
+  "configRevision": 2,
+  "startedAt": "2026-10-20T08:59:57.250Z",
+  "endedAt": null,
+  "pid": 35494,
+  "state": "running",
+  "exit": null,
+  "command": [
+    "./mvnw",
+    "spring-boot:run",
+    "-Dspring-boot.run.profiles=dev",
+    "-Dspring-boot.run.arguments=--server.port=8081 --server.address=127.0.0.1"
+  ],
+  "cwd": "/Users/demo/Project/order-service/backend",
+  "envKeys": [
+    "JAVA_HOME",
+    "DB_PASSWORD"
+  ],
+  "params": {
+    "profile": "dev",
+    "apiPort": 8081,
+    "host": "127.0.0.1"
+  },
+  "log": {
+    "firstSeq": 1,
+    "lastSeq": 3368,
+    "bytes": 908825,
+    "truncated": false
+  },
+  "processes": [
+    {
+      "pid": 35494,
+      "ppid": 2355,
+      "startedAt": "2026-10-20T08:59:57.250Z",
+      "command": "sh"
+    },
+    {
+      "pid": 35501,
+      "ppid": 35494,
+      "startedAt": "2026-10-20T08:59:57.550Z",
+      "command": "java"
+    },
+    {
+      "pid": 35552,
+      "ppid": 35494,
+      "startedAt": "2026-10-20T08:59:57.850Z",
+      "command": "java"
+    },
+    {
+      "pid": 35536,
+      "ppid": 35494,
+      "startedAt": "2026-10-20T08:59:58.150Z",
+      "command": "java"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "ok": true,
+  "issues": [],
+  "services": [
+    {
+      "serviceId": "app",
+      "cwdAbs": "/tmp/devpanel-fixture/proj1/app",
+      "cwdExists": true,
+      "program": "sleep",
+      "programResolved": "/bin/sleep",
+      "pathUsed": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+    }
+  ]
+}

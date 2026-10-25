@@ -1,0 +1,6 @@
+{
+  "id": "op_future", "projectId": "p_future", "action": "hibernate", "serviceIds": ["a"],
+  "source": "scheduler", "state": "paused", "createdAt": "2026-10-20T02:42:06.002Z",
+  "finishedAt": null, "cancelledBy": null,
+  "results": [{"serviceId": "a", "outcome": "snoozed", "runId": null, "error": null}]
+}

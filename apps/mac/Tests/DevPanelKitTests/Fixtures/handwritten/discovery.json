@@ -1,0 +1,9 @@
+{
+  "pid": 4242,
+  "version": "0.2.0",
+  "apiVersion": 1,
+  "socketPath": "/tmp/devpanel-fixture/home/run/devpanel.sock",
+  "httpPort": 47823,
+  "token": "handwritten-fixture-token-not-a-secret",
+  "startedAt": "2026-10-20T02:40:00.000Z"
+}

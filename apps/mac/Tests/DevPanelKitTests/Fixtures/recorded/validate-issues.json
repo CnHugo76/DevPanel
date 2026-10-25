@@ -1,0 +1,51 @@
+{
+  "ok": false,
+  "issues": [
+    {
+      "path": "root",
+      "severity": "error",
+      "code": "CWD_UNAVAILABLE",
+      "message": "目录不存在：/nonexistent/x"
+    },
+    {
+      "path": "services[0].command[1]",
+      "severity": "error",
+      "code": "PARAM_UNKNOWN",
+      "message": "引用了不存在的选项 ${nope}"
+    },
+    {
+      "path": "params[0]",
+      "severity": "warning",
+      "code": "WARN_PARAM_UNUSED",
+      "message": "选项 unused 没有被任何命令或环境变量引用"
+    },
+    {
+      "path": "services[0].id",
+      "severity": "error",
+      "code": "CONFIG_INVALID",
+      "message": "ID 须为小写字母开头，只含小写字母、数字和连字符，最长 32 位"
+    },
+    {
+      "path": "services[0].cwd",
+      "severity": "error",
+      "code": "CWD_UNAVAILABLE",
+      "message": "工作目录不存在：/nonexistent/x"
+    },
+    {
+      "path": "services[0].command",
+      "severity": "warning",
+      "code": "WARN_BACKGROUND_COMMAND",
+      "message": "检测到 “&”：请使用前台运行方式，后台化的进程无法被管理"
+    }
+  ],
+  "services": [
+    {
+      "serviceId": "Bad ID",
+      "cwdAbs": "/nonexistent/x",
+      "cwdExists": false,
+      "program": "nonexistent-prog-xyz",
+      "programResolved": null,
+      "pathUsed": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+    }
+  ]
+}

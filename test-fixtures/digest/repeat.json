@@ -1,0 +1,40 @@
+{
+  "runId": "r_repeat",
+  "afterSeq": null,
+  "lastSeq": 5,
+  "scannedLines": 5,
+  "errorBlocks": 0,
+  "blocks": [
+    {
+      "kind": "tail",
+      "firstSeq": 1,
+      "lastSeq": 5,
+      "occurrences": 1,
+      "lastOccurrenceSeq": 1,
+      "lines": [
+        {
+          "seq": 1,
+          "stream": "out",
+          "text": "starting"
+        },
+        {
+          "seq": 2,
+          "stream": "out",
+          "text": "ready",
+          "repeat": 3
+        },
+        {
+          "seq": 5,
+          "stream": "out",
+          "text": "done"
+        }
+      ]
+    }
+  ],
+  "omitted": {
+    "errorBlocks": 0,
+    "bytes": 0
+  },
+  "truncated": false,
+  "runEnded": true
+}

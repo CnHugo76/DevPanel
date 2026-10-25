@@ -1,0 +1,29 @@
+{
+  "runId": "r_omitted",
+  "afterSeq": null,
+  "lastSeq": 9,
+  "scannedLines": 9,
+  "errorBlocks": 9,
+  "blocks": [
+    {
+      "kind": "error",
+      "firstSeq": 1,
+      "lastSeq": 1,
+      "occurrences": 1,
+      "lastOccurrenceSeq": 1,
+      "lines": [
+        {
+          "seq": 1,
+          "stream": "err",
+          "text": "ERROR first"
+        }
+      ]
+    }
+  ],
+  "omitted": {
+    "errorBlocks": 8,
+    "bytes": 9176
+  },
+  "truncated": false,
+  "runEnded": true
+}

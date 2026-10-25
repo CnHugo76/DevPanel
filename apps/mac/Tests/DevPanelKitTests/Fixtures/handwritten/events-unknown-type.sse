@@ -1,0 +1,11 @@
+: handwritten — a comment line, then an event type this client does not know, then a ping
+: comments and unknown fields must be ignored
+retry: 3000
+id: 17
+
+event: future.thing
+data: {"type":"future.thing","whatever":{"x":1}}
+
+event: ping
+data: {"type":"ping","at":"2026-10-20T02:42:10.000Z"}
+

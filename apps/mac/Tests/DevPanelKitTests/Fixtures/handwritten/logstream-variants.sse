@@ -1,0 +1,18 @@
+event: lines
+data: {"type":"lines","runId":"r_1",
+data: "lines":[{"seq":1,"ts":"2026-10-20T02:42:07.118Z","stream":"out","text":"Started \u001b[32mOK\u001b[0m 中文"},{"seq":2,"ts":"2026-10-20T02:42:07.119Z","stream":"err","text":"warn: very long","partial":true}]}
+
+: keepalive comment
+
+event: truncated
+data: {"type":"truncated","runId":"r_1","firstSeq":120}
+
+event: gap
+data: {"type":"gap","runId":"r_1","afterSeq":340,"reason":"client too slow"}
+
+event: future
+data: {"type":"future","runId":"r_1"}
+
+event: ping
+data: {"type":"ping","at":"2026-10-20T02:42:17.000Z"}
+

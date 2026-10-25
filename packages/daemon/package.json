@@ -1,0 +1,28 @@
+{
+  "name": "@devpanel/daemon",
+  "version": "0.4.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/main.ts",
+    "./native-build": "./src/native-build.ts",
+    "./socket-path": "./src/socket-path.ts"
+  },
+  "bin": {
+    "devpaneld": "./src/main.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "build": "node src/native-build.ts --background && tsc -p .",
+    "test": "node test/run-tests.ts --test-timeout=120000 --test-force-exit --test-concurrency=1 test/*.test.ts",
+    "start": "node src/main.ts",
+    "build:native": "node src/native-build.ts"
+  },
+  "dependencies": {
+    "@devpanel/contract": "workspace:*",
+    "fast-xml-parser": "^5.11.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0"
+  }
+}

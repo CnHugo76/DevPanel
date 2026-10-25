@@ -1,0 +1,89 @@
+{
+  "type": "stats",
+  "stats": {
+    "sampledAt": "2026-10-20T10:12:47.291Z",
+    "intervalMs": 2000,
+    "projects": {
+      "p_ordersvc2a": {
+        "total": {
+          "status": "ok",
+          "sampledAt": "2026-10-20T10:12:47.291Z",
+          "cpuPercent": 141.9,
+          "rssBytes": 1511936289,
+          "processCount": 6
+        },
+        "services": {
+          "backend": {
+            "runId": "r_01M5C8KVY2MVHJ6CD31E4V4RBW",
+            "status": "ok",
+            "sampledAt": "2026-10-20T10:12:47.291Z",
+            "cpuPercent": 136.3,
+            "rssBytes": 1071131367,
+            "processCount": 4,
+            "listening": [
+              {
+                "port": 8081,
+                "address": "127.0.0.1",
+                "family": "ipv4",
+                "scope": "loopback",
+                "pid": 35501
+              },
+              {
+                "port": 35729,
+                "address": "0.0.0.0",
+                "family": "ipv4",
+                "scope": "all",
+                "pid": 35501
+              }
+            ]
+          },
+          "frontend": {
+            "runId": "r_01M5C8KZV2N4KWXK6XMY9E4G58",
+            "status": "ok",
+            "sampledAt": "2026-10-20T10:12:47.291Z",
+            "cpuPercent": 5.6,
+            "rssBytes": 440804922,
+            "processCount": 2,
+            "listening": [
+              {
+                "port": 3000,
+                "address": "::",
+                "family": "ipv6",
+                "scope": "all",
+                "pid": 62587
+              }
+            ]
+          }
+        }
+      },
+      "p_webadmin22": {
+        "total": {
+          "status": "ok",
+          "sampledAt": "2026-10-20T10:12:47.291Z",
+          "cpuPercent": 0.3,
+          "rssBytes": 228871065,
+          "processCount": 3
+        },
+        "services": {
+          "web": {
+            "runId": "r_01M5CB838203SMGG4DC396S2TA",
+            "status": "ok",
+            "sampledAt": "2026-10-20T10:12:47.291Z",
+            "cpuPercent": 0.3,
+            "rssBytes": 228871065,
+            "processCount": 3,
+            "listening": [
+              {
+                "port": 5173,
+                "address": "::1",
+                "family": "ipv6",
+                "scope": "loopback",
+                "pid": 30378
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

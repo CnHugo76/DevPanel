@@ -1,0 +1,21 @@
+{
+  "id": "op_01M5CD9VKK1YW39D1QAPDZKYZA",
+  "projectId": "p_jfntr2jtjj",
+  "action": "start",
+  "serviceIds": [
+    "app"
+  ],
+  "source": "ui",
+  "state": "succeeded",
+  "createdAt": "2026-10-20T10:21:52.115Z",
+  "finishedAt": "2026-10-20T10:21:53.238Z",
+  "results": [
+    {
+      "serviceId": "app",
+      "outcome": "started",
+      "runId": "r_01M5CD9VKM6RCQWCWMRA820017",
+      "error": null
+    }
+  ],
+  "cancelledBy": null
+}

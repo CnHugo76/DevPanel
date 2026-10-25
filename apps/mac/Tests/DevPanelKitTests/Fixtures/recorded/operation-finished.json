@@ -1,0 +1,21 @@
+{
+  "id": "op_01M5CCS8XWX71DCXTAAG5RAXGV",
+  "projectId": "p_mlapi22222",
+  "action": "start",
+  "serviceIds": [
+    "api"
+  ],
+  "source": "ui",
+  "state": "succeeded",
+  "createdAt": "2026-10-20T10:12:48.701Z",
+  "finishedAt": "2026-10-20T10:12:49.704Z",
+  "results": [
+    {
+      "serviceId": "api",
+      "outcome": "started",
+      "runId": "r_01M5CCS8XYP6R49KW849JT7E14",
+      "error": null
+    }
+  ],
+  "cancelledBy": null
+}

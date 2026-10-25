@@ -1,0 +1,136 @@
+{
+  "id": "p_ordersvc2a",
+  "revision": 3,
+  "createdAt": "2026-10-11T10:11:57.250Z",
+  "updatedAt": "2026-10-11T11:11:57.250Z",
+  "config": {
+    "schemaVersion": 1,
+    "name": "order-service",
+    "root": "/Users/demo/Project/order-service",
+    "params": [
+      {
+        "key": "profile",
+        "label": "后端配置",
+        "type": "enum",
+        "value": "dev",
+        "description": "Spring profile，决定后端读取 backend/src/main/resources 下的哪个 application-<profile>.yml。三份配置的主要差别是连接的数据库和日志级别；日常开发用 dev。",
+        "choices": [
+          {
+            "value": "dev",
+            "label": "本地开发",
+            "description": "连本机 Docker 里的 PostgreSQL（localhost:5432/order_dev），打印 SQL，启用 devtools 热重启。"
+          },
+          {
+            "value": "test",
+            "label": "测试数据",
+            "description": "连 order_test 库，启动时 Flyway 执行 db/migration 全部脚本并导入 data-test.sql 里的 200 条样例订单。会清空该库。"
+          },
+          {
+            "value": "prod",
+            "label": "类生产",
+            "description": "关闭 SQL 日志和 devtools，连接池加大到 20，数据库地址取 DB_URL 环境变量。本机通常没有该库，只用于排查生产配置问题。"
+          }
+        ],
+        "setBy": "agent",
+        "valueUpdatedAt": "2026-10-11T10:13:57.250Z",
+        "describedBy": "agent",
+        "usedBy": [
+          {
+            "serviceId": "backend",
+            "where": "command",
+            "index": 2
+          }
+        ]
+      },
+      {
+        "key": "apiPort",
+        "label": "后端端口",
+        "type": "number",
+        "value": 8081,
+        "min": 1024,
+        "max": 65535,
+        "description": "后端 HTTP 端口（server.port）。README 提到 8080 常与本机的 Jenkins 冲突，所以默认用 8081。前端的 NEXT_PUBLIC_API_BASE 也引用这个值，改了前后端会一起变（两边都要重启）。",
+        "setBy": "agent",
+        "valueUpdatedAt": "2026-10-11T10:13:57.250Z",
+        "describedBy": "agent",
+        "usedBy": [
+          {
+            "serviceId": "backend",
+            "where": "command",
+            "index": 3
+          },
+          {
+            "serviceId": "frontend",
+            "where": "env",
+            "envKey": "NEXT_PUBLIC_API_BASE"
+          }
+        ]
+      },
+      {
+        "key": "host",
+        "label": "监听地址",
+        "type": "enum",
+        "value": "0.0.0.0",
+        "description": "后端绑定的网卡（server.address）。用手机真机调试前端页面时需要局域网可访问。",
+        "choices": [
+          {
+            "value": "127.0.0.1",
+            "label": "仅本机",
+            "description": "只有这台电脑能访问后端。"
+          },
+          {
+            "value": "0.0.0.0",
+            "label": "局域网可访问",
+            "description": "同一网络的手机和其他电脑也能访问。注意 dev 配置下 /actuator 没有鉴权。"
+          }
+        ],
+        "setBy": "user",
+        "valueUpdatedAt": "2026-10-20T09:51:57.250Z",
+        "describedBy": "agent",
+        "usedBy": [
+          {
+            "serviceId": "backend",
+            "where": "command",
+            "index": 3
+          }
+        ]
+      }
+    ],
+    "services": [
+      {
+        "id": "backend",
+        "name": "后端",
+        "cwd": "backend",
+        "command": [
+          "./mvnw",
+          "spring-boot:run",
+          "-Dspring-boot.run.profiles=${profile}",
+          "-Dspring-boot.run.arguments=--server.port=${apiPort} --server.address=${host}"
+        ],
+        "env": {
+          "JAVA_HOME": "/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home",
+          "DB_PASSWORD": {
+            "secret": true
+          }
+        },
+        "stopTimeoutSec": 10
+      },
+      {
+        "id": "frontend",
+        "name": "前端",
+        "cwd": "frontend",
+        "command": [
+          "pnpm",
+          "exec",
+          "next",
+          "dev",
+          "-p",
+          "3000"
+        ],
+        "env": {
+          "NEXT_PUBLIC_API_BASE": "http://localhost:${apiPort}"
+        }
+      }
+    ]
+  }
+}

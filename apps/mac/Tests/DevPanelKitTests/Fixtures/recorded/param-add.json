@@ -1,0 +1,84 @@
+{
+  "id": "p_fayl6lvpih",
+  "revision": 3,
+  "createdAt": "2026-10-20T10:12:54.366Z",
+  "updatedAt": "2026-10-20T10:12:54.430Z",
+  "config": {
+    "schemaVersion": 1,
+    "name": "demo",
+    "root": "/tmp/devpanel-fixture/proj1",
+    "env": {
+      "API_KEY": {
+        "secret": true
+      },
+      "PORT": "${port}"
+    },
+    "services": [
+      {
+        "id": "app",
+        "name": "应用",
+        "cwd": "app",
+        "command": [
+          "sleep",
+          "${secs}"
+        ]
+      }
+    ],
+    "params": [
+      {
+        "key": "port",
+        "label": "端口",
+        "type": "number",
+        "value": 4000,
+        "min": 1024,
+        "max": 65535,
+        "setBy": "user",
+        "valueUpdatedAt": "2026-10-20T10:12:54.417Z",
+        "describedBy": "agent",
+        "usedBy": [
+          {
+            "serviceId": "*",
+            "where": "env",
+            "envKey": "PORT"
+          }
+        ]
+      },
+      {
+        "key": "secs",
+        "label": "秒数",
+        "type": "string",
+        "value": "1000",
+        "description": "sleep 时长",
+        "setBy": "agent",
+        "valueUpdatedAt": "2026-10-20T10:12:54.366Z",
+        "describedBy": "agent",
+        "usedBy": [
+          {
+            "serviceId": "app",
+            "where": "command",
+            "index": 1
+          }
+        ]
+      },
+      {
+        "key": "mode",
+        "label": "模式",
+        "type": "enum",
+        "value": "a",
+        "choices": [
+          {
+            "value": "a",
+            "label": "A"
+          },
+          {
+            "value": "b"
+          }
+        ],
+        "setBy": "user",
+        "valueUpdatedAt": "2026-10-20T10:12:54.430Z",
+        "describedBy": "user",
+        "usedBy": []
+      }
+    ]
+  }
+}

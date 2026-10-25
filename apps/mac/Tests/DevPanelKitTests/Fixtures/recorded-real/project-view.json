@@ -1,0 +1,43 @@
+{
+  "id": "p_jfntr2jtjj",
+  "name": "fixture",
+  "root": "/tmp/devpanel-fixture/proj",
+  "revision": 2,
+  "aggregate": "running",
+  "runningCount": 1,
+  "serviceCount": 1,
+  "services": [
+    {
+      "id": "app",
+      "name": "应用",
+      "state": "running",
+      "stateSince": "2026-10-20T10:21:53.237Z",
+      "currentRun": {
+        "id": "r_01M5CD9VKM6RCQWCWMRA820017",
+        "projectId": "p_jfntr2jtjj",
+        "serviceId": "app",
+        "configRevision": 2,
+        "startedAt": "2026-10-20T10:21:52.116Z",
+        "endedAt": null,
+        "pid": 6507,
+        "state": "running",
+        "exit": null
+      },
+      "lastRun": {
+        "id": "r_01M5CD9VKM6RCQWCWMRA820017",
+        "projectId": "p_jfntr2jtjj",
+        "serviceId": "app",
+        "configRevision": 2,
+        "startedAt": "2026-10-20T10:21:52.116Z",
+        "endedAt": null,
+        "pid": 6507,
+        "state": "running",
+        "exit": null
+      },
+      "stopTimedOut": false,
+      "pendingOperationId": null,
+      "configChangedSinceStart": false,
+      "error": null
+    }
+  ]
+}

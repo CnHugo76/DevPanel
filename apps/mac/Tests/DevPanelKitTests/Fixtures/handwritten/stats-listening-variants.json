@@ -1,0 +1,22 @@
+{
+  "sampledAt": "2026-10-20T02:42:08.000Z",
+  "intervalMs": 2000,
+  "projects": {
+    "p_7k2m9q4tza": {
+      "total": {"status": "ok", "sampledAt": "2026-10-20T02:42:08.000Z", "cpuPercent": 12.5, "rssBytes": 734003200, "processCount": 5},
+      "services": {
+        "notyet": {"runId": "r_1", "status": "sampling", "sampledAt": null, "cpuPercent": null, "rssBytes": null, "processCount": null, "listening": null},
+        "none": {"runId": "r_2", "status": "ok", "sampledAt": "2026-10-20T02:42:08.000Z", "cpuPercent": 0.3, "rssBytes": 1048576, "processCount": 1, "listening": []},
+        "many": {"runId": "r_3", "status": "partial", "sampledAt": "2026-10-20T02:42:08.000Z", "cpuPercent": 11.2, "rssBytes": 700000000, "processCount": 3, "note": "1 个进程无法读取",
+          "listening": [
+            {"port": 8081, "address": "127.0.0.1", "family": "ipv4", "scope": "loopback", "pid": 501},
+            {"port": 8081, "address": "::1", "family": "ipv6", "scope": "loopback", "pid": 501},
+            {"port": 5005, "address": "0.0.0.0", "family": "ipv4", "scope": "all", "pid": 502},
+            {"port": 9000, "address": "::", "family": "ipv6", "scope": "all", "pid": 502},
+            {"port": 7000, "address": "192.168.1.20", "family": "ipv4", "scope": "other", "pid": 503}
+          ]},
+        "gone": {"runId": "r_4", "status": "unavailable", "sampledAt": "2026-10-20T02:42:08.000Z", "cpuPercent": null, "rssBytes": null, "processCount": null, "note": "进程已退出"}
+      }
+    }
+  }
+}

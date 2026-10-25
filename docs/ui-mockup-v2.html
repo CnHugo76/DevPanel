@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DevPanel 原生视觉稿 v2</title>
+<style>
+:root {
+  --desk: #2b2b33;
+  --win: #121216; --bar: #18181d; --card: #18181d; --card-2: #1d1d23; --line: #2a2a32; --line-2: #34343d;
+  --text: #ececf1; --text-2: #a3a3ae; --text-3: #6f6f7b;
+  --accent: #7c6cf6; --accent-2: #9a8cff; --accent-soft: rgba(124,108,246,.16);
+  --green: #34c77b; --green-soft: rgba(52,199,123,.14);
+  --red: #f0605a; --red-soft: rgba(240,96,90,.14);
+  --amber: #f0a43a; --amber-soft: rgba(240,164,58,.14);
+  --purple: #b195ff; --gray-soft: rgba(255,255,255,.06);
+  --sel: rgba(124,108,246,.14);
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --shadow: 0 30px 80px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.06);
+}
+:root[data-theme="light"] {
+  --desk: #c9cbd3;
+  --win: #f6f6f8; --bar: #ececf0; --card: #ffffff; --card-2: #f7f7fa; --line: #e3e3e9; --line-2: #d4d4dc;
+  --text: #1c1c22; --text-2: #5d5d68; --text-3: #8e8e99;
+  --accent: #6656e8; --accent-2: #5546d6; --accent-soft: rgba(102,86,232,.1);
+  --green: #1f9d5a; --green-soft: rgba(31,157,90,.1);
+  --red: #d8433c; --red-soft: rgba(216,67,60,.09);
+  --amber: #c27c0e; --amber-soft: rgba(194,124,14,.1);
+  --purple: #7a5fd6; --gray-soft: rgba(0,0,0,.04);
+  --sel: rgba(102,86,232,.08);
+  --shadow: 0 30px 80px rgba(0,0,0,.18), 0 0 0 1px rgba(0,0,0,.08);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--desk); color: var(--text); font: 13px/1.45 -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; min-height: 100vh; }
+button { font: inherit; color: inherit; }
+
+/* mockup-only scenario bar */
+.switcher { display: flex; gap: 6px; padding: 10px 16px; flex-wrap: wrap; align-items: center; background: rgba(0,0,0,.25); }
+.switcher span { color: #cfd0d8; margin-right: 4px; font-size: 12px; }
+.switcher button { border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.08); color: #f0f0f4; border-radius: 6px; padding: 3px 10px; cursor: pointer; font-size: 12px; }
+.switcher button.on { background: #7c6cf6; border-color: #7c6cf6; }
+
+.stage { padding: 28px 24px 40px; display: flex; justify-content: center; overflow-x: auto; }
+.window { width: 1180px; min-width: 1180px; flex: none; height: 760px; background: var(--win); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column; position: relative; }
+
+/* toolbar (unified title bar) */
+.tb { height: 52px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 14px 0 16px; background: var(--bar); border-bottom: 1px solid var(--line); }
+.lights { display: flex; gap: 8px; margin-right: 8px; }
+.lights i { width: 12px; height: 12px; border-radius: 50%; display: block; }
+.lights i:nth-child(1) { background: #ff5f57; } .lights i:nth-child(2) { background: #febc2e; } .lights i:nth-child(3) { background: #28c840; }
+.appicon { width: 26px; height: 26px; border-radius: 7px; background: linear-gradient(135deg, #8f80ff, #5b4ce0); display: grid; place-items: center; color: #fff; font-size: 13px; font-weight: 700; }
+.tb .title { font-weight: 650; font-size: 14px; }
+.tb .live { display: inline-flex; align-items: center; gap: 6px; color: var(--text-2); font-size: 12.5px; }
+.tb .live b { color: var(--text); font-weight: 600; }
+.dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex: none; }
+.dot.g { background: var(--green); } .dot.r { background: var(--red); } .dot.a { background: var(--amber); } .dot.n { background: var(--text-3); } .dot.p { background: var(--purple); }
+.sp { flex: 1; }
+.search { display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 7px; background: var(--gray-soft); border: 1px solid var(--line); color: var(--text-3); width: 220px; font-size: 12.5px; }
+.tbtn { height: 28px; min-width: 28px; padding: 0 9px; border-radius: 7px; border: 1px solid var(--line-2); background: var(--card); display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; font-size: 12.5px; }
+.tbtn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.banner { background: var(--amber-soft); color: var(--text); border-bottom: 1px solid color-mix(in srgb, var(--amber) 35%, transparent); padding: 7px 18px; font-size: 12.5px; display: flex; gap: 8px; align-items: center; }
+.banner b { color: var(--amber); }
+
+/* body split */
+.body { flex: 1; min-height: 0; display: flex; }
+.main { flex: 1; min-width: 0; overflow: auto; padding: 18px 20px 28px; }
+.stale .st-pill, .stale .num, .stale .ports { opacity: .45; filter: grayscale(1); }
+
+/* project card */
+.pcard { background: var(--card); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 16px; }
+.phead { display: flex; align-items: center; gap: 10px; padding: 12px 14px 10px; }
+.chev { color: var(--text-3); width: 16px; text-align: center; cursor: pointer; }
+.pname { font-size: 15px; font-weight: 650; }
+.ppath { font: 11.5px var(--mono); color: var(--text-3); }
+.count { font-size: 11.5px; padding: 1px 8px; border-radius: 10px; border: 1px solid var(--line-2); color: var(--text-2); font-variant-numeric: tabular-nums; }
+.count.g { color: var(--green); border-color: color-mix(in srgb, var(--green) 40%, transparent); background: var(--green-soft); }
+.count.r { color: var(--red); border-color: color-mix(in srgb, var(--red) 40%, transparent); background: var(--red-soft); }
+.psum { color: var(--text-2); font-size: 12px; font-variant-numeric: tabular-nums; }
+.psum b { color: var(--text); font-weight: 600; }
+.icon-btn { width: 28px; height: 28px; border-radius: 7px; display: inline-grid; place-items: center; cursor: pointer; border: 1px solid transparent; background: transparent; color: var(--text-2); font-size: 13px; }
+.icon-btn:hover { background: var(--gray-soft); }
+.icon-btn.play { color: var(--green); } .icon-btn.stop { color: var(--red); }
+.icon-btn:disabled { opacity: .3; }
+
+/* AI options chips */
+.opts { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 14px 10px 40px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: 6px; background: var(--card-2); border: 1px solid var(--line); font-size: 12px; color: var(--text-2); cursor: pointer; }
+.chip b { color: var(--text); font-weight: 600; }
+.chip .ai { color: var(--accent-2); font-size: 11px; }
+.chip.on { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.chip.pending { border-style: dashed; }
+.chip.add { color: var(--text-3); border-style: dashed; }
+
+/* service table */
+.tbl { margin: 0 10px 10px; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; table-layout: fixed; }
+td { overflow: hidden; text-overflow: ellipsis; }
+/* inspector open → compact overview: command and uptime live in the inspector */
+.compact col:nth-child(2), .compact th:nth-child(2), .compact td:nth-child(2),
+.compact col:nth-child(5), .compact th:nth-child(5), .compact td:nth-child(5) { display: none; }
+.compact .ppath, .compact .opts .add { display: none; }
+.compact col:nth-child(1) { width: auto !important; }
+.compact col:nth-child(3) { width: 96px !important; }
+.compact col:nth-child(4) { width: 78px !important; }
+.compact col:nth-child(6) { width: 70px !important; }
+.compact col:nth-child(7) { width: 82px !important; }
+th { text-align: left; font-weight: 500; color: var(--text-3); font-size: 11.5px; padding: 8px 10px; background: var(--card-2); border-bottom: 1px solid var(--line); white-space: nowrap; }
+th.r, td.r { text-align: right; }
+td { padding: 9px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+tbody tr { cursor: default; }
+tbody tr:hover td { background: var(--gray-soft); }
+tbody tr.sel td { background: var(--sel); }
+.svc { display: flex; align-items: center; gap: 9px; font-weight: 550; }
+.svc small { display: block; font-weight: 400; color: var(--amber); font-size: 11px; }
+.cmd { font: 12px var(--mono); color: var(--text-2); overflow: hidden; text-overflow: ellipsis; }
+.st-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; padding: 2px 8px; border-radius: 6px; border: 1px solid; }
+.st-pill.run { color: var(--green); background: var(--green-soft); border-color: color-mix(in srgb, var(--green) 35%, transparent); }
+.st-pill.stop { color: var(--text-2); background: var(--gray-soft); border-color: var(--line-2); }
+.st-pill.fail { color: var(--red); background: var(--red-soft); border-color: color-mix(in srgb, var(--red) 35%, transparent); }
+.st-pill.wait { color: var(--amber); background: var(--amber-soft); border-color: color-mix(in srgb, var(--amber) 35%, transparent); }
+.st-pill.unk { color: var(--purple); background: transparent; border-style: dashed; }
+.ports { display: flex; gap: 4px; }
+.port { font: 12px var(--mono); color: var(--accent-2); text-decoration: none; padding: 1px 6px; border-radius: 5px; background: var(--accent-soft); }
+.muted { color: var(--text-3); }
+.num { color: var(--text); }
+.ops { display: flex; gap: 2px; justify-content: flex-end; }
+.ops .icon-btn { width: 26px; height: 26px; }
+.force { font-size: 11.5px; padding: 3px 8px; border-radius: 6px; background: var(--red); color: #fff; border: 0; cursor: pointer; }
+
+/* inspector */
+.insp { width: 470px; flex: none; border-left: 1px solid var(--line); background: var(--bar); display: flex; flex-direction: column; min-height: 0; }
+.ih { padding: 14px 16px 0; }
+.ih .row { display: flex; align-items: center; gap: 8px; }
+.ih h3 { margin: 0; font-size: 15px; }
+.ih .meta { color: var(--text-3); font-size: 12px; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.tabs { display: flex; gap: 2px; margin-top: 12px; border-bottom: 1px solid var(--line); }
+.tabs span { padding: 7px 10px; color: var(--text-2); cursor: pointer; border-bottom: 2px solid transparent; font-size: 12.5px; }
+.tabs span.on { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+.ltool { display: flex; gap: 8px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+.ltool .search { width: auto; flex: 1; height: 26px; }
+.seg { display: inline-flex; border: 1px solid var(--line-2); border-radius: 6px; overflow: hidden; font-size: 12px; }
+.seg span { padding: 3px 9px; color: var(--text-2); }
+.seg span.on { background: var(--accent-soft); color: var(--accent-2); }
+.logs { flex: 1; overflow: auto; background: var(--win); font: 11.5px/1.65 var(--mono); padding: 8px 0; }
+.ln { padding: 0 14px 0 12px; border-left: 2px solid transparent; white-space: pre-wrap; word-break: break-all; color: var(--text-2); }
+.ln.err { border-left-color: var(--red); color: var(--text); }
+.ln.sys { color: var(--text-3); font-style: italic; }
+.ln.sys::before { content: "devpanel › "; }
+.c-g { color: var(--green); } .c-y { color: var(--amber); } .c-b { color: var(--accent-2); } .c-d { color: var(--text-3); }
+.lfoot { border-top: 1px solid var(--line); padding: 6px 14px; font-size: 11.5px; color: var(--text-3); display: flex; gap: 12px; }
+
+/* options list (inspector tab) */
+.olist { flex: 1; overflow: auto; padding: 12px 14px; }
+.oitem { border: 1px solid var(--line); background: var(--card); border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+.oitem .top { display: flex; align-items: center; gap: 8px; }
+.oitem .lab { font-weight: 600; }
+.oitem .key { font: 11px var(--mono); color: var(--text-3); }
+.oitem .by { margin-left: auto; font-size: 11px; color: var(--accent-2); }
+.oitem .by.user { color: var(--text-3); }
+.oitem p { margin: 6px 0 10px; color: var(--text-2); font-size: 12px; }
+.segc { display: inline-flex; border: 1px solid var(--line-2); border-radius: 7px; overflow: hidden; }
+.segc span { padding: 4px 12px; font-size: 12px; color: var(--text-2); border-right: 1px solid var(--line-2); }
+.segc span:last-child { border-right: 0; }
+.segc span.on { background: var(--accent); color: #fff; }
+.field { height: 28px; border-radius: 7px; border: 1px solid var(--line-2); background: var(--win); color: var(--text); padding: 0 9px; font: 12.5px var(--mono); width: 140px; }
+.refs { margin-top: 8px; font: 11px var(--mono); color: var(--text-3); }
+.refs mark { background: var(--accent-soft); color: var(--accent-2); border-radius: 3px; padding: 0 3px; }
+.note { font-size: 11.5px; color: var(--amber); margin-top: 6px; }
+
+/* popover */
+.pop { position: absolute; width: 340px; background: var(--card); border: 1px solid var(--line-2); border-radius: 12px; box-shadow: 0 18px 50px rgba(0,0,0,.45); padding: 14px; z-index: 5; }
+.pop::before { content: ""; position: absolute; top: -7px; left: 40px; width: 12px; height: 12px; background: var(--card); border-left: 1px solid var(--line-2); border-top: 1px solid var(--line-2); transform: rotate(45deg); }
+.pop h4 { margin: 0 0 2px; font-size: 14px; }
+.pop .by { font-size: 11px; color: var(--accent-2); }
+.pop p { margin: 8px 0 12px; color: var(--text-2); font-size: 12px; }
+.choice { display: flex; gap: 8px; align-items: flex-start; padding: 7px 8px; border-radius: 8px; border: 1px solid transparent; margin-bottom: 4px; }
+.choice.on { border-color: var(--accent); background: var(--accent-soft); }
+.choice .rd { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--text-3); margin-top: 2px; flex: none; }
+.choice.on .rd { border: 4px solid var(--accent); }
+.choice small { display: block; color: var(--text-3); font-size: 11.5px; }
+.pop .foot { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+.pop .foot .lnk { color: var(--red); font-size: 12px; }
+.pop .foot .hint { color: var(--amber); font-size: 11.5px; flex: 1; text-align: right; }
+
+/* sheet */
+.scrim { position: absolute; inset: 52px 0 0 0; background: rgba(0,0,0,.35); display: none; }
+.sheet { position: absolute; top: 52px; left: 50%; transform: translateX(-50%); width: 460px; background: var(--card); border: 1px solid var(--line-2); border-radius: 0 0 12px 12px; box-shadow: 0 18px 50px rgba(0,0,0,.45); padding: 18px; display: none; }
+.sheet h4 { margin: 0 0 6px; font-size: 14px; }
+.sheet p { color: var(--text-2); font-size: 12.5px; margin: 0 0 10px; }
+.sheet pre { font: 11.5px var(--mono); background: var(--win); border: 1px solid var(--line); border-radius: 7px; padding: 8px 10px; white-space: pre-wrap; margin: 0 0 14px; color: var(--text-2); }
+.sheet pre mark { background: var(--green-soft); color: var(--green); }
+.sheet .acts { display: flex; justify-content: flex-end; gap: 8px; }
+.show-sheet .scrim, .show-sheet .sheet { display: block; }
+
+.empty { flex: 1; display: grid; place-items: center; text-align: center; color: var(--text-2); }
+.empty .box { max-width: 440px; }
+.empty .big { width: 56px; height: 56px; border-radius: 14px; margin: 0 auto 14px; background: linear-gradient(135deg, #8f80ff, #5b4ce0); display: grid; place-items: center; color: #fff; font-size: 24px; font-weight: 700; }
+.empty h2 { color: var(--text); font-size: 17px; margin: 0 0 8px; }
+.empty pre { text-align: left; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font: 12px var(--mono); }
+</style>
+</head>
+<body>
+<div class="switcher">
+  <span>场景：</span>
+  <button data-s="overview" class="on">总览</button>
+  <button data-s="inspect">总览 + 服务详情（日志）</button>
+  <button data-s="popover">点选项改值</button>
+  <button data-s="options">服务详情 · 选项</button>
+  <button data-s="delete">删除选项</button>
+  <button data-s="timeout">停止超时</button>
+  <button data-s="offline">管理服务断开</button>
+  <button data-s="empty">无项目</button>
+  <span style="margin-left:auto"></span>
+  <button id="theme">切换深浅色</button>
+</div>
+<div class="stage"><div class="window" id="win"></div></div>
+
+<script>
+const TB = (live) => `
+<div class="tb">
+  <div class="lights"><i></i><i></i><i></i></div>
+  <div class="appicon">D</div><div class="title">DevPanel</div>
+  ${live}
+  <div class="sp"></div>
+  <div class="search">⌕ 搜索项目或服务</div>
+  <button class="tbtn primary">＋ 添加项目</button>
+  <button class="tbtn">⋯</button>
+</div>`;
+const LIVE = `<span class="live"><span class="dot g"></span>已连接 · <b>4</b>/7 服务运行中</span>`;
+const LIVE_OFF = `<span class="live" style="color:var(--amber)"><span class="dot a"></span>管理服务连接中断 · 5 秒后重连</span>`;
+
+const row = (o) => `
+<tr class="${o.sel ? 'sel' : ''}">
+  <td><div class="svc"><span class="dot" style="background:${o.c}"></span><div>${o.name}${o.note ? `<small>${o.note}</small>` : ''}</div></div></td>
+  <td><div class="cmd">${o.cmd}</div></td>
+  <td>${o.st}</td>
+  <td><div class="ports">${o.ports ? o.ports.map(p => `<a class="port">${p} ↗</a>`).join('') : '<span class="muted">—</span>'}</div></td>
+  <td class="r ${o.up ? 'num' : 'muted'}">${o.up || '—'}</td>
+  <td class="r ${o.cpu ? 'num' : 'muted'}">${o.cpu || '—'}</td>
+  <td class="r ${o.mem ? 'num' : 'muted'}">${o.mem || '—'}</td>
+  <td><div class="ops">${o.ops}</div></td>
+</tr>`;
+const RUN = '<span class="st-pill run">● 运行中</span>';
+const STOP = '<span class="st-pill stop">■ 已停止</span>';
+const OPS_RUN = '<button class="icon-btn stop" title="停止">■</button><button class="icon-btn" title="重启">↻</button><button class="icon-btn">⋯</button>';
+const OPS_STOP = '<button class="icon-btn play" title="启动">▶</button><button class="icon-btn" disabled>↻</button><button class="icon-btn">⋯</button>';
+
+function card(p) {
+  return `
+<section class="pcard">
+  <div class="phead">
+    <span class="chev">${p.open === false ? '›' : '⌄'}</span>
+    <span class="pname">${p.name}</span>
+    <span class="count ${p.cc || ''}">${p.count}</span>
+    <span class="ppath">${p.path}</span>
+    <span class="sp"></span>
+    ${p.sum ? `<span class="psum">CPU <b>${p.sum[0]}</b> · 内存 <b>${p.sum[1]}</b></span>` : ''}
+    <button class="icon-btn play" title="启动全部" ${p.allRun ? 'disabled' : ''}>▶</button>
+    <button class="icon-btn stop" title="停止全部" ${p.noneRun ? 'disabled' : ''}>■</button>
+    <button class="icon-btn" title="重启">↻</button>
+    <button class="icon-btn" title="更多">⋯</button>
+  </div>
+  ${p.opts ? `<div class="opts">${p.opts}</div>` : ''}
+  ${p.open === false ? '' : `<div class="tbl"><table>
+    <colgroup><col style="width:16%"><col><col style="width:15%"><col style="width:10%"><col style="width:9%"><col style="width:8%"><col style="width:9%"><col style="width:96px"></colgroup>
+    <thead><tr><th>服务</th><th>命令</th><th>状态</th><th>端口</th><th class="r">运行时长</th><th class="r">CPU</th><th class="r">内存</th><th class="r">操作</th></tr></thead>
+    <tbody>${p.rows.map(row).join('')}</tbody></table></div>`}
+</section>`;
+}
+
+const chip = (label, val, opt = {}) => `<span class="chip ${opt.on ? 'on' : ''} ${opt.pending ? 'pending' : ''}" title="${opt.pending ? '已修改，下次启动生效' : ''}"><span class="ai">✦</span>${label} <b>${val}</b>${opt.pending ? ' <span style="color:var(--amber)">•</span>' : ''} ▾</span>`;
+
+function projects(o = {}) {
+  return [
+    card({
+      name: 'reg-radar', path: '~/Project/reg-radar', count: '2/2 运行中', cc: 'g', sum: ['132.4%', '1.31 GiB'], allRun: true,
+      opts: chip('后端配置', 'dev', { on: o.chipOn }) + chip('API 端口', '8081') + chip('前端监听', '仅本机', { pending: true }) + '<span class="chip add">＋ 选项</span>',
+      rows: [
+        { name: '后端', c: '#7c6cf6', cmd: './mvnw spring-boot:run -Dspring-boot.run.profiles=${profile}', st: RUN, ports: [8081], up: '1h12m', cpu: '128.0%', mem: '1.12 GiB', ops: OPS_RUN, sel: o.sel },
+        { name: '前端', c: '#34c77b', cmd: 'pnpm --dir frontend start -H ${host}', st: RUN, ports: [3000], up: '1h12m', cpu: '4.4%', mem: '196 MiB', ops: OPS_RUN, note: '选项已修改 · 下次启动生效' },
+      ],
+    }),
+    card({
+      name: 'cosmetic', path: '~/Project/cosmetic', count: '1/2 运行中', cc: 'g', sum: ['0.8%', '612 MiB'],
+      opts: chip('Spring Profile', 'test') + '<span class="chip add">＋ 选项</span>',
+      rows: [
+        { name: 'Java API', c: '#f0a43a', cmd: 'mvn spring-boot:run -Dspring-boot.run.profiles=${profile}', st: o.timeout ? '<span class="st-pill wait">◑ 尚未停止 · 12 秒</span>' : RUN, ports: [8080], up: '26m', cpu: '0.8%', mem: '512 MiB', ops: o.timeout ? '<button class="force">强制停止</button><button class="icon-btn">⋯</button>' : OPS_RUN },
+        { name: '管理后台', c: '#e06bb4', cmd: 'yarn serve', st: STOP, ops: OPS_STOP, note: '' },
+      ],
+    }),
+    card({
+      name: 'ml-api', path: '~/Project/ml-api', count: '异常', cc: 'r', noneRun: true,
+      rows: [
+        { name: 'uvicorn', c: '#4cb6f0', cmd: 'uv run uvicorn app.main:app --port ${port}', st: '<span class="st-pill fail">▲ 异常 · 退出（1）</span>', ops: OPS_STOP },
+      ],
+    }),
+    card({ name: 'docs-site', path: '~/Project/docs-site', count: '0/1', open: false, noneRun: true, rows: [] }),
+  ].join('');
+}
+
+const LOG = [
+  ['sys', '已启动 · 运行 r_…7VV5Q3 · PID 41823 · ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev'],
+  ['', '<span class="c-d">[INFO]</span> --- <span class="c-g">spring-boot:3.4.1:run</span> (default-cli) @ regpulse ---'],
+  ['', '2026-10-20 10:42:07 <span class="c-g">INFO</span>  RegRadarApplication : The following 1 profile is active: "dev"'],
+  ['', '2026-10-20 10:42:09 <span class="c-g">INFO</span>  TomcatWebServer : Tomcat initialized with port 8081 (http)'],
+  ['err', '2026-10-20 10:42:10 <span class="c-y">WARN</span>  HikariPool-1 : Connection is not available, request timed out after 3000ms'],
+  ['err', 'java.sql.SQLTransientConnectionException: HikariPool-1 - Connection is not available\n\tat com.zaxxer.hikari.pool.HikariPool.createTimeoutException(HikariPool.java:696)'],
+  ['', '2026-10-20 10:42:12 <span class="c-g">INFO</span>  RegRadarApplication : Started RegRadarApplication in 5.62 seconds'],
+  ['', '2026-10-20 10:44:31 <span class="c-g">INFO</span>  RegulationController : GET /api/regulations?page=1 200 12ms'],
+  ['', '2026-10-20 10:44:31 <span class="c-g">INFO</span>  RegulationController : GET /api/regulations/1832 200 4ms'],
+];
+const logs = () => LOG.map(([s, t]) => `<div class="ln ${s}">${t}</div>`).join('');
+
+const INSP_HEAD = (tab) => `
+<div class="ih">
+  <div class="row"><span class="dot" style="background:#7c6cf6;width:9px;height:9px"></span><h3>后端</h3><span class="st-pill run">● 运行中</span><span class="sp"></span>
+    <button class="icon-btn stop">■</button><button class="icon-btn">↻</button><button class="icon-btn">✕</button></div>
+  <div class="meta">reg-radar · 运行 r_…7VV5Q3 · PID 41823 · 1h12m · CPU 128.0% · 内存 1.12 GiB（RSS 估算）· 5 个进程</div>
+  <div class="tabs"><span class="${tab === 'log' ? 'on' : ''}">日志</span><span class="${tab === 'opt' ? 'on' : ''}">选项</span><span>运行记录</span><span>命令与环境</span></div>
+</div>`;
+const INSP_LOG = `<aside class="insp">${INSP_HEAD('log')}
+  <div class="ltool"><div class="search">⌕ 搜索已加载的日志</div><span class="seg"><span class="on">当前运行</span><span>上一次</span></span><button class="tbtn">跟随</button></div>
+  <div class="logs">${logs()}</div>
+  <div class="lfoot"><span>已加载 12,304 行</span><span>stderr 以红线标出</span></div>
+</aside>`;
+const INSP_OPT = `<aside class="insp">${INSP_HEAD('opt')}
+  <div class="olist">
+    <div class="oitem">
+      <div class="top"><span class="lab">后端配置</span><span class="key">\${profile}</span><span class="by">✦ AI 编写 · 10/20</span></div>
+      <p>决定 Spring Boot 读取哪个 application-*.yml，也就决定了连哪个数据库。dev 是日常联调库；test 指向 171 测试环境，那里没有可清空的独立测试库。</p>
+      <span class="segc"><span class="on">dev</span><span>test</span><span>prod</span></span>
+      <div class="refs">用于：后端 命令 <mark>-Dspring-boot.run.profiles=\${profile}</mark></div>
+    </div>
+    <div class="oitem">
+      <div class="top"><span class="lab">API 端口</span><span class="key">\${apiPort}</span><span class="by">✦ AI 编写 · 10/20</span></div>
+      <p>后端监听的 HTTP 端口。前端开发代理默认请求 8081，改动后需要同步修改前端代理。</p>
+      <input class="field" value="8081">
+      <div class="refs">用于：后端 环境变量 <mark>SERVER_PORT=\${apiPort}</mark></div>
+    </div>
+    <div class="oitem">
+      <div class="top"><span class="lab">前端监听</span><span class="key">\${host}</span><span class="by user">你修改于 11:02</span></div>
+      <p>Next.js 监听的网卡地址。仅本机最安全；局域网可访问时，同一网络里的其他设备也能打开页面。</p>
+      <span class="segc"><span>仅本机</span><span class="on">局域网可访问</span></span>
+      <div class="note">• 已修改 · 下次启动生效（当前运行仍为 仅本机）</div>
+      <div class="refs">用于：前端 命令 <mark>-H \${host}</mark></div>
+    </div>
+    <button class="tbtn">＋ 添加选项</button>
+  </div>
+</aside>`;
+
+const POP = `<div class="pop" style="left:44px;top:182px">
+  <h4>后端配置</h4><span class="by">✦ AI 编写 · 10/20 · 可修改</span>
+  <p>决定 Spring Boot 读取哪个 application-*.yml，也就决定了连哪个数据库。</p>
+  <div class="choice on"><span class="rd"></span><div>dev<small>日常联调库（application-dev.yml）</small></div></div>
+  <div class="choice"><span class="rd"></span><div>test<small>171 测试环境，没有可清空的独立测试库</small></div></div>
+  <div class="choice"><span class="rd"></span><div>prod<small>生产库，仅执行正式迁移，谨慎使用</small></div></div>
+  <div class="foot"><a class="lnk">删除此选项</a><span class="hint">改动在下次启动时生效</span><button class="tbtn primary">完成</button></div>
+</div>`;
+
+const SHEET = `<div class="scrim"></div><div class="sheet">
+  <h4>删除选项「后端配置」？</h4>
+  <p>它仍被「后端」的启动命令引用。删除后，当前值 <b>dev</b> 会写回命令，服务照常可以启动：</p>
+  <pre>./mvnw spring-boot:run -Dspring-boot.run.profiles=<mark>dev</mark></pre>
+  <div class="acts"><button class="tbtn">取消</button><button class="tbtn" style="background:var(--red);border-color:var(--red);color:#fff">删除并写回</button></div>
+</div>`;
+
+const S = {
+  overview: () => TB(LIVE) + `<div class="body"><div class="main">${projects()}</div></div>`,
+  inspect: () => TB(LIVE) + `<div class="body"><div class="main compact">${projects({ sel: true })}</div>${INSP_LOG}</div>`,
+  popover: () => TB(LIVE) + `<div class="body"><div class="main" style="position:relative">${projects({ chipOn: true })}${POP}</div></div>`,
+  options: () => TB(LIVE) + `<div class="body"><div class="main compact">${projects({ sel: true })}</div>${INSP_OPT}</div>`,
+  delete: () => TB(LIVE) + `<div class="body"><div class="main compact">${projects({ sel: true })}</div>${INSP_OPT}</div>` + SHEET,
+  timeout: () => TB(LIVE) + `<div class="body"><div class="main">${projects({ timeout: true })}</div></div>`,
+  offline: () => TB(LIVE_OFF) + `<div class="banner"><b>⚠ 与管理服务的连接中断</b>下面是 10:46:12 的状态，可能已过期；操作暂时不可用。</div><div class="body stale"><div class="main">${projects()}</div></div>`,
+  empty: () => TB(`<span class="live"><span class="dot g"></span>已连接 · 还没有项目</span>`) + `<div class="body"><div class="empty"><div class="box">
+    <div class="big">D</div><h2>还没有项目</h2>
+    <p>在项目里对你的编程 Agent 说「把这个项目加入 DevPanel」。它会读懂启动方式，把常改的配置做成选项并写好说明。</p>
+    <pre>devpanel project register --config ./devpanel.json</pre>
+    <p style="margin-top:14px"><button class="tbtn primary">＋ 手动添加项目</button></p></div></div></div>`,
+};
+
+const win = document.getElementById('win');
+function show(name) {
+  win.innerHTML = S[name]();
+  win.classList.toggle('show-sheet', name === 'delete');
+  document.querySelectorAll('.switcher button[data-s]').forEach(b => b.classList.toggle('on', b.dataset.s === name));
+}
+document.querySelectorAll('.switcher button[data-s]').forEach(b => b.onclick = () => show(b.dataset.s));
+document.getElementById('theme').onclick = () => {
+  const r = document.documentElement;
+  r.dataset.theme = r.dataset.theme === 'light' ? 'dark' : 'light';
+};
+show('overview');
+</script>
+</body>
+</html>

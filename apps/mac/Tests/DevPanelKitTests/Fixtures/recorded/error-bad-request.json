@@ -1,0 +1,6 @@
+{
+  "error": {
+    "code": "BAD_REQUEST",
+    "message": "非 GET 请求必须带 X-DevPanel-Client: ui|cli"
+  }
+}

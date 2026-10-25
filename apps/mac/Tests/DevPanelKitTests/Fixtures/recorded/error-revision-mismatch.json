@@ -1,0 +1,9 @@
+{
+  "error": {
+    "code": "REVISION_MISMATCH",
+    "message": "配置已被修改（当前 revision 5）",
+    "details": {
+      "revision": 5
+    }
+  }
+}

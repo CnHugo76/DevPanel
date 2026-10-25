@@ -1,0 +1,22 @@
+{
+  "error": {
+    "code": "CONFIG_INVALID",
+    "message": "配置校验未通过",
+    "details": {
+      "issues": [
+        {
+          "path": "root",
+          "severity": "error",
+          "code": "CWD_UNAVAILABLE",
+          "message": "目录不存在：/nonexistent/x"
+        },
+        {
+          "path": "services",
+          "severity": "error",
+          "code": "CONFIG_INVALID",
+          "message": "至少需要一个服务"
+        }
+      ]
+    }
+  }
+}

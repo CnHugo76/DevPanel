@@ -1,0 +1,47 @@
+{
+  "id": "p_fayl6lvpih",
+  "revision": 5,
+  "createdAt": "2026-10-20T10:12:54.366Z",
+  "updatedAt": "2026-10-20T10:12:54.529Z",
+  "config": {
+    "schemaVersion": 1,
+    "name": "demo",
+    "root": "/tmp/devpanel-fixture/proj1",
+    "env": {
+      "API_KEY": {
+        "secret": true
+      },
+      "PORT": "4000"
+    },
+    "services": [
+      {
+        "id": "app",
+        "name": "应用",
+        "cwd": "app",
+        "command": [
+          "sleep",
+          "${secs}"
+        ]
+      }
+    ],
+    "params": [
+      {
+        "key": "secs",
+        "label": "秒数",
+        "type": "string",
+        "value": "1000",
+        "description": "sleep 时长",
+        "setBy": "agent",
+        "valueUpdatedAt": "2026-10-20T10:12:54.366Z",
+        "describedBy": "agent",
+        "usedBy": [
+          {
+            "serviceId": "app",
+            "where": "command",
+            "index": 1
+          }
+        ]
+      }
+    ]
+  }
+}

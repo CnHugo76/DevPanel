@@ -1,0 +1,27 @@
+{
+  "total": {
+    "status": "ok",
+    "sampledAt": "2026-10-20T09:59:31.655Z",
+    "cpuPercent": 127.5,
+    "rssBytes": 1308743135,
+    "processCount": 7
+  },
+  "services": {
+    "backend": {
+      "runId": "r_01M5C7WJ6Q7HV1VV0FTMZTWPVA",
+      "status": "ok",
+      "sampledAt": "2026-10-20T09:59:31.655Z",
+      "cpuPercent": 123.6,
+      "rssBytes": 1106901171,
+      "processCount": 4
+    },
+    "frontend": {
+      "runId": "r_01M5C7WP3QK161FFPP7XSQP4HP",
+      "status": "ok",
+      "sampledAt": "2026-10-20T09:59:31.655Z",
+      "cpuPercent": 3.9,
+      "rssBytes": 201841964,
+      "processCount": 3
+    }
+  }
+}

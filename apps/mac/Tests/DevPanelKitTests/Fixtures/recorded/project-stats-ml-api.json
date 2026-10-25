@@ -1,0 +1,30 @@
+{
+  "total": {
+    "status": "partial",
+    "sampledAt": "2026-10-20T10:12:51.293Z",
+    "cpuPercent": 1.4,
+    "rssBytes": 87202884,
+    "processCount": 2,
+    "note": "部分进程无法读取，合计偏低"
+  },
+  "services": {
+    "api": {
+      "runId": "r_01M5CCS8XYP6R49KW849JT7E14",
+      "status": "partial",
+      "sampledAt": "2026-10-20T10:12:51.293Z",
+      "cpuPercent": 1.4,
+      "rssBytes": 87202884,
+      "processCount": 2,
+      "note": "2 个进程中有 1 个无法读取（权限不足或已退出），数值偏低",
+      "listening": [
+        {
+          "port": 8000,
+          "address": "127.0.0.1",
+          "family": "ipv4",
+          "scope": "loopback",
+          "pid": 77529
+        }
+      ]
+    }
+  }
+}
