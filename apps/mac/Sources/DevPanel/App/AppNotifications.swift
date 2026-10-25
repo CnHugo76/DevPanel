@@ -28,11 +28,17 @@ import UserNotifications
     private func deliver(_ notice: ServiceNotice) async {
         guard let center else { return }
         do {
-            let settings = await center.notificationSettings()
+            // Older SDKs return non-Sendable settings from the async API.
+            // Read them on the callback queue and transfer only the status.
+            let authorizationStatus: UNAuthorizationStatus = await withCheckedContinuation { continuation in
+                center.getNotificationSettings { settings in
+                    continuation.resume(returning: settings.authorizationStatus)
+                }
+            }
             let allowed: Bool
-            if settings.authorizationStatus == .notDetermined {
+            if authorizationStatus == .notDetermined {
                 allowed = try await center.requestAuthorization(options: [.alert, .sound, .badge])
-            } else { allowed = settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional }
+            } else { allowed = authorizationStatus == .authorized || authorizationStatus == .provisional }
             guard allowed else { return }
             let content = UNMutableNotificationContent()
             content.title = notice.title; content.body = notice.body; content.sound = .default

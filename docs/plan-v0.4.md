@@ -286,3 +286,9 @@ server/manager/mock 的配置、操作、任务与选项入口只传 Actor，sou
 - 新增 `docs/features.md` 与 `docs/features.zh-CN.md`，从两份 README 和文档导航链接。按原生界面 / CLI / 功能边界列出现有功能，记录 v0.4 交付清单、安装与恢复限制，并把发布检查、首次使用、状态表达、日志 / 后台验证和分步多语言列为建议，不混同已实现功能。
 - 首次完成的公开 CI（`2fc5902`，Actions run 40162240195）TypeScript 类型检查、测试、workspace 构建通过；Swift 测试步骤在编译 `AppNotifications.swift:31` 时失败，通知接口返回的 `UNNotificationSettings` 不能跨隔离域，release 构建步骤跳过。本地先前通过的验证不能代替远程结果，兼容修复列为发布前 P0；本轮仅整理文档，未修复代码或声称 CI 通过。
 - 文档验证：新增与修改的入口本地链接通过；两种语言的功能表行数、已完成 / 待完成项数量一致，README 命令块一致；`git diff --check` 通过。本轮没有产品实现变更，不重复执行产品测试。
+
+### 2026-10-25 修复 GitHub Swift 通知接口编译失败
+
+- 按维护者要求修复公开 CI。远程 `3c5e1c1` 的 run 40162596855 在 Xcode 16.4 / macOS 15.5 SDK 编译 `AppNotifications.swift` 失败：`UNNotificationSettings` 不满足 Sendable，不能从异步通知接口跨隔离域传回 MainActor。本机 Xcode 27.1 / Swift 6.4 原写法可编译，因此以远程旧工具链的实际编译作为回归判据；不以本机通过声称兼容验证完成，也不新增无法覆盖该编译期差异的模拟单元测试。
+- 将设置读取改为系统 `getNotificationSettings` 回调，回调内提取 `UNAuthorizationStatus`，通过 checked continuation 只传递枚举；原有首次请求权限、已授权 / 临时授权投递与拒绝时跳过的行为保持不变。未添加 `@unchecked Sendable`、`@preconcurrency` 或关闭并发检查。CI 增加 Xcode / Swift 版本输出，保留原有全部检查。
+- 本地隔离验证：`swift test --package-path apps/mac` 320 项 / 54 suites 通过；`swift build -c release --package-path apps/mac` 通过。日志在忽略目录 `.devpanel-dev/ci-notifications/`。没有启动或替换用户日常 App、CLI、daemon 或真实项目。本次推送后的旧工具链结果以 [GitHub Actions](https://github.com/CnHugo76/DevPanel/actions/workflows/ci.yml) 为准。

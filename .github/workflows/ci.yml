@@ -30,6 +30,10 @@ jobs:
           echo "DEVPANEL_PORT=0" >> "$GITHUB_ENV"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Show Swift toolchain
+        run: |
+          xcodebuild -version
+          swift --version
       - name: Typecheck
         run: pnpm typecheck
       - name: TypeScript and web tests

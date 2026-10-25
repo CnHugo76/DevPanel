@@ -67,7 +67,7 @@ These are proposed priorities, not additional implemented capabilities or an app
 
 | Priority | Work | Completion criterion |
 | --- | --- | --- |
-| P0 | Resolve the remote Swift build compatibility failure | The first completed public [CI run](https://github.com/CnHugo76/DevPanel/actions/runs/40162240195) passed TypeScript checks, tests and workspace build, but failed while compiling the notification API at `AppNotifications.swift:31` (`UNNotificationSettings` crossing an isolation boundary). The intended Xcode / Swift versions must build and pass tests remotely before tagging |
+| P0 | Verify supported Swift toolchains before release | The first completed public [CI run](https://github.com/CnHugo76/DevPanel/actions/runs/40162240195) exposed `UNNotificationSettings` crossing an isolation boundary. Notification delivery now reads settings in the system callback and transfers only the authorization-status enum. Check [current CI results](https://github.com/CnHugo76/DevPanel/actions/workflows/ci.yml) for each release candidate before tagging |
 | P0 | Align version and release evidence | Choose the version, align package / app metadata, write changes since `v0.4.1`, build from an identified public commit, and match the tag, package and checksum |
 | P0 | Finish installation acceptance | Verify Gatekeeper, CLI PATH, replacement confirmation, app relocation, login startup, notifications, upgrade and uninstall using isolated data; verify each advertised architecture |
 | P1 | Complete the first-use path in both languages | A new user can install or build, add the demo, configure readiness, start, inspect output and stop using one short guide; missing tools / PATH / readiness have clear next steps |
@@ -79,6 +79,6 @@ The recommended v0.4 focus is reliable installation, clear state and smooth dail
 
 ## Evidence and references
 
-Local validation recorded before publication passed 245 TypeScript / Web tests, 320 Swift tests, typechecking, builds, the isolated demo and an Apple Silicon standalone-runtime smoke check. These local results do not replace remote CI or manual installation acceptance. This checklist adds documentation only; it does not claim to resolve the remote Swift failure.
+Local validation recorded before publication passed 245 TypeScript / Web tests, 320 Swift tests, typechecking, builds, the isolated demo and an Apple Silicon standalone-runtime smoke check. These local results do not replace remote CI or manual installation acceptance. Subsequent notification compatibility work is recorded in the acceptance notes; current build results are available in GitHub Actions.
 
 See [acceptance records](plan-v0.4.md), [native app guide](../apps/mac/README.md), [API contract](../contract/api.md), [v0.4 product design](product-design-v0.4.md), [packaging and migration](release-v0.4.md), and [publication notes](open-source.md).

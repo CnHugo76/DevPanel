@@ -67,7 +67,7 @@ DevPanel 为开发者和 AI 提供共用的本地项目运行入口：原生 mac
 
 | 优先级 | 调整 | 完成标准 |
 | --- | --- | --- |
-| P0 | 修复远程 Swift 编译兼容问题 | 首次完成的公开 [CI](https://github.com/CnHugo76/DevPanel/actions/runs/40162240195) 中 TypeScript 检查、测试、workspace 构建通过；Swift 在 `AppNotifications.swift:31` 的通知接口编译失败（`UNNotificationSettings` 跨隔离域）。打标签前须在约定的 Xcode / Swift 环境构建、测试通过 |
+| P0 | 发布前核验 Swift 工具链兼容性 | 首次完成的公开 [CI](https://github.com/CnHugo76/DevPanel/actions/runs/40162240195) 暴露 `UNNotificationSettings` 跨隔离域问题。通知投递现改为在系统回调读取设置，只传递授权状态枚举；每个候选版本打标签前检查[最新 CI 结果](https://github.com/CnHugo76/DevPanel/actions/workflows/ci.yml) |
 | P0 | 版本与发布证据对齐 | 选定版本，统一包 / App 元数据，写清相对 `v0.4.1` 的变化，从明确的公开提交构建，保证标签、产物与校验文件对应 |
 | P0 | 补齐安装验收 | 使用隔离数据验证 Gatekeeper、CLI PATH、覆盖确认、移动 App、登录启动、通知、升级与卸载；逐一验证承诺提供的架构 |
 | P1 | 补齐中英文首次使用路径 | 新用户按一篇短指南完成安装或构建、添加 demo、配置就绪、启动、看输出、停止；缺工具 / PATH / 就绪条件时有明确下一步 |
@@ -79,6 +79,6 @@ DevPanel 为开发者和 AI 提供共用的本地项目运行入口：原生 mac
 
 ## 依据与详细说明
 
-公开前记录的本地验证已通过 TypeScript / Web 245 项、Swift 320 项、类型检查、构建、隔离 demo 与 Apple Silicon 独立运行时 smoke。本地结果不能代替远程 CI 或人工安装验收。本清单只增加文档，不表示远程 Swift 编译问题已修复。
+公开前记录的本地验证已通过 TypeScript / Web 245 项、Swift 320 项、类型检查、构建、隔离 demo 与 Apple Silicon 独立运行时 smoke。本地结果不能代替远程 CI 或人工安装验收。后续通知兼容调整见验收记录，最新构建结果见 GitHub Actions。
 
 详见 [v0.4 验收记录](plan-v0.4.md)、[原生程序说明](../apps/mac/README.md)、[API 契约](../contract/api.md)、[v0.4 产品设计](product-design-v0.4.md)、[打包与迁移](release-v0.4.md)、[开源记录](open-source.md)。
