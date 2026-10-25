@@ -292,3 +292,6 @@ server/manager/mock 的配置、操作、任务与选项入口只传 Actor，sou
 - 按维护者要求修复公开 CI。远程 `3c5e1c1` 的 run 40162596855 在 Xcode 16.4 / macOS 15.5 SDK 编译 `AppNotifications.swift` 失败：`UNNotificationSettings` 不满足 Sendable，不能从异步通知接口跨隔离域传回 MainActor。本机 Xcode 27.1 / Swift 6.4 原写法可编译，因此以远程旧工具链的实际编译作为回归判据；不以本机通过声称兼容验证完成，也不新增无法覆盖该编译期差异的模拟单元测试。
 - 将设置读取改为系统 `getNotificationSettings` 回调，回调内提取 `UNAuthorizationStatus`，通过 checked continuation 只传递枚举；原有首次请求权限、已授权 / 临时授权投递与拒绝时跳过的行为保持不变。未添加 `@unchecked Sendable`、`@preconcurrency` 或关闭并发检查。CI 增加 Xcode / Swift 版本输出，保留原有全部检查。
 - 本地隔离验证：`swift test --package-path apps/mac` 320 项 / 54 suites 通过；`swift build -c release --package-path apps/mac` 通过。日志在忽略目录 `.devpanel-dev/ci-notifications/`。没有启动或替换用户日常 App、CLI、daemon 或真实项目。本次推送后的旧工具链结果以 [GitHub Actions](https://github.com/CnHugo76/DevPanel/actions/workflows/ci.yml) 为准。
+- 首轮回归 `fbefebe`（run 40163530473，Xcode 16.4 / Swift 6.1.2）不再报告设置读取的错误，随后编译器进入隔离检查并指出同文件 `requestAuthorization` / `add` 将 MainActor 中的 `center` 发送给非隔离异步方法存在数据竞争风险。继续将这两处改为同步调用系统 completion-handler API，并通过 throwing continuation 传回布尔值 / 完成或错误；通知中心、内容与请求对象均留在原调用隔离域内。
+- 三个系统回调显式标注 `@Sendable`，只捕获 Sendable continuation，不捕获主线程状态，避免在系统回调队列运行时继承 MainActor 隔离。
+- 完整回调调整后本地 Swift 320 项 / 54 suites 再次通过，继续以远程全量 CI 验证旧编译器下的服务端 / CLI / Web 测试和原生测试、release 构建。

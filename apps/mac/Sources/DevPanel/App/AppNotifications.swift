@@ -28,16 +28,21 @@ import UserNotifications
     private func deliver(_ notice: ServiceNotice) async {
         guard let center else { return }
         do {
-            // Older SDKs return non-Sendable settings from the async API.
-            // Read them on the callback queue and transfer only the status.
+            // Bridge the callbacks so older SDKs never send non-Sendable
+            // notification objects across the main actor boundary.
             let authorizationStatus: UNAuthorizationStatus = await withCheckedContinuation { continuation in
-                center.getNotificationSettings { settings in
+                center.getNotificationSettings { @Sendable settings in
                     continuation.resume(returning: settings.authorizationStatus)
                 }
             }
             let allowed: Bool
             if authorizationStatus == .notDetermined {
-                allowed = try await center.requestAuthorization(options: [.alert, .sound, .badge])
+                allowed = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Bool, any Error>) in
+                    center.requestAuthorization(options: [.alert, .sound, .badge]) { @Sendable granted, error in
+                        if let error { continuation.resume(throwing: error) }
+                        else { continuation.resume(returning: granted) }
+                    }
+                }
             } else { allowed = authorizationStatus == .authorized || authorizationStatus == .provisional }
             guard allowed else { return }
             let content = UNMutableNotificationContent()
@@ -50,7 +55,13 @@ import UserNotifications
                 case .action(let id): content.userInfo = ["projectId": ref.projectId, "kind": "action", "actionId": id]
                 }
             }
-            try await center.add(UNNotificationRequest(identifier: notice.id, content: content, trigger: nil))
+            let request = UNNotificationRequest(identifier: notice.id, content: content, trigger: nil)
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
+                center.add(request) { @Sendable error in
+                    if let error { continuation.resume(throwing: error) }
+                    else { continuation.resume() }
+                }
+            }
         } catch {
             controller?.editor.show(.init(tone: .warn, text: "系统通知未发送：\(error.localizedDescription)"))
         }

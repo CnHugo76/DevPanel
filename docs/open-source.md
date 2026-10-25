@@ -52,6 +52,6 @@ node scripts/release-smoke.mjs
 
 2026-10-25 首次完成的公开 [GitHub Actions](https://github.com/CnHugo76/DevPanel/actions/runs/40162240195)（提交 `2fc5902`）中，TypeScript 类型检查、测试与 workspace 构建通过；Swift 测试步骤在编译通知接口时失败：`AppNotifications.swift:31` 的 `UNNotificationSettings` 不能跨隔离域，原生 release 构建因此跳过。在该次核对时远程 CI 尚未通过，兼容修复和重验列为打公开标签前的 P0，不能用本地通过结果代替。
 
-随后按维护者要求修复：在系统通知回调中读取设置，只将授权状态枚举传回主线程，避免传递整个非 Sendable 设置对象；CI 增加 Xcode / Swift 版本输出，保留原有类型检查、测试与 release 构建步骤。该问题在 GitHub Xcode 16.4 环境出现，本机 Xcode 27.1 的结果不能替代旧工具链验证；修复后的远程结果见 [CI 运行记录](https://github.com/CnHugo76/DevPanel/actions/workflows/ci.yml)。
+随后按维护者要求修复：设置读取、请求权限、发送通知均改用系统回调桥接，只将授权状态枚举、布尔值、完成结果或错误传回主线程，避免将非 Sendable 通知对象发送到非隔离异步方法；CI 增加 Xcode / Swift 版本输出，保留原有类型检查、测试与 release 构建步骤。该问题在 GitHub Xcode 16.4 环境出现，本机 Xcode 27.1 的结果不能替代旧工具链验证；修复后的远程结果见 [CI 运行记录](https://github.com/CnHugo76/DevPanel/actions/workflows/ci.yml)。
 
 另生成 `.devpanel-dev/open-source/DevPanel-source-preview.zip`：包含本轮已验证的当前源码、MIT 许可与文档，不包含 `.git`、依赖、构建产物或本地运行数据。它可作为首次公开的源码起点，原仓库及其全部历史保留在本地。
