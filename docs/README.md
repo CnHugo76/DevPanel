@@ -3,6 +3,7 @@
 ## 使用与贡献
 
 - 项目首页：[English](../README.md) / [简体中文](../README.zh-CN.md)，包含功能、安装、CLI、数据与卸载。
+- 功能清单与 v0.4 优化建议：[English](features.md) / [简体中文](features.zh-CN.md)，区分原生界面、CLI、功能边界与发布前待办。
 - [独立演示项目](../examples/demo/README.md)：使用临时数据体验注册、启动、就绪与日志。
 - [Agent skill](../skills/devpanel/SKILL.md)：给 Codex / Claude Code 等 Agent 的操作说明。
 - [贡献指南](../CONTRIBUTING.md)、[安全报告](../SECURITY.md)、[第三方声明](../THIRD_PARTY_NOTICES.md)。

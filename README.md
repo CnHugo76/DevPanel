@@ -11,7 +11,7 @@ AI agents register, start, and query projects through the CLI. You inspect, adju
 - **Human oversight**: a native service panel, operation attribution and activity, holds, and locks.
 - **Project tools**: saved actions, Maven modules and profiles, Git changes, and separate diff windows, with explicitly configured repositories and Maven projects.
 
-[Try the demo](examples/demo/README.md) · [Documentation](docs/README.md) · [Contributing](CONTRIBUTING.md) · [Third-party notices](THIRD_PARTY_NOTICES.md)
+[Feature checklist and v0.4 priorities](docs/features.md) · [Try the demo](examples/demo/README.md) · [Documentation](docs/README.md) · [Contributing](CONTRIBUTING.md) · [Third-party notices](THIRD_PARTY_NOTICES.md)
 
 The detailed development guides, demo instructions, and agent skill are currently written in Simplified Chinese. Issues and pull requests are welcome in English or Chinese.
 
@@ -20,7 +20,7 @@ The detailed development guides, demo instructions, and agent skill are currentl
 ## Requirements and downloads
 
 - macOS 14 or later. Distribution packages are built separately on Apple Silicon and Intel Macs.
-- When releases are available, download `DevPanel-<version>-macos-<arch>.zip` from this repository's **Releases** section (`arm64` for Apple Silicon, `x64` for Intel). Verify it with the accompanying `.sha256` file. The current version is 0.4.1; no public GitHub Release has been published yet. You can build from source now.
+- When releases are available, download `DevPanel-<version>-macos-<arch>.zip` from this repository's **Releases** section (`arm64` for Apple Silicon, `x64` for Intel). Verify it with the accompanying `.sha256` file. Package metadata currently reads 0.4.1, and public source includes later improvements; no public version tag or GitHub Release has been published yet. You can build from source now.
 - The standalone app bundles Node.js, the daemon, the CLI, and a process sampling helper. It does not require a separate Node.js installation or a source checkout. Your own projects still need their tools, such as a JDK or package manager.
 
 Extract `DevPanel.app` and place it somewhere you intend to keep it. If macOS blocks the first launch, try opening it once, then use **System Settings → Privacy & Security → Open Anyway** and follow the system prompts. Distribution packages use ad-hoc signing; they are not Developer ID signed or notarized.
