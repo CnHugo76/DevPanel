@@ -12,7 +12,11 @@ struct ProjectInspectorView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(project.name).font(.system(size: 15, weight: .semibold))
-                    Text(Format.tildePath(project.root)).font(.system(size: 11, design: .monospaced)).foregroundStyle(Theme.text3).lineLimit(1)
+                    if project.instance != nil {
+                        ProjectIdentityCaption(project: project)
+                    } else {
+                        Text(Format.tildePath(project.root)).font(.system(size: 11, design: .monospaced)).foregroundStyle(Theme.text3).lineLimit(1).help(project.root)
+                    }
                 }
                 Spacer()
                 Button("编辑…") { editor?.edit(project.id) }.disabled(!model.isConnected)

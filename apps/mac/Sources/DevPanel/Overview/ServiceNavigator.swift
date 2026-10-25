@@ -20,6 +20,12 @@ struct ServiceNavigator: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(item.project.name).font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(Theme.text3).padding(.horizontal, 8)
+                .help(item.project.root + "\n" + item.project.id)
+            if let instance = item.project.instance {
+                Text(instance.displayText).font(.system(size: 10.5)).foregroundStyle(Theme.accent2)
+                    .lineLimit(2).padding(.horizontal, 8)
+                    .help(instance.displayText + "\n" + item.project.root + "\n" + item.project.id)
+            }
             Button { model.selectProject(item.project.id) } label: {
                 Label("项目", systemImage: "folder").frame(maxWidth: .infinity, alignment: .leading).padding(8)
                     .background(model.inspectorSelection == .project(item.project.id) ? Theme.accentSoft : .clear, in: RoundedRectangle(cornerRadius: 6))

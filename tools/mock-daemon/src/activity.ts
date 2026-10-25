@@ -24,11 +24,21 @@ export function validateAgentHeader(
 export function requestActor(
   client: string | undefined,
   agent?: string | string[],
+  taskId?: string | string[],
+  encodedLabel?: string | string[],
 ): Actor {
   validateAgentHeader(client, agent);
+  if (client === 'ui') return { client: 'ui', agent: null };
+  if (taskId !== undefined && (typeof taskId !== 'string' || !/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/.test(taskId))) throw badRequest('X-DevPanel-Task 格式无效');
+  let taskLabel: string | undefined;
+  if (encodedLabel !== undefined) {
+    if (typeof encodedLabel !== 'string' || !taskId) throw badRequest('工作名称需要工作 ID');
+    try { taskLabel = decodeURIComponent(encodedLabel); } catch { throw badRequest('工作名称编码无效'); }
+    if (![...taskLabel].length || [...taskLabel].length > 120 || /[\p{Cc}\p{Zl}\p{Zp}]/u.test(taskLabel)) throw badRequest('工作名称须为 1–120 字符单行文本');
+  }
   return {
-    client: client === "ui" ? "ui" : "cli",
-    agent: client === "ui" ? null : ((agent as string | undefined) ?? null),
+    client: 'cli', agent: (agent as string | undefined) ?? null,
+    ...(taskId === undefined ? {} : { taskId }), ...(taskLabel === undefined ? {} : { taskLabel }),
   };
 }
 
@@ -120,7 +130,7 @@ export class Activities {
       changesTruncated: changes.length > 100,
     });
   }
-  page(projectId: string, before: string | null, limit = 50): ActivityPage {
+  page(projectId: string, before: string | null, limit = 50, task: string | null = null): ActivityPage {
     if (!Number.isInteger(limit) || limit < 1 || limit > 200)
       throw badRequest("limit 必须在 1–200");
     const rows = this.entries
@@ -129,9 +139,7 @@ export class Activities {
     const offset =
       before === null ? 0 : rows.findIndex((row) => row.id === before) + 1;
     if (before !== null && offset === 0) throw badRequest("before 动态不存在");
-    return {
-      entries: rows.slice(offset, offset + limit),
-      hasMore: rows.length > offset + limit,
-    };
+    const filtered = rows.slice(offset).filter(row => task === null || row.actor.taskId === task);
+    return { entries: filtered.slice(0, limit), hasMore: filtered.length > limit };
   }
 }

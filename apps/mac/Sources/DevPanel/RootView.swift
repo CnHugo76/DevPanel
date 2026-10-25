@@ -113,6 +113,7 @@ struct RootView: View {
 /// ui-design v2 §8.
 struct EmptyProjectsView: View {
     @Environment(EditorPresenter.self) private var editor: EditorPresenter?
+    @Environment(AppController.self) private var controller: AppController?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -131,27 +132,22 @@ struct EmptyProjectsView: View {
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.bottom, 12)
-            Text(EmptyStateCopy.registerCommand)
-                .font(.system(size: 12, design: .monospaced))
-                .foregroundStyle(Theme.text)
-                .textSelection(.enabled)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Theme.card, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(Theme.line))
-                .padding(.bottom, 14)
+            if let controller {
+                Button("接入第一个项目…") { controller.showOnboarding = true }
+                    .buttonStyle(.borderedProminent).controlSize(.large)
+                    .padding(.bottom, 12)
+                SetupCopyButton(text: controller.onboardingGuide.agentInstruction, label: "复制 Agent 接入指令")
+                    .padding(.bottom, 14)
+            }
+            Text("登记不会启动服务。面板只记录经 DevPanel 启动的项目进程。")
+                .font(.system(size: 12)).foregroundStyle(Theme.text2)
+                .multilineTextAlignment(.center).padding(.bottom, 14)
             Button {
                 editor?.openNew()
             } label: {
-                Text(EmptyStateCopy.manualAdd)
-                    .font(.system(size: 12.5, weight: .medium))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 10)
-                    .frame(height: 28)
-                    .background(Theme.accent, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                Text(EmptyStateCopy.manualAdd).font(.system(size: 12.5))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.bordered)
             .help("手动添加项目")
         }
         .frame(maxWidth: 440)

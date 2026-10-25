@@ -17,7 +17,11 @@ public enum ActivityKind: OpenEnum {
 public struct Actor: Codable, Hashable, Sendable {
     public var client: ClientKind
     public var agent: String?
-    public init(client: ClientKind, agent: String? = nil) { self.client = client; self.agent = agent }
+    public var taskId: String?
+    public var taskLabel: String?
+    public init(client: ClientKind, agent: String? = nil, taskId: String? = nil, taskLabel: String? = nil) {
+        self.client = client; self.agent = agent; self.taskId = taskId; self.taskLabel = taskLabel
+    }
     public var displayName: String {
         switch client {
         case .ui: "你"
@@ -27,6 +31,17 @@ public struct Actor: Codable, Hashable, Sendable {
         default: "未知"
         }
     }
+    public static func isValidTaskId(_ value: String) -> Bool {
+        value.range(of: #"\A[A-Za-z0-9][A-Za-z0-9._-]{0,63}\z"#, options: .regularExpression) != nil
+    }
+    /// Redacted or unknown identifiers are visible evidence, never query parameters.
+    public var filterableTaskId: String? { taskId.flatMap { Self.isValidTaskId($0) ? $0 : nil } }
+    public var workSummary: String? {
+        guard let taskId else { return nil }
+        guard Self.isValidTaskId(taskId) else { return "工作标识已隐藏或不可筛选" }
+        return taskLabel.map { "\($0)（\(taskId)）" } ?? taskId
+    }
+    public var sourceLabel: String { displayName + (workSummary.map { " · 工作 \($0)" } ?? "") }
 }
 public struct ActivityEntry: Codable, Hashable, Sendable, Identifiable {
     public var id: String
@@ -62,8 +77,8 @@ public struct ActivityPage: Codable, Hashable, Sendable {
 extension ServiceView {
     public var actorNote: String { actorNote(now: Date()) }
     public func actorNote(now: Date) -> String {
-        if let run = currentRun { return "由 \(run.startedBy?.displayName ?? "未知") 启动 · \(Timestamps.date(run.startedAt).map { Format.ago(max(0, now.timeIntervalSince($0))) } ?? "未知时间")" }
-        if let exit = lastRun?.exit, [.userStop, .forceStop, .startCancelled].contains(exit.reason) { return "由 \(exit.requestedBy?.displayName ?? "未知") 停止" }
-        return lastRun == nil ? "" : "由 \(lastRun?.startedBy?.displayName ?? "未知") 启动"
+        if let run = currentRun { return "由 \(run.startedBy?.sourceLabel ?? "未知") 启动 · \(Timestamps.date(run.startedAt).map { Format.ago(max(0, now.timeIntervalSince($0))) } ?? "未知时间")" }
+        if let exit = lastRun?.exit, [.userStop, .forceStop, .startCancelled].contains(exit.reason) { return "由 \(exit.requestedBy?.sourceLabel ?? "未知") 停止" }
+        return lastRun == nil ? "" : "由 \(lastRun?.startedBy?.sourceLabel ?? "未知") 启动"
     }
 }

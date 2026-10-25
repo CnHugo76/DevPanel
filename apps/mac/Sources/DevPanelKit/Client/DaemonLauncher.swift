@@ -6,7 +6,7 @@ import Foundation
 /// process's environment, so `DEVPANEL_HOME` (if set) applies to the daemon it launches.
 public struct DaemonLauncher: Sendable {
     public enum Failure: Error, Equatable, Sendable, LocalizedError {
-        /// The CLI shim is not installed: the user needs to run `pnpm setup:cli` first.
+        /// The CLI shim is not installed: point to setup guidance without choosing a write location.
         case cliNotFound(path: String)
         case failed(exitCode: Int32, output: String)
         case timedOut
@@ -14,7 +14,7 @@ public struct DaemonLauncher: Sendable {
         public var errorDescription: String? {
             switch self {
             case .cliNotFound(let path):
-                "找不到命令行工具 \(path)。请先在 DevPanel 仓库中运行 pnpm setup:cli。"
+                "找不到命令行工具 \(path)。请打开“接入第一个项目”检查 CLI 入口；源码开发请使用隔离数据目录与源码 CLI。"
             case .failed(let code, let output):
                 "启动管理服务失败（退出码 \(code)）\(output.isEmpty ? "" : "：\(output)")"
             case .timedOut:

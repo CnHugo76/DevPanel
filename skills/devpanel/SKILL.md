@@ -15,6 +15,8 @@ DevPanel 是本机的项目运行面板：常驻的管理服务（daemon）托�
 
 在 **Agent 自身环境配置** 中设置 `DEVPANEL_AGENT`（例如 `codex`、`claude-code`）；也可逐条命令传 `--agent`，参数优先。不根据进程名、模型或目录推断名称。没有名称时显示“命令行”；名称用于记录来源，不是认证。
 
+帮助包含 `project export/import`、`--task` 时，分享/导入配置、关联 AI 工作或接入另一个 checkout，使用 [references/sharing.md](references/sharing.md)。这些能力不改变启动授权与托管规则。
+
 ## 托管规则
 
 - 长期运行的服务只经 `devpanel` 启停，DevPanel 是它唯一的启动入口。daemon 不可达（退出码 3）时，向用户报告并停下，建议运行 `devpanel daemon start`，用户同意后再运行。
@@ -34,6 +36,8 @@ DevPanel 是本机的项目运行面板：常驻的管理服务（daemon）托�
 读日志优先 `devpanel logs <project-id> --service <id> --digest --json`，或用 `--run <run-id>` 指定运行（与 `--service` 二选一）。摘要包括错误块、重复次数、上下文和省略情况；记下 `lastSeq`，修改并重试后用 `--digest --after-seq <lastSeq>` 读取同一运行的增量，换运行时重新开始。需要原文时用 `--tail <n>`；普通日志也支持 `--after-seq`。`--follow` 是持续流，只在能主动结束时使用。
 
 启动完成标准：目标操作成功、就绪为 `ready`，再按任务需要验证业务。`timed-out`、`unknown`、`not-configured` 都要如实报告；就绪只是一次信号，不是持续健康检查。
+
+帮助包含 `--search` 时，可用 `logs <project-id> --run <run-id> --search <文字> --json` 检索整个保留区。分页用 `scannedThroughSeq` 作为 `--after-seq`，保持 `throughSeq` 为 `--through-seq`；换运行或希望包含新输出时重新搜索。只匹配普通文本，截断内容无法恢复，不能与 follow/digest/tail 合用。
 
 ## 退出码
 

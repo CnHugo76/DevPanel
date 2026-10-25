@@ -16,6 +16,7 @@ struct AppCommands: Commands {
 private struct ApplicationMenuItems: View {
     let controller: AppController
     var body: some View {
+        Button("接入第一个项目…") { controller.showWindow(); controller.showOnboarding = true }
         Button("安装 CLI 与登录启动…") { controller.showWindow(); controller.showInstallation = true }
             .disabled(!controller.hasBundledCLI)
         Button("停止所有服务并退出管理服务…") { controller.showWindow(); controller.requestShutdown() }
@@ -28,6 +29,10 @@ private struct FileMenuItems: View {
         Button("添加项目") { controller.showWindow(); controller.editor.openNew() }.keyboardShortcut("n")
             .disabled(!controller.model.isConnected)
         Button("编辑项目…") { if let id = controller.model.selectedProjectId { controller.showWindow(); controller.editor.edit(id) } }
+            .disabled(!controller.model.isConnected || controller.model.selectedProjectId == nil)
+        Button("导入共享配置…") { controller.showWindow(); controller.editor.portable(.importFile) }
+            .disabled(!controller.model.isConnected)
+        Button("导出共享配置…") { if let id = controller.model.selectedProjectId { controller.showWindow(); controller.editor.portable(.export(id)) } }
             .disabled(!controller.model.isConnected || controller.model.selectedProjectId == nil)
         Button("移除项目…") { if let id = controller.model.selectedProjectId { controller.showWindow(); controller.editor.remove(id) } }
             .disabled(!controller.model.isConnected || controller.model.selectedProjectId == nil)

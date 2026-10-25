@@ -23,7 +23,8 @@ struct TaskRunText: View {
             return run.state.title + " · " + duration
         case .maven: return "● Maven: \(run.label) · \(duration)"
         case .status:
-            var text = run.statusText(now: now) + " · 由 \(run.startedBy?.displayName ?? "未知") 启动"
+            var text = run.statusText(now: now) + " · 由 \(run.startedBy?.sourceLabel ?? "未知") 启动"
+            if let actor = run.exit?.requestedBy { text += " · 由 \(actor.sourceLabel) 取消" }
             if includeResources, run.state.isActive, let sample = model.projectStats(run.projectId)?.tasks?[run.id] {
                 text += " · CPU \(Metrics.cpu(sample.sample, active: true).text) · 内存 \(Metrics.memory(sample.sample, active: true).text)"
                 if let count = sample.processCount { text += "（\(count) 个进程）" }

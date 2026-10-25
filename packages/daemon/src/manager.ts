@@ -315,6 +315,12 @@ export class Manager extends EventEmitter {
   safe<T>(v: T) {
     return redact(v, this.allSecrets());
   }
+  /** Work labels are untrusted free text. Clean before storage, including short secret fragments. */
+  actor(actor: Actor, config?: ProjectConfig): Actor {
+    if (actor.client !== 'cli') return { client: actor.client, agent: actor.agent };
+    const context = redact({ taskId: actor.taskId, taskLabel: actor.taskLabel }, [...this.allSecrets(), ...(config ? secrets(config) : [])], 0);
+    return { client: actor.client, agent: actor.agent, ...(context.taskId === undefined ? {} : { taskId: context.taskId }), ...(context.taskLabel === undefined ? {} : { taskLabel: context.taskLabel }) };
+  }
   event(event: DaemonEvent) {
     this.emit("event", this.safe(event));
   }
@@ -459,6 +465,7 @@ export class Manager extends EventEmitter {
     return this.safe({
       id: p.id,
       name: p.config.name,
+      instance: p.config.instance,
       root: p.config.root,
       repositories: p.config.repositories,
       mavenProjects: p.config.mavenProjects?.map(target => ({ ...target,
@@ -578,7 +585,7 @@ export class Manager extends EventEmitter {
       config,
     };
     this.projects.set(p.id, p);
-    this.activity.config(p.id, actor, "register", 0, 1, {}, p.config);
+    this.activity.config(p.id, this.actor(actor, config), "register", 0, 1, {}, p.config);
     this.save();
     this.changed(p.id);
     return { created: true, project: this.getConfig(p.id) };
@@ -637,6 +644,7 @@ export class Manager extends EventEmitter {
     for (const a of p.config.actions || [])
       if (!config.actions?.some(x => x.id === a.id) && this.taskRunner.current(pid, { kind: "action", actionId: a.id }))
         throw new Fault("TASK_RUNNING", "请先取消待删除的快捷操作", 409);
+    actor = this.actor(actor, config);
     this.activity.config(pid, actor, "update", p.revision, p.revision + 1, p.config, config);
     p.config = config;
     this.policies.prune(pid, config.services.map(s => s.id), actor);
@@ -713,6 +721,7 @@ export class Manager extends EventEmitter {
     // Existing root/cwd/program may have disappeared; option edits must still
     // save. This config was cloned from storage, so no root normalization or
     // unrelated environment/service validation is needed here.
+    actor = this.actor(actor, prepared);
     this.activity.config(pid, actor, "param", project.revision, project.revision + 1, project.config, prepared);
     project.config = prepared;
     project.revision++;
@@ -1038,6 +1047,7 @@ export class Manager extends EventEmitter {
       : { total: unavailable(), services: {}, tasks: {} };
   }
   submit(input: unknown, actor: Actor = { client: "cli", agent: null }, bypassPolicy = false): Operation {
+    actor = this.actor(actor);
     const source = actor.client;
     if (!input || typeof input !== "object")
       throw new Fault("BAD_REQUEST", "操作请求无效");
@@ -1519,10 +1529,10 @@ export class Manager extends EventEmitter {
     const models = await (this.mavenModels ??= import("./maven.ts").then(({ MavenModels }) => new MavenModels()));
     return this.safe(models.read(mavenTarget(project.config, mavenProjectId).config, this.base, reload));
   }
-  startMaven(pid: string, input: unknown, actor: Actor = { client: "cli", agent: null }) { return this.taskRunner.startMaven(pid, input, actor); }
-  startAction(pid: string, aid: string, actor: Actor = { client: "cli", agent: null }) { return this.taskRunner.startAction(pid, aid, actor); }
+  startMaven(pid: string, input: unknown, actor: Actor = { client: "cli", agent: null }) { return this.taskRunner.startMaven(pid, input, this.actor(actor)); }
+  startAction(pid: string, aid: string, actor: Actor = { client: "cli", agent: null }) { return this.taskRunner.startAction(pid, aid, this.actor(actor)); }
   taskHistory(pid: string, target: TaskTarget) { return this.taskRunner.history(pid, target); }
-  cancelTask(rid: string, force: boolean, timeout = false, actor: Actor = daemonActor) { return this.taskRunner.cancel(rid, force, timeout, actor); }
+  cancelTask(rid: string, force: boolean, timeout = false, actor: Actor = daemonActor) { return this.taskRunner.cancel(rid, force, timeout, this.actor(actor)); }
   stopAllTasks() { return this.taskRunner.stopAll(); }
   private pruneOperations() {
     for (const [id, op] of this.operations)

@@ -62,6 +62,9 @@ test("short secrets remain strictly redacted in streamed out and err logs", asyn
   collector.write(Buffer.from("ERROR env-secret-123 param-secret-456\n")); collector.end();
   const json = JSON.stringify(logs.digest("r_secret",new URLSearchParams(),true));
   assert.ok(!json.includes("env-secret-123")); assert.ok(!json.includes("param-secret-456")); assert.ok(json.includes("[REDACTED]"));
+  const search = JSON.stringify(logs.search('r_secret', new URLSearchParams({ q: 'ERROR' })));
+  assert.ok(!search.includes('env-secret-123')); assert.ok(!search.includes('param-secret-456')); assert.ok(search.includes('[REDACTED]'));
+  assert.equal(logs.search('r_secret', new URLSearchParams({ q: 'env-secret-123' })).matches.length, 0);
 });
 
 test("完整换行不因secret固定尾巴而延迟，只有真正前缀续接才保留",async t=>{

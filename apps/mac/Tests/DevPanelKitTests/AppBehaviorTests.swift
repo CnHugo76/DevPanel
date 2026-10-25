@@ -68,7 +68,7 @@ import Testing
         let path = dir.appendingPathComponent("devpanel")
         let absent = DaemonLauncher(cliPath: path, environment: ["PATH": "/usr/bin:/bin"])
         do { _ = try await absent.start(); Issue.record("must fail") }
-        catch { #expect(error.localizedDescription.contains("pnpm setup:cli")) }
+        catch { #expect(error.localizedDescription.contains("接入第一个项目")) }
         try Data("#!/bin/sh\necho 'fixture launch error' >&2\nexit 9\n".utf8).write(to: path)
         try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: path.path)
         do { _ = try await absent.start(); Issue.record("must fail") }

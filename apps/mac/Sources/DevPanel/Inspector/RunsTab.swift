@@ -95,8 +95,8 @@ struct RunCard: View {
                     row("结束方式", exit.summary, tone: run.state == .failed ? Theme.red : Theme.text)
                 }
                 if let pid = run.pid { row("PID", String(pid)) }
-                row("发起方", run.startedBy?.displayName ?? "未知")
-                if let actor = run.exit?.requestedBy { row("停止方", actor.displayName) }
+                row("发起方", run.startedBy?.sourceLabel ?? "未知")
+                if let actor = run.exit?.requestedBy { row("停止方", actor.sourceLabel) }
                 if let ready = run.ready, ready.label != nil { row("就绪", ready.explanation) }
                 row("配置版本", "第 \(run.configRevision) 版")
             }

@@ -21,6 +21,28 @@ public struct CLIInstallation: Sendable {
     public let runtime: URL
     public init(runtime: URL) { self.runtime = runtime }
 
+    /// Validate the user's text before URL(fileURLWithPath:) turns a relative path absolute.
+    public static func directory(from path: String) throws -> URL {
+        guard path.hasPrefix("/"), !path.contains("\0") else {
+            throw Failure.message("请输入以 / 开头的绝对路径，或点“选择…”选择目录")
+        }
+        return URL(fileURLWithPath: path, isDirectory: true).standardizedFileURL
+    }
+
+    /// Checks both links and their executable targets without running either command.
+    public func isLinked(in directory: URL) -> Bool {
+        ["devpanel", "devpaneld"].allSatisfy { name in
+            let path = directory.appendingPathComponent(name)
+            let target = runtime.appendingPathComponent("bin/\(name)")
+            guard FileManager.default.isExecutableFile(atPath: path.path),
+                  let link = try? FileManager.default.destinationOfSymbolicLink(atPath: path.path)
+            else { return false }
+            let resolved = link.hasPrefix("/") ? URL(fileURLWithPath: link)
+                : directory.appendingPathComponent(link)
+            return resolved.standardizedFileURL == target.standardizedFileURL
+        }
+    }
+
     public func inspect(directory: URL) throws -> Plan {
         guard directory.isFileURL, directory.path.hasPrefix("/") else { throw Failure.message("请选择绝对路径目录") }
         for name in ["devpanel", "devpaneld"] {

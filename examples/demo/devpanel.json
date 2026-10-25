@@ -1,0 +1,20 @@
+{
+  "format": "devpanel.project",
+  "version": 1,
+  "project": {
+    "schemaVersion": 1,
+    "name": "DevPanel demo",
+    "services": [{
+      "id": "web",
+      "name": "Demo web",
+      "cwd": ".",
+      "command": ["", "server.mjs", "${port}"],
+      "stopTimeoutSec": 2,
+      "ready": { "check": { "kind": "log", "contains": ["Demo ready at"] }, "timeoutSec": 15 }
+    }],
+    "params": [{ "key": "port", "label": "Port (0 = free port)", "type": "number", "value": 0, "min": 0, "max": 65535 }],
+    "repositories": [],
+    "mavenProjects": []
+  },
+  "inputs": [{ "id": "node", "target": "/services/0/command/0", "kind": "path", "label": "Node executable on this machine", "valueType": "string" }]
+}

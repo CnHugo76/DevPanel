@@ -466,3 +466,29 @@ Git 文件路径、HEAD 检查、暂存、提交和储藏都限定在所选仓�
 `ProjectView` 返回可选 `repositories`（配置列表）、`mavenProjects`（配置字段加 `currentRun/lastRun`，各按目标筛选）。保留 `maven` 项目级当前/最近结束运行摘要：显式数组非空时存在，为空时为 null；未提供数组时沿用 root/pom.xml 判断。
 
 Git 页、Maven 页始终有入口；显式空列表显示未登记状态和编辑入口。非空列表显示目标选择器、名称和相对路径；首次显示选择首项。Git 缓存、文件选择、提交信息和差异窗口按项目与仓库隔离，已打开的差异窗口与确认对话框固定原目标。Maven 模型、模块、Profiles 和运行选项按工程隔离；切换后日志与运行历史显示所选工程，项目级并发限制保持有效。Git 文件支持状态颜色、文字标签、列表/目录树/顶层目录分组与状态筛选。
+
+## 18. 保留日志全文检索（v1.5-A）
+
+`GET /runs/:runId/logs/search` 为服务/任务共用的只读接口。`q` 是 1–200 个 Unicode 标量的普通文字，默认大小写不敏感，`caseSensitive=true` 时区分大小写；不执行正则。`after` 为排他 seq（默认 0），`through` 是固定上界（默认本次请求的最新 seq）；`limit` 默认 50、范围 1–100，`context` 默认 2、范围 0–5。整数参数必须为非负安全整数，超限/空查询/非法布尔值返回 400 BAD_REQUEST；不存在的运行沿用 RUN_NOT_FOUND。
+
+响应 `LogSearchPage` 包含 runId、throughSeq、scannedThroughSeq、hasMore、truncated 和 matches；每项包含匹配的完整 LogLine（line）及其 before/after 上下文。只搜索 seq 在 `(after, throughSeq]` 的行；上下文也不超过 throughSeq，但可早于 after。匹配去除 ANSI 控制序列，返回原始已脱敏文本。scannedThroughSeq 是本页已处理的最后 seq；下一页传它作为 after，并原样传 throughSeq。无命中且扫描完成时 scannedThroughSeq=throughSeq。hasMore 表示该快照范围仍有未扫描行，不承诺下一页有匹配。truncated 表示较早内容已淘汰，不虚构丢失的命中。首次 throughSeq=0 表示空日志。
+
+检索迭代已有有界保留区，不复制完整日志到响应或 UI 缓存。新日志不加入已开始的分页；刷新才能更新上界。CLI `logs --search <文字>` 支持 --after-seq、--through-seq、--limit、--context、--case-sensitive、--json，与 --digest / --follow 互斥。文本显示运行、范围、截断与原文上下文，退出码沿用只读日志。
+
+## 19. 可分享配置（v1.5-B）
+
+公开文件为 `PortableProjectConfig`：format 固定为 devpanel.project、version=1、project 为不含 root 的 ProjectConfig、inputs 为 PortableConfigInput[]。文件不含项目 ID、revision、运行/动态记录或托管规则。每项输入有唯一 id、target（project 内 JSON Pointer）、kind（secret/path）、label，可选 valueType（ParamType）。仅允许环境变量值、参数值、服务/操作的 cwd 与 command 标量目标；拒绝未知目标、重复目标、原型属性和改变数组/对象结构的目标。秘密输入限 secret 标记位置，路径输入限字符串位置。
+
+导出删除 secret 的 value，并生成待填写输入；项目内 cwd 变为相对路径，机器专属绝对程序/参数/环境/选项值生成 path 输入且不保留原值。秘密标记保留。普通文本中未标记或变形的秘密不能可靠识别，用户可在分享前审阅。导入先用本机输入填写，再调用既有 validate；缺必需输入直接报错，秘密缺省不得解释为清空。输入文件独立保存，不作为共享配置的一部分。
+
+CLI `project export <id> --file <path>` 默认拒绝覆盖已存在文件。`project import --config <file> --root <dir> [--inputs <file>]` 默认只校验并展示项目/差异/所需输入；只有 --apply 才保存。root 规范化后与已登记项目匹配；更新必须传预览时的 --if-revision，复用既有用户值保护，禁止自动重试冲突。新注册无需 revision。输入文件是 input id 到标量值的 JSON 对象，必须限制读取大小，不回显输入内容。UI 采用同一格式、预览和保存规则。
+
+仓库推荐 devpanel.json；本机 inputs 文件独立保存并忽略。面板是当前有效配置来源；文件修改通过显式导入同步，面板修改通过显式导出保存，没有后台监听或双向自动同步。注册/更新/导入不执行服务、快捷操作、Maven 或 Git 写命令。CLI/UI 均复用既有 HTTP 配置路由。
+
+## 20. AI 工作标识与实例（v1.5-C）
+
+Actor 新增可选 taskId、taskLabel。CLI 的 --task/--task-label 优先于 DEVPANEL_TASK/DEVPANEL_TASK_LABEL，通过 X-DevPanel-Task 和 X-DevPanel-Task-Label 传输（label 使用 encodeURIComponent 编码）。id 匹配 `[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}`；label 为 1–120 个 Unicode 标量的单行文本，必须同时提供 id。非法输入返回 BAD_REQUEST，UI 请求忽略这些头，daemon 自身不带工作标识。工作信息仅为自报的操作关联，不参与授权。已知秘密在进入持久记录/响应前遮盖；旧记录缺失时沿用原来源显示。
+
+服务操作、运行、配置动态、任务运行与取消沿用 Actor 存储工作信息。项目动态支持 task 筛选（GET activity 的 task 查询参数；CLI activity --task），分页保持原有 before/limit 语义，筛选后应用 limit。客户端可以按 task 展示关联工作，不改变操作/运行身份。
+
+ProjectConfig 新增可选 instance={group,name}，两字段均为 1–80 个 Unicode 标量的单行显示文本且不能全为空白，ProjectView 同步提供可选 instance。它仅作分组/标识：同一真实 root 仍唯一，不同 root 的项目保持独立 projectId、配置版本、服务、日志、端口设置与暂停/锁定。导入允许 --group/--instance 显式覆盖显示信息（须同时提供）。不创建/切换/删除 worktree，不自动分配端口，不扫描或接管外部进程。旧配置/客户端不受影响。

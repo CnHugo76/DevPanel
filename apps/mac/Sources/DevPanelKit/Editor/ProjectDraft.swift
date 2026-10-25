@@ -148,6 +148,8 @@ public struct ProjectDraft: Hashable, Sendable {
     public var schemaVersion: Int
     public var name: String
     public var root: String
+    public var instanceGroup: String = ""
+    public var instanceName: String = ""
     /// Project-level env (all services; a service's own variable wins).
     public var env: [EnvRow]
     public var services: [ServiceDraft]
@@ -180,6 +182,8 @@ public struct ProjectDraft: Hashable, Sendable {
         schemaVersion = config.schemaVersion
         name = config.name
         root = config.root
+        instanceGroup = config.instance?.group ?? ""
+        instanceName = config.instance?.name ?? ""
         env = Self.rows(config.env)
         services = config.services.map { s in
             let form = ShellWords.shellForm(s.command)
@@ -252,6 +256,13 @@ public struct ProjectDraft: Hashable, Sendable {
             schemaVersion: schemaVersion, name: trimmedName, root: trimmedRoot,
             env: Self.buildEnv(env, at: "env", sameScope: true, mode: mode, errors: &errors),
             services: [], params: params)
+        let group = instanceGroup
+        let instance = instanceName
+        if !group.isEmpty || !instance.isEmpty {
+            if !ProjectInstance.isValidLabel(group) { errors["instance.group"] = "实例组须为 1–80 字符的单行文本；与实例名称一起填写" }
+            if !ProjectInstance.isValidLabel(instance) { errors["instance.name"] = "实例名称须为 1–80 字符的单行文本；与实例组一起填写" }
+            config.instance = ProjectInstance(group: group, name: instance)
+        }
         if services.isEmpty { errors["services"] = "至少需要一个服务" }
         var seen = Set<String>()
         for (i, s) in services.enumerated() {

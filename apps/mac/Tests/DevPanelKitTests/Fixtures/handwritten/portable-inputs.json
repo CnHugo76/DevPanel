@@ -1,0 +1,12 @@
+{
+  "input1": "local-secret",
+  "input2": "/new/path",
+  "input3": "/new/path",
+  "input4": "/new/path",
+  "input5": "local-secret",
+  "input6": "/new/path",
+  "input7": "local-secret",
+  "input8": 27,
+  "input9": false,
+  "input10": "/new/path"
+}

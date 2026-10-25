@@ -1,7 +1,7 @@
 import Foundation
 
 // Status language (ui-design v1 §3, v2 §3), ported from apps/ui/src/lib/status.ts.
-// Status is always glyph + text; color is secondary. Forbidden words: 健康、就绪、验证通过、正常.
+// Process state stays separate from readiness evidence; color is secondary to glyph + text.
 
 /// Semantic color of a status; views map it to theme colors.
 public enum DisplayTone: Sendable, Equatable {
@@ -111,7 +111,7 @@ extension ServiceView {
         switch state {
         case .idle: return StatusLabel(glyph: .idle, text: "未启动", tone: .gray)
         case .starting: return StatusLabel(glyph: .starting, text: "启动中", tone: .blue)
-        case .running: return StatusLabel(glyph: .running, text: "运行中", tone: .green)
+        case .running: return StatusLabel(glyph: .running, text: "运行中", tone: currentRun?.ready?.processTone ?? .blue)
         case .stopping:
             let waited = secondsInState(now: now)
             if stopTimedOut {
@@ -191,12 +191,19 @@ extension ServiceView {
 // MARK: - Projects
 
 extension ProjectView {
+    private var runningTone: DisplayTone {
+        let active = services.filter { $0.state == .running }
+        if services.contains(where: { $0.state == .failed }) { return .amberStrong }
+        if active.contains(where: { $0.currentRun?.ready?.processTone == .amberStrong }) { return .amberStrong }
+        if active.contains(where: { $0.currentRun?.ready?.processTone == .purple }) { return .purple }
+        return !active.isEmpty && active.allSatisfy { $0.currentRun?.ready?.state == .ready } ? .green : .blue
+    }
     /// Header badge: "2/2 运行中", "部分运行 1/2", "停止中", "异常", "已停止", "未启动", "状态未知".
     public func badge() -> StatusLabel {
         let n = "\(runningCount)/\(serviceCount)"
         switch aggregate {
-        case .running: return StatusLabel(glyph: .running, text: "\(n) 运行中", tone: .green)
-        case .partial: return StatusLabel(glyph: .partial, text: "部分运行 \(n)", tone: .green)
+        case .running: return StatusLabel(glyph: .running, text: "\(n) 运行中", tone: runningTone)
+        case .partial: return StatusLabel(glyph: .partial, text: "部分运行 \(n)", tone: runningTone)
         case .transition:
             if let s = services.first(where: { $0.state == .stopping }) {
                 return s.stopTimedOut

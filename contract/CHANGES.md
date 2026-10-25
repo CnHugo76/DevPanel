@@ -17,6 +17,39 @@
 
 ## 已生效
 
+### [已生效] v1.5-A 保留日志全文检索 — 提出方：Codex — 2026-10-25
+- 动机：用户授权四轮优化的第二轮要求从失败定位证据、搜索一次运行仍保留的全部日志；现有界面只搜索已加载缓存。
+- 差异：增加只读 `GET /runs/:runId/logs/search`，服务与任务共用。`q` 为 1–200 字符的普通文字，不执行正则；默认不区分大小写，可传 `caseSensitive=true`。`after` 为排他 seq 游标，`through` 为首次响应确定的快照上界，后续分页原样传回；`limit` 默认 50、范围 1–100，`context` 默认 2、范围 0–5。
+- 响应 `LogSearchPage`：`runId`、`throughSeq`、`scannedThroughSeq`、`hasMore`、`truncated`，以及 `matches: { line: LogLine; before: LogLine[]; after: LogLine[] }[]`。只查询保留日志，已淘汰部分明确标 `truncated`。活动运行只搜索首次请求时的上界；用户刷新才包含新行。超出范围的参数返回 BAD_REQUEST，不改变既有 logs/digest 接口。
+- 实现约束：流式、有界读取，不把完整文件复制进界面缓存；不影响跟随、原文复制和增量日志。检索结果可直接查看原文上下文。
+- 影响：daemon、mock、TypeScript/Swift 类型、原生日志界面同步；CLI 增加 `logs --search <文字>`（与 follow/digest 互斥），不增加写操作。
+- 验收：仅在较早保留区的命中仍能找到；大小写、Unicode、上下文、分页边界、轮转截断和切换运行不串结果；secret 不泄露。
+
+- 状态：用户在本轮对话明确同意 v1.5-A/B/C（2026-10-25）。
+
+### [已生效] v1.5-B 可分享配置与显式导入 — 提出方：Codex — 2026-10-25
+- 动机：第三轮要求换目录、换电脑后复用配置。现有 ProjectConfig 的 root、部分命令路径及秘密值不能直接分享。
+- 差异：新增文件格式 `PortableProjectConfig`：`format: 'devpanel.project'`、`version: 1`、`project: Omit<ProjectConfig, 'root'>`、`inputs: PortableConfigInput[]`。每个输入包含稳定 `id`、指向允许字段的 JSON Pointer `target`、`kind: 'secret' | 'path'`、`label`、可选值类型。文件不含项目 ID、revision、运行历史、暂停或锁定规则。
+- 导出移除 secret 值；内部绝对工作目录转为相对路径，机器专属的绝对程序/参数/环境/选项值生成待填写输入且不保留原值；用户仍需审阅未标为 secret 的普通文本。输入不允许写入任意属性、prototype 或托管规则，不能修改命令结构，只填指定标量值。
+- CLI：`project export <id> --file <file>` 写可分享配置（已有文件默认拒绝覆盖）；`project import --config <file> --root <directory> [--inputs <local-file>]` 默认只解析、校验并预览差异。显式 `--apply` 才注册/更新；更新须携带预览时的 `--if-revision`，保留现有用户值保护。缺失秘密输入不能被当作删除或空值。
+- 仓库文件推荐 `devpanel.json`，本机输入文件独立保存；只通过显式导入更新面板，不监听文件、不自动同步或执行。面板仍是当前有效运行配置来源，导入展示差异与保留的用户值。
+- 原生：导出、选择文件、指定本地根目录、填写输入、预览差异、确认导入；复用既有 validate/register/update 路由，不新增执行权限。CLI 与界面共享同一文件语义和样例。
+- 影响：公开文件类型、CLI、原生、mock 示例、双语指南及 Agent skill。现有 JSON 配置与项目不迁移、不改变旧字段语义。
+- 验收：秘密值及个人绝对路径不进入导出；另一目录导入后仍不执行；冲突 revision 拒绝；用户修改的参数不被默认覆盖；嵌套工程、Unicode 路径、恶意输入 target 和旧配置往返验证。
+
+- 状态：用户在本轮对话明确同意 v1.5-A/B/C（2026-10-25）。
+
+### [已生效] v1.5-C AI 工作标识与运行实例 — 提出方：Codex — 2026-10-25
+- 动机：第四轮需区分同一 Agent 的不同工作，并让多个 worktree 的运行归属清楚。本轮选择轻量实例分组，不引入审批系统或自动创建 worktree。
+- 差异一：`Actor` 新增可选 `taskId?: string` 与 `taskLabel?: string`。CLI `--task` / `--task-label`（环境变量 DEVPANEL_TASK / DEVPANEL_TASK_LABEL；参数优先）通过 `X-DevPanel-Task` / `X-DevPanel-Task-Label` 传递；label 使用 URI 编码传输。id 为 1–64 位字母、数字、点、下划线或横线，label 为 1–120 字符单行文本，label 必须伴随 id。不合法返回 BAD_REQUEST；ui/daemon 不接收外部 task 字段。所有来源相关记录沿用 Actor 保存，并对已知敏感值遮盖；旧记录缺失时保持原显示。
+- 工作标识仅关联可观察的操作，不是可信身份或权限；运行记录、动态可按任务筛选，来源行显示可选工作名称。CLI activity 支持 `--task` 过滤，普通查询不伪造运行来源。
+- 差异二：`ProjectConfig` 新增可选 `instance?: { group: string; name: string }`，均为 1–80 字符单行显示文本。同一规范化 root 仍唯一；多个不同目录的项目可用同一 group 归组，name 区分工作树。面板编辑/总览/搜索显示实例信息，实际服务、端口、日志、暂停、锁定仍按独立 projectId/runId 隔离。
+- 导入可指定实例 group/name；不创建、切换或删除 Git 分支/worktree，不自动改端口，不扫描或结束外部进程。端口冲突保留错误，由用户或 Agent 显式改配置。
+- 影响：daemon/CLI/mock/Swift 契约和来源展示、配置编辑器、可分享配置、skill。新字段可选，旧客户端可忽略，API 主版本不变。
+- 验收：两个同名 Agent 的不同 task 可区分；相同 task 的配置/构建/重启可关联；同一模板导入两个目录后操作/日志/参数互不串用；用户暂停仍有效；秘密值不进入工作说明。
+
+- 状态：用户在本轮对话明确同意 v1.5-A/B/C（2026-10-25）。
+
 ### [已生效] v1.4-A AI 显式登记项目下的 Git 仓库与 Maven 工程 — 提出方：backend — 2026-10-22
 - 动机：一个 DevPanel 项目可以是多个服务的集合，其根目录下可能有前后端两个独立 Git 仓库，Maven 聚合根也可能位于子目录。现有 §12 把仓库固定为项目 root 所在工作树，§11.3 把 Maven 固定为 root/pom.xml，不能表达这种布局。用户选择由配置项目的 AI 明确登记目录，程序不递归猜测项目结构。
 - 用户已确定的方向：AI 负责识别并填写配置；程序只按登记的目标展示、校验和操作。允许一个 DevPanel 项目挂多个仓库、多个 Maven 工程；人仍可在编辑项目时修改。不要求拆分项目、移动目录或重建已有服务。用户随后直接要求完成新版、打 tag、安装并配置项目；本次实现采用以下字段与接口。

@@ -11,6 +11,7 @@ import type {
 } from "@devpanel/contract";
 import { now, privateDir, Fault } from "./storage.ts";
 import { digest } from "./digest.ts";
+import { searchLogs } from "./log-search.ts";
 import { redact } from "./config.ts";
 
 interface BufferState {
@@ -240,6 +241,15 @@ export class Logs {
     const s = this.states.get(id);
     if (!s) throw new Fault("RUN_NOT_FOUND", "运行不存在", 404);
     return digest(id, s.lines, s.truncated, ended, params);
+  }
+  search(id: string, params: URLSearchParams) {
+    const state = this.states.get(id);
+    if (!state) throw new Fault('RUN_NOT_FOUND', '运行不存在', 404);
+    try { return searchLogs(id, state.lines, state.truncated, params, state.next - 1); }
+    catch (error) {
+      if (error instanceof RangeError) throw new Fault('BAD_REQUEST', error.message);
+      throw error;
+    }
   }
   info(id: string): LogInfo {
     const s = this.states.get(id)!;

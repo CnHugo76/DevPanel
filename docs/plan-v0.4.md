@@ -1,5 +1,7 @@
 # v0.4 实现与验收记录
 
+后续用户授权的四轮优化（2026-10-25）见 [执行与验收记录](plan-four-rounds.md)。
+
 任务依据：[任务说明](../prompts/codex-v0.4.md)、[产品设计](product-design-v0.4.md)、冻结契约 v1.3-A～D。仅提交本地 main，不推送、不创建标签或 Release。所有开发和验收使用临时 DEVPANEL_HOME，不修改用户的稳定 App、CLI、数据和 daemon。
 
 ## 实现进度

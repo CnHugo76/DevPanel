@@ -44,18 +44,19 @@ extension View {
 /// `● 运行中` — glyph + text in a rounded pill (mockup `.st-pill`).
 struct StatusPill: View {
     let label: StatusLabel
+    var compact = false
     @Environment(\.isStale) private var stale
 
     var body: some View {
         let c = Theme.colors(stale ? .gray : label.tone)
-        HStack(spacing: 5) {
-            Text(label.glyph.symbol).font(.system(size: 10))
+        HStack(spacing: compact ? 3 : 5) {
+            Text(label.glyph.symbol).font(.system(size: compact ? 9 : 10))
             Text(label.text).lineLimit(1).truncationMode(.tail)
         }
-        .font(.system(size: 11.5, weight: label.tone == .amberStrong ? .semibold : .regular))
+        .font(.system(size: compact ? 11 : 11.5, weight: label.tone == .amberStrong ? .semibold : .regular))
         .monospacedDigit()
         .foregroundStyle(c.fg)
-        .padding(.horizontal, 8)
+        .padding(.horizontal, compact ? 2 : 8)
         .padding(.vertical, 2)
         .background(c.bg, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
         .overlay(
@@ -341,7 +342,7 @@ struct ReadyBadge: View {
             }
             .font(.system(size: 10.5))
             .foregroundStyle(ready.state == .ready ? Theme.green : ready.state == .timedOut ? Theme.amber : Theme.text3)
-            .help(ready.explanation)
+            .help([ready.explanation, ready.nextStep].compactMap { $0 }.joined(separator: "\n"))
         }
     }
 }

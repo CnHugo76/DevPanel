@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { cleanupSmoke, assertNoSecrets } from './release-smoke-cleanup.mjs';
 import { spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, mkdirSync, readFileSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -16,7 +16,17 @@ for (const name of ['LICENSE', 'THIRD_PARTY_NOTICES.md']) {
   assert(existsSync(join(app, 'Contents/Resources', name)), `发布包缺少 ${name}`);
 }
 const runtime = join(app, 'Contents/Resources/runtime');
-const cli = join(runtime, 'bin/devpanel'), node = join(runtime, 'node/bin/node');
+const node = join(runtime, 'node/bin/node');
+const chosenBin = join(home, 'chosen bin');
+mkdirSync(chosenBin);
+for (const name of ['devpanel', 'devpaneld']) symlinkSync(join(runtime, 'bin', name), join(chosenBin, name));
+const cli = join(chosenBin, 'devpanel');
+const metadata = JSON.parse(readFileSync(join(runtime, 'runtime.json'), 'utf8'));
+assert.match(metadata.source?.commit ?? '', /^[a-f0-9]{40}$/);
+assert.match(metadata.source?.sha256 ?? '', /^[a-f0-9]{64}$/);
+for (const name of ['quickstart.md', 'quickstart.zh-CN.md', 'skills/devpanel/SKILL.md', 'demo/create-config.mjs', 'source-files.json']) {
+  assert(existsSync(join(app, 'Contents/Resources', name)), `发布包缺少 ${name}`);
+}
 const env = { PATH: '/usr/bin:/bin', HOME: home, DEVPANEL_HOME: join(home, 'data'), DEVPANEL_PORT: '0', LANG: 'en_US.UTF-8' };
 mkdirSync(join(home, 'project'));
 const secret = 'v04-release-secret-589164';
@@ -61,7 +71,8 @@ function command(args) {
   remember();
   assert.equal(result.error, undefined);
   assert.equal(result.status, 0, `${args.join(' ')}: ${result.stdout} ${result.stderr}`);
-  return args[0] === 'logs' ? result.stdout.trim().split('\n').filter(Boolean).map(line => JSON.parse(line)) : JSON.parse(result.stdout);
+  return args[0] === 'logs' && !args.includes('--digest') && !args.includes('--search')
+    ? result.stdout.trim().split('\n').filter(Boolean).map(line => JSON.parse(line)) : JSON.parse(result.stdout);
 }
 let project, started = false;
 let failure;
@@ -82,7 +93,44 @@ try {
   }
   assert(page.some(line => line.stream === 'out' && line.text.includes('ready') && line.text.includes('[REDACTED]')),
     '必须读取业务 stdout，并确认敏感环境变量与选项已遮盖');
+  const search = command(['logs', project, '--run', run, '--search', 'ready', '--context', '1']);
+  assert(search.matches.length > 0);
+  assert(JSON.stringify(search).includes('[REDACTED]'));
   command(['status', project]);
+  command(['stop', project]);
+  command(['project', 'remove', project]);
+  project = undefined;
+  const demoRoot = join(home, 'demo 中文');
+  const create = spawnSync(node, [join(app, 'Contents/Resources/demo/create-config.mjs'), demoRoot], { env, encoding: 'utf8', timeout: 10000 });
+  assert.equal(create.status, 0, create.stderr);
+  const demoConfig = join(demoRoot, 'devpanel-demo.json');
+  assert(command(['project', 'validate', '--config', demoConfig]).ok);
+  const registration = command(['project', 'register', '--config', demoConfig]);
+  project = registration.project.id;
+  const portableFile = join(home, 'devpanel.json');
+  command(['project', 'export', project, '--file', portableFile]);
+  const portable = JSON.parse(readFileSync(portableFile, 'utf8'));
+  assert(!JSON.stringify(portable).includes(runtime));
+  const copyRoot = join(home, 'demo feature');
+  cpSync(demoRoot, copyRoot, { recursive: true });
+  const inputFile = join(home, 'devpanel.local.inputs.json');
+  writeFileSync(inputFile, JSON.stringify(Object.fromEntries(portable.inputs.map(input => [input.id, node]))), { mode: 0o600 });
+  const importArgs = ['project', 'import', '--config', portableFile, '--root', copyRoot, '--inputs', inputFile, '--group', 'demo', '--instance', 'feature'];
+  const preview = command(importArgs);
+  assert.equal(preview.applied, false); assert.equal(preview.validation.ok, true);
+  assert.equal(command(['project', 'list']).length, 1);
+  const imported = command([...importArgs, '--apply']);
+  assert.notEqual(imported.projectId, project);
+  const importedView = command(['status', imported.projectId]);
+  assert.equal(importedView.services[0].state, 'idle');
+  assert.deepEqual(importedView.instance, { group: 'demo', name: 'feature' });
+  command(['project', 'remove', imported.projectId]);
+  const report = command(['start', project, '--wait-ready', '--agent', 'codex', '--task', 'package-smoke', '--task-label', '发布包验证']);
+  assert.equal(report.services[0].ready.state, 'ready');
+  const digest = command(['logs', project, '--service', 'web', '--digest']);
+  assert(digest.runId);
+  const activity = command(['activity', project, '--task', 'package-smoke']);
+  assert(activity.entries.some(entry => entry.actor.taskId === 'package-smoke' && entry.actor.taskLabel === '发布包验证'));
   command(['stop', project]);
   command(['project', 'remove', project]);
   project = undefined;
@@ -122,5 +170,8 @@ finally {
   assertNoSecrets(report, [secret]);
   writeFileSync(join(home, 'result.json'), JSON.stringify(report, null, 2));
   if (failure) throw failure;
+  // Uninstall only links created in this test, after all processes are stopped.
+  for (const name of ['devpanel', 'devpaneld']) unlinkSync(join(chosenBin, name));
+  assert(!existsSync(cli));
   console.log(`发布包无外部 Node 验证通过：${home}/result.json`);
 }

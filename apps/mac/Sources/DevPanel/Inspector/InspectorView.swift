@@ -113,8 +113,21 @@ struct InspectorHeader: View {
                 IconButton(symbol: "✕", help: "关闭详情") { model.select(nil) }
             }
             TimeCell(model: model, rules: service.uptimeRefresh) { now in Text(service.actorNote(now: now)).font(.system(size: 11)).foregroundStyle(Theme.text3) }
+            ProjectIdentityCaption(project: project)
             SupervisionNote(model: model, project: project, service: service)
             InspectorMeta(model: model, project: project, service: service)
+            if let assessment = ServiceAssessment.make(service) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("当前服务 · " + assessment.evidence)
+                        .foregroundStyle(assessment.warning ? Theme.amber : Theme.text2)
+                    if let step = assessment.nextStep {
+                        Text(step).foregroundStyle(Theme.text3)
+                    }
+                }
+                .font(.system(size: 11.5))
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.vertical, 5)
+            }
         }
         .padding(.horizontal, 16)
         .padding(.top, 14)

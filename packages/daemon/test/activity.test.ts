@@ -29,6 +29,21 @@ test("发起方请求头严格校验，界面忽略名称", () => {
   ])
     assert.throws(() => requestActor("cli", invalid));
 });
+test('工作标识与 URI 编码名称校验；界面忽略工作请求头', () => {
+  assert.deepEqual(requestActor('cli', 'codex', 'Task-42', encodeURIComponent('修复中文问题')), { ...codex, taskId: 'Task-42', taskLabel: '修复中文问题' });
+  assert.deepEqual(requestActor('ui', 'INVALID', 'a b', '%ZZ'), ui);
+  for (const id of ['', '-x', 'a b', 'a'.repeat(65)]) assert.throws(() => requestActor('cli', undefined, id));
+  for (const label of ['', '%ZZ', '%0A', 'x'.repeat(121)]) assert.throws(() => requestActor('cli', undefined, 'job', label));
+  assert.throws(() => requestActor('cli', undefined, undefined, 'label'));
+  const a = new Activities();
+  for (let i = 0; i < 8; i++) a.add('p', { ...codex, taskId: i % 2 ? 'a' : 'b' }, { kind: 'policy', change: 'settings', serviceId: null });
+  const first = a.page('p', null, 2, 'a');
+  assert.equal(first.hasMore, true); assert.equal(first.entries.length, 2);
+  assert.ok(first.entries.every(e => e.actor.taskId === 'a'));
+  const next = a.page('p', first.entries.at(-1)!.id, 2, 'a');
+  assert.equal(next.entries.length, 2); assert.equal(next.hasMore, false);
+  assert.equal(a.page('p', a.entries.at(-1)!.id, 2, 'b').entries.length, 2);
+});
 test("动态敏感差异、截断、保留、分页及游标校验", () => {
   const a = new Activities([], 3);
   const config = {

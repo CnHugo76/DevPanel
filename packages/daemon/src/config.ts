@@ -158,6 +158,8 @@ export function validate(
   if (input.schemaVersion !== 1)
     issue("schemaVersion", "schemaVersion 必须为 1");
   if (!str(input.name)) issue("name", "请输入项目名称");
+  const instance = input.instance;
+  if (instance !== undefined && (!object(instance) || !['group', 'name'].every(key => typeof instance[key] === 'string' && instance[key].trim().length > 0 && [...instance[key]].length >= 1 && [...instance[key]].length <= 80 && !/[\p{Cc}\p{Zl}\p{Zp}]/u.test(instance[key])))) issue('instance', '实例分组和名称须为 1–80 字符单行文本');
   if (!str(input.root) || !isAbsolute(input.root) || !directory(input.root))
     issue("root", "根目录必须是存在的绝对目录", "CWD_UNAVAILABLE");
   const envCheck = (env: unknown, path: string, old?: EnvMap) => {

@@ -51,10 +51,22 @@ public enum DaemonLaunchState: Equatable, Sendable {
 public final class AppModel {
     public var activityEntries: [ProjectID: [ActivityEntry]] = [:]
     public var activityHasMore: [ProjectID: Bool] = [:]
-    public var activityVisible: ProjectID?
+    public var activityVisible: ProjectID? {
+        didSet {
+            if oldValue != activityVisible, let oldValue {
+                activityGeneration[oldValue, default: 0] += 1
+                activityLoads[oldValue] = nil
+                activityLoading.remove(oldValue)
+            }
+            if oldValue != activityVisible { activityError = nil }
+        }
+    }
+    public internal(set) var activityTaskFilters: [ProjectID: String] = [:]
+    public internal(set) var activityLoading: Set<ProjectID> = []
     public var activityError: String?
     @ObservationIgnored var activityRefreshes: [ProjectID: Task<Void, Never>] = [:]
-    @ObservationIgnored var activityLoads: Set<ProjectID> = []
+    @ObservationIgnored var activityLoads: [ProjectID: UUID] = [:]
+    @ObservationIgnored var activityGeneration: [ProjectID: Int] = [:]
     @ObservationIgnored var activityPending: Set<ProjectID> = []
 
     public struct Timing: Sendable {

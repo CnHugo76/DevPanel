@@ -24,7 +24,7 @@ import type {
   LogStreamEvent,
   Limits,
 } from "@devpanel/contract";
-import { requestActor } from "./activity.ts";
+import { requestActor, taskIdPattern } from "./activity.ts";
 import { Manager, terminal, activeStates } from "./manager.ts";
 import {
   atomicWrite,
@@ -195,7 +195,7 @@ export async function startServer(
           )
             throw new Fault("FORBIDDEN_ORIGIN", "Origin 不被允许", 403);
         }
-        const actor = requestActor(typeof req.headers["x-devpanel-client"] === "string" ? req.headers["x-devpanel-client"] : undefined, req.headers["x-devpanel-agent"]);
+        const actor = requestActor(typeof req.headers["x-devpanel-client"] === "string" ? req.headers["x-devpanel-client"] : undefined, req.headers["x-devpanel-agent"], req.headers['x-devpanel-task'], req.headers['x-devpanel-task-label']);
         if (method === "POST" && /^\/api\/v1\/projects\/[^/]+\/git\/(stage|unstage|commit|stash|stash\/apply)$/.test(path) && req.headers["x-devpanel-client"] !== "ui")
           throw new Fault("FORBIDDEN_CLIENT", "Git 写操作只允许界面发起", 403);
         if (
@@ -383,7 +383,10 @@ export async function startServer(
             manager.releaseHold(pid, parts[3]!, actor); reply(null, 204); return;
           }
           if (parts.length === 3 && parts[2] === "activity" && method === "GET") {
-            reply(manager.activity.page(pid, url.searchParams.get("before"), Number(url.searchParams.get("limit") ?? 50))); return;
+            const task = url.searchParams.get('task');
+            if (task !== null && !taskIdPattern.test(task)) throw new Fault('BAD_REQUEST', 'task 格式无效');
+            const safeTask = task === null ? null : manager.actor({ client: 'cli', agent: null, taskId: task }).taskId!;
+            reply(manager.activity.page(pid, url.searchParams.get("before"), Number(url.searchParams.get("limit") ?? 50), safeTask)); return;
           }
           if (parts[2] === "git") {
             if (manager.shuttingDown) throw new Fault("GIT_FAILED", "管理服务正在关闭", 422);
@@ -535,6 +538,9 @@ export async function startServer(
           if (parts.length === 3 && parts[2] === "logs") {
             reply(manager.logs.page(rid, url.searchParams, !!r.detail.endedAt));
             return;
+          }
+          if (parts.length === 4 && parts[2] === 'logs' && parts[3] === 'search') {
+            reply(manager.logs.search(rid, url.searchParams)); return;
           }
           if (
             parts.length === 4 &&

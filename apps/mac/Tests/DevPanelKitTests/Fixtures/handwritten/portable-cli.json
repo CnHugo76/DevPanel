@@ -1,0 +1,153 @@
+{
+  "format": "devpanel.project",
+  "version": 1,
+  "project": {
+    "schemaVersion": 1,
+    "name": "跨客户端配置",
+    "instance": {
+      "group": "demo",
+      "name": "a"
+    },
+    "env": {
+      "TOKEN": {
+        "secret": true
+      },
+      "HOME_DIR": ""
+    },
+    "services": [
+      {
+        "id": "web",
+        "name": "Web",
+        "cwd": "sub",
+        "command": [
+          "",
+          "./server.mjs",
+          ""
+        ],
+        "env": {
+          "SERVICE_TOKEN": {
+            "secret": true
+          }
+        },
+        "ready": {
+          "check": {
+            "kind": "log",
+            "contains": [
+              "Ready"
+            ]
+          }
+        }
+      }
+    ],
+    "params": [
+      {
+        "key": "password",
+        "label": "Password",
+        "type": "string",
+        "secret": true
+      },
+      {
+        "key": "count",
+        "label": "Count",
+        "type": "number",
+        "secret": true
+      },
+      {
+        "key": "enabled",
+        "label": "Enabled",
+        "type": "boolean",
+        "secret": true
+      },
+      {
+        "key": "path",
+        "label": "Path",
+        "type": "string"
+      }
+    ],
+    "actions": [
+      {
+        "id": "build",
+        "name": "Build",
+        "cwd": "",
+        "command": [
+          "node",
+          "build.mjs"
+        ]
+      }
+    ],
+    "repositories": [],
+    "mavenProjects": []
+  },
+  "inputs": [
+    {
+      "id": "input1",
+      "target": "/env/TOKEN/value",
+      "kind": "secret",
+      "label": "/env/TOKEN/value",
+      "valueType": "string"
+    },
+    {
+      "id": "input2",
+      "target": "/env/HOME_DIR",
+      "kind": "path",
+      "label": "/env/HOME_DIR",
+      "valueType": "string"
+    },
+    {
+      "id": "input3",
+      "target": "/services/0/command/0",
+      "kind": "path",
+      "label": "/services/0/command/0",
+      "valueType": "string"
+    },
+    {
+      "id": "input4",
+      "target": "/services/0/command/2",
+      "kind": "path",
+      "label": "/services/0/command/2",
+      "valueType": "string"
+    },
+    {
+      "id": "input5",
+      "target": "/services/0/env/SERVICE_TOKEN/value",
+      "kind": "secret",
+      "label": "/services/0/env/SERVICE_TOKEN/value",
+      "valueType": "string"
+    },
+    {
+      "id": "input6",
+      "target": "/actions/0/cwd",
+      "kind": "path",
+      "label": "/actions/0/cwd",
+      "valueType": "string"
+    },
+    {
+      "id": "input7",
+      "target": "/params/0/value",
+      "kind": "secret",
+      "label": "/params/0/value",
+      "valueType": "string"
+    },
+    {
+      "id": "input8",
+      "target": "/params/1/value",
+      "kind": "secret",
+      "label": "/params/1/value",
+      "valueType": "number"
+    },
+    {
+      "id": "input9",
+      "target": "/params/2/value",
+      "kind": "secret",
+      "label": "/params/2/value",
+      "valueType": "boolean"
+    },
+    {
+      "id": "input10",
+      "target": "/params/3/value",
+      "kind": "path",
+      "label": "/params/3/value",
+      "valueType": "string"
+    }
+  ]
+}

@@ -147,6 +147,7 @@ struct ProjectEditorSheet: View {
         VStack(alignment: .leading, spacing: 16) {
             projectFields
                 .id("top")
+            instanceFields
             projectEnv
             servicesSection
             ActionEditorSection(editor: editor)
@@ -201,6 +202,27 @@ struct ProjectEditorSheet: View {
                     HintLine(tone: .ok, text: "目录存在")
                 }
             }
+        }
+    }
+
+    private var instanceFields: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    FieldTitle(text: "实例组（可选）") { focus = .instanceGroup }
+                    EditorTextField(label: "实例组", text: $editor.draft.instanceGroup, prompt: "例如 order-service",
+                                    invalid: editor.localError("instance.group") != nil, field: .instanceGroup, focus: $focus)
+                    FieldHints(local: editor.localError("instance.group"), issues: editor.validation?.issues(under: "instance.group") ?? [])
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    FieldTitle(text: "实例名称（可选）") { focus = .instanceName }
+                    EditorTextField(label: "实例名称", text: $editor.draft.instanceName, prompt: "例如 checkout-fix",
+                                    invalid: editor.localError("instance.name") != nil, field: .instanceName, focus: $focus)
+                    FieldHints(local: editor.localError("instance.name"), issues: editor.validation?.issues(under: "instance.name") ?? [])
+                }
+            }
+            Text("一起填写用于展示和筛选，全部留空则取消。每个目录的服务、日志、端口与 AI 权限独立；同一真实目录只能注册一次。")
+                .font(.system(size: 11)).foregroundStyle(Theme.text3).fixedSize(horizontal: false, vertical: true)
         }
     }
 

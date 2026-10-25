@@ -119,7 +119,12 @@ extension Operation {
             tone = .ok
         }
         let hint = timedOut && (action == .stop || action == .restart) ? "可继续等待，或强制停止。" : nil
-        let sourceNote: String? = source == .ui ? nil : "来源 \(source.rawValue)"
+        let sourceNote: String?
+        if let actor {
+            sourceNote = actor.client == .ui && actor.workSummary == nil ? nil : "来源 \(actor.sourceLabel)"
+        } else {
+            sourceNote = source == .ui ? nil : "来源 \(source.rawValue)"
+        }
         return OperationSummary(title: title, items: items, tone: tone, hint: hint, sourceNote: sourceNote)
     }
 }

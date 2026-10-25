@@ -246,6 +246,7 @@ public enum ProjectAggregate: OpenEnum {
 }
 
 public struct ProjectView: Codable, Hashable, Sendable, Identifiable {
+    public var instance: ProjectInstance?
     public var policy: ProjectPolicy? = nil
     public var id: ProjectID
     public var name: String
@@ -263,7 +264,7 @@ public struct ProjectView: Codable, Hashable, Sendable, Identifiable {
     public var mavenProjects: [MavenProjectView]?
 
     private enum CodingKeys: String, CodingKey {
-        case id, name, root, revision, aggregate, runningCount, serviceCount, services, maven, policy, repositories, mavenProjects
+        case id, name, root, revision, aggregate, runningCount, serviceCount, services, maven, policy, repositories, mavenProjects, instance
         case decodedActions = "actions"
     }
 

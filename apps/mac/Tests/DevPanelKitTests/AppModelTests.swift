@@ -367,7 +367,7 @@ struct AppModelTests {
         guard case .failed(let message) = model.daemonLaunch else {
             Issue.record("expected failure"); return
         }
-        #expect(message.contains("pnpm setup:cli"))
+        #expect(message.contains("接入第一个项目"))
     }
 }
 

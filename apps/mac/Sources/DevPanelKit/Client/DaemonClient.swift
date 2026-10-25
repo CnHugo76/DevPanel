@@ -78,8 +78,10 @@ public struct DaemonClient: Sendable {
     public func releaseHold(_ id: ProjectID, serviceId: ServiceID) async throws {
         _ = try await sendRaw(.delete, ["projects", id, "services", serviceId, "hold"], body: Optional<Never>.none)
     }
-    public func activity(_ id: ProjectID, before: String? = nil) async throws -> ActivityPage {
-        try await get(["projects", id, "activity"], query: before.map { [URLQueryItem(name: "before", value: $0)] } ?? [])
+    public func activity(_ id: ProjectID, before: String? = nil, task: String? = nil) async throws -> ActivityPage {
+        var query = before.map { [URLQueryItem(name: "before", value: $0)] } ?? []
+        if let task { query.append(URLQueryItem(name: "task", value: task)) }
+        return try await get(["projects", id, "activity"], query: query)
     }
 
     // MARK: - Params (v1.1-A)
@@ -159,6 +161,17 @@ public struct DaemonClient: Sendable {
     /// No cursor: newest `limit` lines. `before`: lines with seq < before. `after`: seq > after.
     public func digest(_ runId: RunID) async throws -> LogDigest {
         try await get(["runs", runId, "digest"])
+    }
+
+    public func searchLogs(_ runId: RunID, query: String, caseSensitive: Bool = false,
+                           after: Int = 0, through: Int? = nil, limit: Int = 50, context: Int = 2) async throws -> LogSearchPage {
+        var items = [URLQueryItem(name: "q", value: query),
+                     URLQueryItem(name: "caseSensitive", value: String(caseSensitive)),
+                     URLQueryItem(name: "after", value: String(after)),
+                     URLQueryItem(name: "limit", value: String(limit)),
+                     URLQueryItem(name: "context", value: String(context))]
+        if let through { items.append(URLQueryItem(name: "through", value: String(through))) }
+        return try await get(["runs", runId, "logs", "search"], query: items)
     }
 
     public func logs(_ runId: RunID, before: Int? = nil, after: Int? = nil, limit: Int? = nil) async throws -> LogPage {

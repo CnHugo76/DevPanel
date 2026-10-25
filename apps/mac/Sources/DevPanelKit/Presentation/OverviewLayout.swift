@@ -91,16 +91,28 @@ public struct FilteredProject: Sendable, Equatable, Identifiable {
 }
 
 public enum OverviewFilter {
-    /// Filters by project name or service name; never reorders. A matching project shows all
-    /// its services; otherwise only the matching services. Empty query → everything.
+    /// Instance filters keep independent project identities and registration order.
+    /// A matching project shows all its services; otherwise only matching services.
     public static func apply(_ projects: [ProjectView], query: String) -> [FilteredProject] {
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !q.isEmpty else { return projects.map { FilteredProject(project: $0, services: $0.services) } }
+        let scoped = String(query.drop(while: { $0.isWhitespace }))
+        for (prefix, value) in [("group:", { (p: ProjectView) in p.instance?.group }), ("instance:", { (p: ProjectView) in p.instance?.name })] {
+            if scoped.lowercased().hasPrefix(prefix) {
+                let expected = String(scoped.dropFirst(prefix.count))
+                return projects.compactMap { p in
+                    guard let actual = value(p), actual.compare(expected, options: [.caseInsensitive, .widthInsensitive]) == .orderedSame else { return nil }
+                    return FilteredProject(project: p, services: p.services)
+                }
+            }
+        }
         func matches(_ s: String) -> Bool {
             s.range(of: q, options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive]) != nil
         }
         return projects.compactMap { p in
-            if matches(p.name) { return FilteredProject(project: p, services: p.services) }
+            if [p.name, p.id, p.root, p.instance?.group ?? "", p.instance?.name ?? ""].contains(where: matches) {
+                return FilteredProject(project: p, services: p.services)
+            }
             let services = p.services.filter { matches($0.name) }
             return services.isEmpty ? nil : FilteredProject(project: p, services: services)
         }

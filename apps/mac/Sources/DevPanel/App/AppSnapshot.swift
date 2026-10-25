@@ -7,6 +7,40 @@ import Foundation
     }
     static func apply(_ args: [String], controller: AppController) async {
         if args.contains("--installation"), ProcessInfo.processInfo.environment["DEVPANEL_HOME"] != nil { controller.showInstallation = true }
+        if args.contains("--onboarding"), ProcessInfo.processInfo.environment["DEVPANEL_HOME"] != nil { controller.showOnboarding = true }
+        if let query = value("--search-retained", args), ProcessInfo.processInfo.environment["DEVPANEL_HOME"] != nil {
+            let model = controller.model
+            if let owner = model.selection.map(LogOwner.service) ?? model.selectedTaskRef.map(LogOwner.task),
+               let runId = model.viewedRunId(for: owner) {
+                model.inspector.retainedSearch = RetainedLogSearchTarget(runId: runId, query: query)
+            }
+        }
+        if ProcessInfo.processInfo.environment["DEVPANEL_HOME"] != nil {
+            if let id = value("--export-config", args) {
+                controller.editor.portable(.export(id))
+                if case .portable(let session) = controller.editor.sheet {
+                    await session.loadExport()
+                    if let file = value("--export-file", args) {
+                        do { try session.saveExport(to: URL(fileURLWithPath: file)) }
+                        catch { FileHandle.standardError.write(Data("portable export failed\n".utf8)) }
+                    }
+                }
+            }
+            if let file = value("--import-config", args) {
+                controller.editor.portable(.importFile)
+                if case .portable(let session) = controller.editor.sheet {
+                    session.loadDocument(URL(fileURLWithPath: file))
+                    if let root = value("--import-root", args) { session.setRoot(URL(fileURLWithPath: root, isDirectory: true)) }
+                    if let inputs = value("--import-inputs", args) { session.loadInputs(URL(fileURLWithPath: inputs)) }
+                    await session.prepare()
+                    if args.contains("--import-save"), let project = await session.save() {
+                        controller.editor.show(.init(tone: .ok, text: session.savedMessage ?? "已导入 · 未启动", sticky: true))
+                        controller.editor.close()
+                        controller.editor.locate(project.id)
+                    }
+                }
+            }
+        }
         if let dialog = value("--app-dialog", args) { controller.dialog = AppController.Dialog(rawValue: dialog) }
         if let target = value("--notification-open", args) {
             let parts = target.split(separator: "/", maxSplits: 1).map(String.init)

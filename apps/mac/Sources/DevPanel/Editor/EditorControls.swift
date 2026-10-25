@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Focusable fields of the editor sheet. Losing focus triggers `/config/validate`.
 enum EditorField: Hashable {
-    case projectName, root
+    case projectName, root, instanceGroup, instanceName
     case serviceName(UUID), serviceId(UUID), cwd(UUID), command(UUID), stopTimeout(UUID)
     case envName(UUID), envValue(UUID)
 }

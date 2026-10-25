@@ -27,7 +27,9 @@ test("logs 保留 v0.3 的服务/运行组合，摘要与增量选择器互斥",
     else if (path.includes("/logs/stream")) {
       res.setHeader("Content-Type", "text/event-stream");
       res.end('event: end\ndata: {"type":"end"}\n\n');
-    } else if (path.includes("/digest"))
+    } else if (path.includes("/logs/search"))
+      res.end(JSON.stringify({ runId: 'r', throughSeq: 1000, scannedThroughSeq: 500, hasMore: true, truncated: true, matches: [{ line: { seq: 3, stream: 'err', text: 'ERROR early' }, before: [], after: [] }] }));
+    else if (path.includes("/digest"))
       res.end(JSON.stringify({ blocks: [] }));
     else
       res.end(
@@ -97,6 +99,14 @@ test("logs 保留 v0.3 的服务/运行组合，摘要与增量选择器互斥",
     (e: any) => e.code === 2,
   );
   assert.ok(requests.includes("/api/v1/runs/r/logs?limit=200&after=6"));
+  const search = await run('--run', 'r', '--search', 'ERROR 中文', '--after-seq', '2', '--through-seq', '1000', '--limit', '5', '--context', '1', '--case-sensitive', '--json');
+  assert.equal(JSON.parse(search.stdout).matches[0].line.seq, 3);
+  assert.ok(requests.includes('/api/v1/runs/r/logs/search?q=ERROR+%E4%B8%AD%E6%96%87&after=2&through=1000&limit=5&context=1&caseSensitive=true'));
+  const textSearch = await run('--search', 'ERROR');
+  assert.match(textSearch.stdout, /--after-seq 500 --through-seq 1000/);
+  for (const incompatible of [['--search', 'x', '--follow'], ['--search', 'x', '--digest'], ['--search', 'x', '--tail', '5'], ['--context', '1'], ['--case-sensitive']]) {
+    await assert.rejects(run(...incompatible), (e: any) => e.code === 2);
+  }
   await assert.rejects(
     run("--service", "other", "--run", "r"),
     (e: any) => e.code === 2,

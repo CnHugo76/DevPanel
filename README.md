@@ -9,6 +9,8 @@ AI agents register, start, and query projects through the CLI. You inspect, adju
 - **Service management**: manage foreground processes, inspect listening ports and CPU / memory usage, browse past runs, and adjust launch parameters.
 - **AI integration**: a JSON CLI, one-time readiness checks, incremental logs and digests, and an installable agent skill. No MCP server setup required.
 - **Human oversight**: a native service panel, operation attribution and activity, holds, and locks.
+- **Troubleshooting and reuse**: search all retained logs, compare actual and next launch settings, copy diagnostic context, and share redacted configurations with import previews.
+- **Parallel work**: label AI work in activity and group separate directory instances while keeping their runs and management policies independent.
 - **Project tools**: saved actions, Maven modules and profiles, Git changes, and separate diff windows, with explicitly configured repositories and Maven projects.
 
 [Feature checklist and v0.4 priorities](docs/features.md) · [Try the demo](examples/demo/README.md) · [Documentation](docs/README.md) · [Contributing](CONTRIBUTING.md) · [Third-party notices](THIRD_PARTY_NOTICES.md)
@@ -26,6 +28,10 @@ The detailed development guides, demo instructions, and agent skill are currentl
 Extract `DevPanel.app` and place it somewhere you intend to keep it. If macOS blocks the first launch, try opening it once, then use **System Settings → Privacy & Security → Open Anyway** and follow the system prompts. Distribution packages use ad-hoc signing; they are not Developer ID signed or notarized.
 
 ## First launch and CLI setup
+
+Follow [Your first project](docs/quickstart.md). The complete App includes a demo and Agent skill; the demo uses bundled Node.
+
+[Configuration sharing, import previews, separate instances and AI work context](docs/config-sharing.md)
 
 You can skip onboarding and reopen it from the DevPanel menu using “安装 CLI 与登录启动…” (Install CLI and start at login):
 

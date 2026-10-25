@@ -384,6 +384,7 @@ export class Engine {
     return {
       id: p.project.id,
       name: p.project.config.name,
+      instance: p.project.config.instance,
       root: p.project.config.root,
       revision: p.project.revision,
       policy: this.policies.get(p.project.id),
@@ -406,6 +407,17 @@ export class Engine {
 
   maskedProject(p: ProjRec): Project {
     return { ...p.project, config: maskConfig(p.project.config) };
+  }
+
+  actor(actor: Actor, extra?: ProjectConfig): Actor {
+    if (actor.client !== 'cli') return { client: actor.client, agent: actor.agent };
+    const secrets = [...this.projects.map(p => p.project.config), ...(extra ? [extra] : [])].flatMap(c => [
+      ...(c.params ?? []).flatMap(p => p.secret && p.value !== undefined ? [String(p.value)] : []),
+      ...[c.env, ...[...c.services, ...(c.actions ?? [])].map(s => s.env)].flatMap(env => Object.values(env ?? {}).flatMap(v => typeof v === 'object' && v.value ? [v.value] : [])),
+    ]).filter(Boolean).sort((a, b) => b.length - a.length);
+    const pattern = secrets.length ? new RegExp([...new Set(secrets)].map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'g') : null;
+    const clean = (value: string | undefined) => value === undefined ? undefined : pattern ? value.replace(pattern, '[REDACTED]') : value;
+    return { client: actor.client, agent: actor.agent, ...(actor.taskId === undefined ? {} : { taskId: clean(actor.taskId) }), ...(actor.taskLabel === undefined ? {} : { taskLabel: clean(actor.taskLabel) }) };
   }
 
   /**
@@ -507,7 +519,7 @@ export class Engine {
     };
     for (const s of cfg.services) rec.services.set(s.id, this.newSvcRt(s.id));
     this.projects.push(rec);
-    this.activity.config(rec.project.id, actor, "register", 0, 1, {}, config);
+    this.activity.config(rec.project.id, this.actor(actor, config), "register", 0, 1, {}, config);
     this.upsert(rec);
     return { status: 201, body: { created: true, project: this.maskedProject(rec) } };
   }
@@ -557,6 +569,7 @@ export class Engine {
     };
     // Unmasked comparison so that changing only a secret value is saved.
     if (stableStringify(canonicalConfig(p.project.config, false)) === stableStringify(canonicalConfig(merged, false))) return respond();
+    actor = this.actor(actor, merged);
     this.activity.config(id, actor, "update", p.project.revision, p.project.revision + 1, p.project.config, merged);
     p.project = { ...p.project, revision: p.project.revision + 1, updatedAt: now, config: merged };
     const next = new Map<string, SvcRt>();
@@ -592,7 +605,7 @@ export class Engine {
     const res = validateConfig(next, { existingSecrets: this.secretKeys(next), existingSecretParams: secretParamKeys(next) });
     const errors = res.issues.filter((i) => i.severity === 'error' && (i.code.startsWith('PARAM_') || i.path.startsWith('params')));
     if (errors.length) throw new HttpError(422, 'CONFIG_INVALID', '选项校验未通过', { issues: errors });
-    this.activity.config(p.project.id, actor, "param", p.project.revision, p.project.revision + 1, p.project.config, next);
+    this.activity.config(p.project.id, this.actor(actor, next), "param", p.project.revision, p.project.revision + 1, p.project.config, next);
     p.project = { ...p.project, revision: p.project.revision + 1, updatedAt: iso(), config: next };
     this.upsert(p);
     return this.maskedProject(p);
@@ -733,6 +746,7 @@ export class Engine {
   }
 
   startAction(projectId: string, actionId: string, actor: Actor = { client: "cli", agent: null }): StartTaskRunResponse {
+    actor = this.actor(actor);
     const p = this.getProj(projectId);
     const cfg = p.project.config.actions?.find((a) => a.id === actionId);
     if (!cfg) throw notFound('ACTION_NOT_FOUND', `快捷操作不存在：${actionId}`);
@@ -773,6 +787,7 @@ export class Engine {
   }
 
   startMaven(projectId: string, input: unknown, actor: Actor = { client: "cli", agent: null }): StartTaskRunResponse {
+    actor = this.actor(actor);
     const p = this.getProj(projectId);
     const active = this.mavenRuns(projectId).find(r => !r.endedAt);
     if (active) throw new HttpError(409, 'TASK_RUNNING', '项目已有 Maven 运行，请等待或取消', { runId: active.id });
@@ -822,6 +837,7 @@ export class Engine {
   }
 
   cancelTask(id: string, force = false, timeout = false, actor: Actor = daemonActor): TaskRunSummary {
+    actor = this.actor(actor);
     const t = this.taskRuns.get(id);
     if (!t) throw notFound('RUN_NOT_FOUND', `任务运行不存在：${id}`);
     if (t.summary.endedAt) return structuredClone(t.summary);
@@ -1211,6 +1227,7 @@ export class Engine {
     this.policies.release(pid, sid, actor); this.upsert(p);
   }
   submit(body: unknown, actor: Actor = { client: "cli", agent: null }, bypassPolicy = false): Operation {
+    actor = this.actor(actor);
     const source = actor.client;
     if (!isObj(body)) throw badRequest('请求体必须是 ActionRequest');
     const req = body as unknown as ActionRequest;

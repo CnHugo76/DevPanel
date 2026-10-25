@@ -6,6 +6,7 @@ struct NotRunningView: View {
     let model: AppModel
     private let launcher = DaemonLauncher()
     private let home = DaemonHome.resolve()
+    @Environment(AppController.self) private var controller: AppController?
 
     var body: some View {
         VStack(spacing: 14) {
@@ -43,11 +44,16 @@ struct NotRunningView: View {
             .padding(.top, 4)
 
             if !launcher.isInstalled {
-                Text("没有找到命令行工具 \(launcher.cliPath.path)。请先在 DevPanel 仓库中运行 `pnpm setup:cli`。")
+                Text(home.isOverridden
+                     ? "开发环境未找到可用入口。请按接入指引，使用源码 CLI 启动同一隔离目录的管理服务。"
+                     : "没有找到命令行工具。请检查 App 是否完整，或按接入指引配置源码 CLI。")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 460)
+            }
+            if let controller {
+                Button("查看接入指引…") { controller.showOnboarding = true }
             }
             if case .failed(let message) = model.daemonLaunch {
                 Text(message)

@@ -9,7 +9,17 @@ import {
   portEvidence,
 } from "../src/ready.ts";
 import { sampleDigest } from "../src/digest.ts";
+import { searchLogs } from '../src/log-search.ts';
 import type { ProjectConfig } from "@devpanel/contract";
+
+test('mock retained search honors a frozen window and bounded literal context', () => {
+  const lines = [1, 2, 3, 4].map(seq => ({ seq, ts: 'now', stream: 'out' as const, text: seq % 2 ? '\x1b[31mERROR [x]\x1b[0m' : 'context' }));
+  const page = searchLogs('r', lines, true, new URLSearchParams('q=error+%5Bx%5D&limit=1&context=1'));
+  assert.equal(page.matches[0]!.line.seq, 1); assert.equal(page.hasMore, true);
+  const next = searchLogs('r', [...lines, { ...lines[0]!, seq: 5 }], true, new URLSearchParams('q=error&after=1&through=4&context=1'));
+  assert.deepEqual(next.matches.map(m => m.line.seq), [3]); assert.equal(next.matches[0]!.after[0]!.seq, 4);
+  assert.equal(next.hasMore, false); assert.equal(next.truncated, true);
+});
 
 test("mock 就绪只模拟契约的文字/虚拟端口与非敏感选项", () => {
   const config = {

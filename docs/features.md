@@ -2,6 +2,8 @@
 
 **English** | [简体中文](features.zh-CN.md)
 
+This page preserves the public-source baseline identified below. The current workspace additions for setup, troubleshooting, configuration reuse and AI work context are tracked in the [four-round implementation record](plan-four-rounds.md); they have not been publicly released.
+
 DevPanel gives developers and AI agents a shared view of local project processes. The native macOS app and JSON CLI use the same daemon. This inventory describes the current public source, including changes after the local `v0.4.1` tag; design proposals alone do not count as implemented features.
 
 ## Version status

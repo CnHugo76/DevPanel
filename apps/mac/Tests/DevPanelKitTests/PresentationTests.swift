@@ -119,7 +119,7 @@ struct StatusTextTests {
         let snap = try snapshot()
         let order = snap.projects[0]
         #expect(order.badge().text == "2/2 运行中")
-        #expect(order.badge().tone == .green)
+        #expect(order.badge().tone == .blue)
         #expect(ProjectAggregate.running.label(running: 2, total: 2) == "2/2 运行中")
         var p = order
         p.aggregate = .partial

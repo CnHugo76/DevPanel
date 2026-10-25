@@ -6,8 +6,10 @@ import { cpSync, existsSync, mkdirSync, readFileSync, realpathSync, rmSync, syml
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { sourceProvenance } from './release-provenance.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const source = sourceProvenance(root);
 const version = process.env.VERSION ?? '0.4.1';
 if (!/^[0-9]+\.[0-9]+\.[0-9]+(?:-[a-zA-Z0-9.-]+)?$/.test(version)) throw Error('VERSION 格式无效');
 if (process.platform !== 'darwin' || !['arm64', 'x64'].includes(process.arch)) throw Error('仅在 macOS arm64/x64 本机打包');
@@ -36,6 +38,11 @@ const app = join(output, 'DevPanel.app');
 // 随 App 一并分发项目许可与第三方声明；依赖各自的许可证仍保留在 runtime 中。
 for (const name of ['LICENSE', 'THIRD_PARTY_NOTICES.md']) {
   cpSync(join(root, name), join(app, 'Contents/Resources', name));
+}
+cpSync(join(root, 'skills/devpanel'), join(app, 'Contents/Resources/skills/devpanel'), { recursive: true });
+cpSync(join(root, 'examples/demo'), join(app, 'Contents/Resources/demo'), { recursive: true });
+for (const name of ['quickstart.md', 'quickstart.zh-CN.md', 'config-sharing.md', 'config-sharing.zh-CN.md']) {
+  cpSync(join(root, 'docs', name), join(app, 'Contents/Resources', name));
 }
 const runtime = join(app, 'Contents/Resources/runtime');
 mkdirSync(join(runtime, 'node/bin'), { recursive: true });
@@ -91,7 +98,11 @@ exec "$BASE/node/bin/node" "$BASE/packages/${pkg}/src/main.ts" "$@"
 `);
   chmodSync(path, 0o755);
 }
-writeFileSync(join(runtime, 'runtime.json'), JSON.stringify({ version, nodeVersion, arch: process.arch, nodeArchiveSHA256: actual }, null, 2) + '\n');
+const metadata = { version, nodeVersion, arch: process.arch, nodeArchiveSHA256: actual,
+  source: { commit: source.commit, dirty: source.dirty, sha256: source.sha256 }, builtAt: new Date().toISOString() };
+if (sourceProvenance(root).sha256 !== source.sha256) throw Error('构建期间源码变化，请在改动完成后重新打包');
+writeFileSync(join(runtime, 'runtime.json'), JSON.stringify(metadata, null, 2) + '\n');
+writeFileSync(join(app, 'Contents/Resources/source-files.json'), JSON.stringify(source.files, null, 2) + '\n');
 // 对嵌入的 Mach-O 先签名，再签外层；不使用 --deep 掩盖未签的内容。
 for (const path of ['node/bin/node', 'packages/daemon/native/build/process-sampler']) run('/usr/bin/codesign', ['--force', '--sign', '-', '--timestamp=none', join(runtime, path)]);
 run('/usr/bin/codesign', ['--force', '--sign', '-', '--timestamp=none', app]);
@@ -102,4 +113,5 @@ if (existsSync(zip)) rmSync(zip);
 run('/usr/bin/ditto', ['-c', '-k', '--sequesterRsrc', '--keepParent', app, zip]);
 const sha = createHash('sha256').update(readFileSync(zip)).digest('hex');
 writeFileSync(zip + '.sha256', `${sha}  ${zipName}\n`);
+writeFileSync(zip + '.json', JSON.stringify({ ...metadata, zip: zipName, sha256: sha }, null, 2) + '\n');
 console.log(`本地发布包：${zip}\nSHA-256：${sha}`);

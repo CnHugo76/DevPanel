@@ -76,6 +76,9 @@ struct ProjectCard: View {
         let params = model.params(project.id)
         VStack(alignment: .leading, spacing: 0) {
             header(collapsed: collapsed)
+            if project.instance != nil {
+                ProjectIdentityCaption(project: project).padding(.horizontal, 14).padding(.bottom, 10)
+            }
 
             if layout.compact, project.services.contains(where: { $0.currentRun != nil }) {
                 HStack {
@@ -130,7 +133,7 @@ struct ProjectCard: View {
                         .lineLimit(1)
                         .layoutPriority(1)
                     CountBadge(label: project.badge())
-                    if !layout.compact {
+                    if !layout.compact, project.instance == nil {
                         Text(Format.tildePath(project.root))
                             .font(.system(size: 11.5, design: .monospaced))
                             .foregroundStyle(Theme.text3)
@@ -171,6 +174,7 @@ struct ProjectCard: View {
                     Button("AI 权限…") { showPolicy = true }.disabled(stale)
                     Button("编辑项目…") { editor?.edit(project.id) }
                         .disabled(stale)
+                    Button("导出共享配置…") { editor?.portable(.export(project.id)) }.disabled(stale)
                     Button("复制项目 ID") { copy(project.id) }
                     Button("在 Finder 中显示") {
                         NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: project.root)])

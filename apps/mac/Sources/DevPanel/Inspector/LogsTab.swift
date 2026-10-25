@@ -21,6 +21,9 @@ struct LogsTab: View {
     @State private var controller = LogTextController()
     @State private var toast: String?
     @State private var toastTask: Task<Void, Never>?
+    @State private var diagnosticTask: Task<Void, Never>?
+    @State private var diagnosticLoading = false
+    @State private var errorContext: ErrorContext?
     @FocusState private var searchFocused: Bool
     @Environment(\.isStale) private var stale
 
@@ -39,6 +42,19 @@ struct LogsTab: View {
             if model.isViewingHistory(ref), let viewedRun {
                 historyBanner(viewedRun)
             }
+            if let viewedRun, let problem = problem(viewedRun) {
+                HStack(spacing: 8) {
+                    Text("所选运行 · " + problem).foregroundStyle(Theme.amber)
+                    Spacer(minLength: 0)
+                    Button("查看错误上下文") { diagnose(.showError, runId: viewedRun.id) }
+                        .disabled(diagnosticLoading || model.client == nil)
+                }
+                .font(.system(size: 12)).padding(.horizontal, 12).padding(.vertical, 7)
+                .background(Theme.amberSoft)
+            }
+            if onTarget && (stale || session.status.gap != nil || session.status.reconnecting) {
+                recoveryNote
+            }
             content(hasRun: viewedId != nil, onTarget: onTarget, live: live)
             if isTask { TaskLogsFooter(model: model, onTarget: onTarget, live: live, toast: toast) }
             else { footer(onTarget: onTarget, live: live) }
@@ -47,9 +63,15 @@ struct LogsTab: View {
         .onChange(of: viewedId) { _, _ in
             follow = true
             session.markSeen()
+            cancelAuxiliaryWork()
+            toast = nil
         }
         .onChange(of: session.revision) { _, _ in
             if follow { session.markSeen() }
+        }
+        .onDisappear { cancelAuxiliaryWork(); toastTask?.cancel() }
+        .sheet(item: $errorContext) { context in
+            ErrorContextSheet(context: context)
         }
     }
 
@@ -57,11 +79,22 @@ struct LogsTab: View {
 
     private func toolbar(runs: [LogRun], viewedId: RunID?, hasLines: Bool) -> some View {
         VStack(spacing: 6) {
-            if !runs.isEmpty {
-                HStack {
+            HStack(spacing: 8) {
+                if !runs.isEmpty {
                     RunPicker(model: model, ref: ref, runs: runs, viewedId: viewedId, currentId: currentRunId)
-                    Spacer(minLength: 0)
                 }
+                Spacer(minLength: 0)
+                if diagnosticLoading { ProgressView().controlSize(.mini) }
+                Menu("排障") {
+                    Button("复制排障信息") { if let viewedId { diagnose(.copyReport, runId: viewedId) } }
+                    Button("查看错误上下文") { if let viewedId { diagnose(.showError, runId: viewedId) } }
+                    Button("复制日志摘要") { if let viewedId { diagnose(.copyDigest, runId: viewedId) } }
+                }
+                .fixedSize().disabled(viewedId == nil || model.client == nil || diagnosticLoading)
+                Button("搜索保留日志…") {
+                    if let viewedId { model.inspector.retainedSearch = RetainedLogSearchTarget(runId: viewedId, query: search.query) }
+                }
+                .fixedSize().disabled(viewedId == nil || model.client == nil)
             }
             HStack(spacing: 6) {
                 searchField
@@ -78,21 +111,6 @@ struct LogsTab: View {
                 ToggleChip(title: "↩︎", on: model.inspector.wrap, help: "自动换行") {
                     model.inspector.wrap.toggle()
                 }
-                Button("复制摘要") {
-                    guard let viewedId, let client = model.client else { return }
-                    Task { @MainActor in
-                        do {
-                            let digest = try await client.digest(viewedId)
-                            NSPasteboard.general.clearContents()
-                            NSPasteboard.general.setString(digest.text, forType: .string)
-                            toast = "已复制摘要"
-                            toastTask?.cancel()
-                            toastTask = Task { try? await Task.sleep(for: .seconds(2)); toast = nil }
-                        } catch { toast = "复制摘要失败：\(error.localizedDescription)" }
-                    }
-                }
-                .fixedSize()
-                .disabled(viewedId == nil || model.client == nil)
                 IconButton(symbol: "⧉", size: 26, help: "复制：有选区时复制选区，否则复制已加载的全部", enabled: hasLines) {
                     copyLines()
                 }
@@ -101,6 +119,63 @@ struct LogsTab: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .overlay(alignment: .bottom) { Rectangle().fill(Theme.line).frame(height: 1) }
+    }
+
+    private var recoveryNote: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Text(session.status.gap != nil
+                 ? "采集曾中断，正在从最后收到的行继续；保留期内可通过「搜索保留日志」核对缺口。"
+                 : "连接中断，正在重连；已有日志可继续查看，恢复连接后从已收到的位置继续。")
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Button("重试连接") { model.retryNow(); session.connectionRestored() }
+        }
+        .font(.system(size: 11.5)).foregroundStyle(Theme.amber)
+        .padding(.horizontal, 12).padding(.vertical, 7)
+        .background(Theme.amberSoft)
+    }
+
+    private func problem(_ run: LogRun) -> String? {
+        switch run {
+        case .service(let value):
+            if value.state == .failed { return value.stateText }
+            if value.ready?.state == .timedOut { return "进程仍在运行 · 就绪超时" }
+            return nil
+        case .task(let value): return value.state == .failed || value.state == .timedOut ? value.state.title : nil
+        }
+    }
+
+    private enum DiagnosticAction { case copyReport, copyDigest, showError }
+
+    private func diagnose(_ action: DiagnosticAction, runId: RunID) {
+        guard let client = model.client else { return }
+        diagnosticTask?.cancel()
+        diagnosticLoading = true
+        diagnosticTask = Task { @MainActor in
+            defer { if !Task.isCancelled { diagnosticLoading = false } }
+            do {
+                if action == .copyDigest || action == .showError {
+                    let digest = try await client.digest(runId)
+                    guard !Task.isCancelled, model.viewedRunId(for: ref) == runId, digest.runId == runId else { return }
+                    if action == .copyDigest { copy(digest.text); showToast("已复制 \(Format.shortRunId(runId)) 的日志摘要") }
+                    else { errorContext = ErrorContext(runId: runId, digest: digest) }
+                } else {
+                    let report = try await TroubleshootingReport.load(client: client, owner: ref, runId: runId)
+                    guard !Task.isCancelled, model.viewedRunId(for: ref) == runId else { return }
+                    copy(report.text)
+                    showToast("已复制 \(Format.shortRunId(runId)) 的排障信息")
+                }
+            } catch {
+                guard !Task.isCancelled, model.viewedRunId(for: ref) == runId else { return }
+                showToast("排障信息读取失败：\(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func cancelAuxiliaryWork() {
+        diagnosticTask?.cancel()
+        diagnosticLoading = false
+        errorContext = nil
+        model.inspector.retainedSearch = nil
     }
 
     private var searchField: some View {

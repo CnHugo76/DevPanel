@@ -25,19 +25,21 @@ import {
   operationCode,
   homePath,
   setAgent,
+  setTask,
 } from "./client.ts";
 import { socketPathError } from "@devpanel/daemon/socket-path";
 import { installLaunchAgent, uninstallLaunchAgent } from "./launch-agent.ts";
 import { startReport, reportText } from "./ready-report.ts";
 import { digestText } from "./digest-text.ts";
 import { waitTask } from "./task-commands.ts";
+import { exportProject, importProject } from './portable-commands.ts';
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const usage = () =>
   new ClientError({
     error: {
       code: "BAD_REQUEST",
       message:
-        "用法：devpanel daemon start|stop|status|install|uninstall；project register|update|show|list|remove|validate|rules；status|start|stop|restart|force-stop|operation|logs|stats|activity|policy <项目或操作 ID>；param list|set|remove；action list|run；task cancel；maven modules|run；open",
+        "用法：devpanel daemon start|stop|status|install|uninstall；project register|update|show|list|remove|validate|rules|export|import；status|start|stop|restart|force-stop|operation|logs|stats|activity|policy <项目或操作 ID>；param list|set|remove；action list|run；task cancel；maven modules|run；open",
     },
   });
 let jsonOutput = process.argv.includes("--json");
@@ -123,8 +125,14 @@ async function main() {
     options: {
       json: { type: "boolean" },
       agent: { type: "string" },
+      task: { type: "string" },
+      'task-label': { type: 'string' },
       limit: { type: "string" },
       digest: { type: "boolean" },
+      search: { type: "string" },
+      "through-seq": { type: "string" },
+      context: { type: "string" },
+      "case-sensitive": { type: "boolean" },
       "after-seq": { type: "string" },
       "max-bytes": { type: "string" },
       force: { type: "boolean" },
@@ -132,6 +140,12 @@ async function main() {
       "override-user-values": { type: "boolean" },
       "override-hold": { type: "boolean" },
       config: { type: "string" },
+      file: { type: "string" },
+      root: { type: "string" },
+      inputs: { type: "string" },
+      apply: { type: "boolean" },
+      group: { type: "string" },
+      instance: { type: "string" },
       "if-revision": { type: "string" },
       module: { type: "string" },
       "maven-project": { type: "string" },
@@ -154,11 +168,13 @@ async function main() {
   jsonOutput = v.json ?? false;
   setAgent(v.agent ?? (process.env.DEVPANEL_AGENT || undefined));
   const [cmd, arg, third] = p;
+  if (cmd !== 'activity') setTask(v.task ?? (process.env.DEVPANEL_TASK || undefined), v['task-label'] ?? (process.env.DEVPANEL_TASK_LABEL || undefined));
+  else if (v['task-label'] !== undefined) throw usage();
   if (v.help) {
     print(
       "DevPanel：本地项目运行面板\n\n" +
         usage().message +
-        "\n\n控制命令支持 --service <id>（可重复）、--no-wait、--timeout <秒>、--json。\n启动/重启支持 --wait-ready、--ready-timeout <秒>。日志支持 --digest、--after-seq <行号>、--max-bytes <字节>、--json。\nMaven 支持 --maven-project <工程ID> 选择已登记工程，--module <模块ID> 选择工程内模块。\n所有服务控制均经由 daemon；注册和更新不会执行项目命令。",
+        "\n\n控制命令支持 --service <id>（可重复）、--no-wait、--timeout <秒>、--json。\n启动/重启支持 --wait-ready、--ready-timeout <秒>。日志支持 --digest、--after-seq <行号>、--max-bytes <字节>、--json。保留日志检索：--search <文本> [--case-sensitive] [--after-seq <行号>] [--through-seq <快照行号>] [--limit 1–100] [--context 0–5]；不能与 --follow/--digest/--tail 合用。\n配置分享：project export <id> --file <新文件>；project import --config <文件> --root <目录> [--inputs <本机输入>] 默认预览，保存加 --apply；更新需 --if-revision。实例显示用成对的 --group / --instance。\n工作归属：--task <ID> [--task-label <名称>]；activity --task 只筛选工作动态。\nMaven 支持 --maven-project <工程ID> 选择已登记工程，--module <模块ID> 选择工程内模块。\n所有服务控制均经由 daemon；注册和更新不会执行项目命令。",
     );
     return;
   }
@@ -229,6 +245,15 @@ async function main() {
     return;
   }
   if (cmd === "project") {
+    if (arg === 'export' && p.length === 3) {
+      if (!v.file) throw usage();
+      print(await exportProject(third!, v.file)); return;
+    }
+    if (arg === 'import' && p.length === 2) {
+      if (!v.config || !v.root) throw usage();
+      const result = await importProject({ file: v.config, root: v.root, inputs: v.inputs, apply: v.apply, revision: v['if-revision'], group: v.group, instance: v.instance });
+      print(result.value); process.exitCode = result.code; return;
+    }
     if (arg === "register" && p.length === 2) {
       print(await api("/projects", "POST", load(v.config)));
       return;
@@ -273,7 +298,7 @@ async function main() {
     if (arg === "rules") {
       const project = await api<Project>(`/projects/${id}`);
       print(
-        `本项目的长期运行服务统一由 DevPanel 管理。\n\n项目 ID：${project.id}\n\n启动前先运行 devpanel status ${project.id} --json。\n启动、停止、重启、查看日志和资源使用 DevPanel CLI，不另用 nohup、&、tmux 或 Agent 临时后台任务启动同一服务。\nDevPanel 不可用时报告问题，不绕过它启动项目。\n不要接管或结束不属于本项目受管运行的进程。\n用户主动停止后，结束当前自动启动/重启流程，不自行循环重试。\n用户明确重新要求启动时，读取最新状态后通过 DevPanel 发起新请求。\n修改配置应更新已注册项目，不注册重复项目。\n注册和更新配置不等于执行授权。\n接入新项目时登记就绪条件（日志文字或监听端口）；注册不启动服务。\n启动和重启使用 --wait-ready --json，停止仍用 stop。退出码 11 表示就绪超时，服务可能仍在运行，不自动停止或重启；退出码 12 表示失败目标全部被托管规则拒绝，报告原因，不绕过规则。\n读日志优先使用 --digest，记下 lastSeq；修改并重试后用 --after-seq <lastSeq> 读取同一运行的增量，换运行时重新开始。\n请在 agent 配置里设置 DEVPANEL_AGENT，名称只用于记录。常改的配置请提炼为选项（params）并写明说明；不要覆盖用户改过的值。\n使用 devpanel param list/set/remove 管理选项；修改只在下次启动生效。`,
+        `本项目的长期运行服务统一由 DevPanel 管理。\n\n项目 ID：${project.id}\n\n启动前先运行 devpanel status ${project.id} --json。\n启动、停止、重启、查看日志和资源使用 DevPanel CLI，不另用 nohup、&、tmux 或 Agent 临时后台任务启动同一服务。\nDevPanel 不可用时报告问题，不绕过它启动项目。\n不要接管或结束不属于本项目受管运行的进程。\n用户主动停止后，结束当前自动启动/重启流程，不自行循环重试。\n用户明确重新要求启动时，读取最新状态后通过 DevPanel 发起新请求。\n修改配置应更新已注册项目，不注册重复项目。\n注册和更新配置不等于执行授权。\n接入新项目时登记就绪条件（日志文字或监听端口）；注册不启动服务。\n启动和重启使用 --wait-ready --json，停止仍用 stop。退出码 11 表示就绪超时，服务可能仍在运行，不自动停止或重启；退出码 12 表示失败目标全部被托管规则拒绝，报告原因，不绕过规则。\n读日志优先使用 --digest，记下 lastSeq；修改并重试后用 --after-seq <lastSeq> 读取同一运行的增量，换运行时重新开始。\n请在 agent 配置里设置 DEVPANEL_AGENT，名称只用于记录。支持新开关的版本可设置 DEVPANEL_TASK/DEVPANEL_TASK_LABEL 关联当前工作；工作标识不改变托管授权。常改的配置请提炼为选项（params）并写明说明；不要覆盖用户改过的值。\n使用 devpanel param list/set/remove 管理选项；修改只在下次启动生效。`,
       );
       return;
     }
@@ -386,6 +411,7 @@ async function main() {
   if (cmd === "activity") {
     const query = new URLSearchParams();
     if (v.limit !== undefined) query.set("limit", v.limit);
+    if (v.task !== undefined) query.set('task', v.task);
     print(await api(`/projects/${id}/activity?${query}`)); return;
   }
   if (cmd === "operation") {
@@ -397,7 +423,9 @@ async function main() {
     return;
   }
   if (cmd === "logs") {
-    if ((v.digest || v["after-seq"] !== undefined) && v.run && v.service?.length) throw usage();
+    if (v.search !== undefined && (v.follow || v.digest || v.tail !== undefined || v['max-bytes'] !== undefined)) throw usage();
+    if (v.search === undefined && (v['through-seq'] !== undefined || v.context !== undefined || v['case-sensitive'])) throw usage();
+    if ((v.digest || v.search !== undefined || v["after-seq"] !== undefined) && v.run && v.service?.length) throw usage();
     const view = await api<ProjectView>(`/projects/${id}/view`);
     if ((v.service?.length ?? 0) > 1) throw usage();
     const service =
@@ -421,6 +449,23 @@ async function main() {
     if (!Number.isInteger(tail) || tail < (v.digest ? 0 : 1)) throw usage();
     const afterSeq = v["after-seq"] === undefined ? undefined : numeric(v["after-seq"], 0);
     if (afterSeq !== undefined && !Number.isSafeInteger(afterSeq)) throw usage();
+    if (v.search !== undefined) {
+      const query = new URLSearchParams({ q: v.search });
+      for (const [flag, name] of [['after-seq', 'after'], ['through-seq', 'through'], ['limit', 'limit'], ['context', 'context']] as const) {
+        if (v[flag] !== undefined) query.set(name, v[flag]);
+      }
+      if (v['case-sensitive']) query.set('caseSensitive', 'true');
+      const result = await api<import('@devpanel/contract').LogSearchPage>(`/runs/${run.id}/logs/search?${query}`);
+      if (jsonOutput) print(result);
+      else {
+        print(`运行 ${result.runId} · 检索至 ${result.throughSeq} · ${result.matches.length} 处匹配${result.truncated ? ' · 较早日志已截断' : ''}`);
+        for (const match of result.matches) {
+          print([...match.before, match.line, ...match.after].map(line => `${line.seq === match.line.seq ? '>' : ' '} ${line.seq} [${line.stream}] ${line.text}`).join('\n'));
+        }
+        if (result.hasMore) print(`还有未检索内容：使用 --after-seq ${result.scannedThroughSeq} --through-seq ${result.throughSeq} 继续`);
+      }
+      return;
+    }
     if (v.digest) {
       if (v.follow) throw usage();
       const query = new URLSearchParams();

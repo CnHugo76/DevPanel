@@ -5,7 +5,7 @@ import Foundation
 ///
 ///   --open-editor new|<projectId>     open the add / edit sheet (waits for the config)
 ///   --editor-set <field>=<value>      fill a field, repeatable, applied in order:
-///                                     name, root, env.<NAME>, s<N>.name, s<N>.id, s<N>.cwd,
+///                                     name, root, instance.group, instance.name, env.<NAME>, s<N>.name, s<N>.id, s<N>.cwd,
 ///                                     s<N>.command, s<N>.shell (on|off), s<N>.stop,
 ///                                     s<N>.env.<NAME>, s<N>.secret.<NAME>  (N from 0; a new N adds a service)
 ///   --editor-expand <what>            open a section: env, s<N> (card), s<N>.advanced; repeatable
@@ -154,6 +154,8 @@ enum EditorSnapshot {
         switch key {
         case "name": editor.draft.name = value
         case "root": editor.draft.root = value
+        case "instance.group": editor.draft.instanceGroup = value
+        case "instance.name": editor.draft.instanceName = value
         default:
             if key.hasPrefix("env.") {
                 var row = EnvRow()

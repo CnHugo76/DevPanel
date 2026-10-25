@@ -51,6 +51,11 @@ export const unreachable = () =>
     },
   });
 let agentName: string | undefined;
+let workContext: { taskId?: string; taskLabel?: string } = {};
+export function setTask(taskId?: string, taskLabel?: string) {
+  if ((taskId !== undefined && !/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/.test(taskId)) || (taskLabel !== undefined && (!taskId || [...taskLabel].length < 1 || [...taskLabel].length > 120 || /[\p{Cc}\p{Zl}\p{Zp}]/u.test(taskLabel)))) throw new ClientError({ error: { code: 'BAD_REQUEST', message: '工作 ID 或名称格式无效' } });
+  workContext = { taskId, taskLabel };
+}
 export function setAgent(value: string | undefined) {
   if (value !== undefined && !/^[a-z0-9][a-z0-9._-]{0,31}$/.test(value)) throw new ClientError({ error: { code: "BAD_REQUEST", message: "agent 名称格式无效" } });
   agentName = value;
@@ -70,6 +75,8 @@ export function raw(
           "X-DevPanel-Client": "cli",
           "Content-Type": "application/json",
           ...(agentName === undefined ? {} : { "X-DevPanel-Agent": agentName }),
+          ...(workContext.taskId === undefined ? {} : { 'X-DevPanel-Task': workContext.taskId }),
+          ...(workContext.taskLabel === undefined ? {} : { 'X-DevPanel-Task-Label': encodeURIComponent(workContext.taskLabel) }),
         },
       },
       (res) => resolve(res),

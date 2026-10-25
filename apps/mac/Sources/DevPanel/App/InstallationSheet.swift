@@ -7,24 +7,27 @@ struct InstallationSheet: View {
     let controller: AppController
     @State private var installCLI = true
     @State private var login = false
-    @State private var directory = Self.defaultDirectory
+    @State private var directory: String
     @State private var plan: CLIInstallation.Plan?
     @State private var busy = false
     @State private var error: String?
     @State private var result: String?
+    @State private var showGuide = false
     private var installer: CLIInstallation { CLIInstallation(runtime: controller.bundledRuntime) }
-    private static var defaultDirectory: String {
-        // 开发驱动即使显式打开引导，也只能默认指向隔离 home。
-        if let home = ProcessInfo.processInfo.environment["DEVPANEL_HOME"] { return URL(fileURLWithPath: home).appendingPathComponent("bin").path }
-        return FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".local/bin").path
+    private var showingGuide: Bool { showGuide || !controller.hasBundledCLI }
+    init(controller: AppController) {
+        self.controller = controller
+        _directory = State(initialValue: controller.installationDirectory)
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("准备好 DevPanel").font(.title2.weight(.semibold))
-            Text("下面两项都可以跳过，稍后从 DevPanel 菜单重新打开。")
+            Text(showingGuide ? "接入第一个项目" : "准备好 DevPanel").font(.title2.weight(.semibold))
+            Text(showingGuide ? "接下来确认终端入口，再登记你的项目。" : "下面两项都可以跳过，稍后从 DevPanel 菜单重新打开。")
                 .foregroundStyle(Theme.text2)
-            if let plan {
+            if showingGuide {
+                ScrollView { OnboardingContent(controller: controller).padding(.vertical, 2) }.frame(maxHeight: 480)
+            } else if let plan {
                 Text("以下路径已存在").font(.headline)
                 ScrollView {
                     VStack(alignment: .leading, spacing: 12) {
@@ -56,19 +59,21 @@ struct InstallationSheet: View {
                     .font(.caption).foregroundStyle(Theme.text2).padding(.leading, 20)
             }
             if let error { Text(error).foregroundStyle(Theme.red).textSelection(.enabled).fixedSize(horizontal: false, vertical: true) }
-            if let result { Text(result).foregroundStyle(Theme.green).fixedSize(horizontal: false, vertical: true) }
+            if let result, !showGuide { Text(result).foregroundStyle(Theme.green).fixedSize(horizontal: false, vertical: true) }
             HStack {
                 if busy { ProgressView().controlSize(.small) }
                 Spacer()
                 if plan != nil { Button("返回") { plan = nil; error = nil } }
-                Button(result == nil ? "稍后" : "完成") { controller.finishInstallation() }
-                if result == nil {
+                Button(result == nil && !showingGuide ? "稍后" : "完成") { controller.finishInstallation() }
+                if result == nil, !showGuide, controller.hasBundledCLI {
                     Button(plan == nil ? "安装所选项" : "确认替换并安装") { prepareOrInstall() }
                         .buttonStyle(.borderedProminent).disabled(!installCLI && !login)
+                } else if result != nil, !showGuide {
+                    Button("下一步：接入项目") { showGuide = true }.buttonStyle(.borderedProminent)
                 }
             }
         }
-        .font(.system(size: 12.5)).padding(24).frame(width: 520)
+        .font(.system(size: 12.5)).padding(24).frame(width: showingGuide ? 600 : 520)
         .background(Theme.card).disabled(busy).interactiveDismissDisabled(busy)
     }
 
@@ -82,13 +87,16 @@ struct InstallationSheet: View {
     private func prepareOrInstall() {
         error = nil
         do {
-            let candidate = try installCLI ? (plan ?? installer.inspect(directory: URL(fileURLWithPath: directory))) : nil
+            let candidate = try installCLI ? (plan ?? installer.inspect(directory: CLIInstallation.directory(from: directory))) : nil
             if let candidate, candidate.needsConfirmation, plan == nil { plan = candidate; return }
             busy = true
             Task { @MainActor in
                 defer { busy = false }
                 do {
-                    if let candidate { try installer.install(candidate, confirmedReplacement: plan != nil) }
+                    if let candidate {
+                        try installer.install(candidate, confirmedReplacement: plan != nil)
+                        controller.rememberInstallationDirectory(candidate.directory)
+                    }
                     if login {
                         let launcher = DaemonLauncher(cliPath: controller.bundledRuntime.appendingPathComponent("bin/devpanel"))
                         _ = try await launcher.installLoginItem()

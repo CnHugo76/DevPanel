@@ -1,6 +1,13 @@
 import Foundation
 import Observation
 
+public struct RetainedLogSearchTarget: Identifiable, Sendable {
+    public var runId: RunID
+    public var query: String
+    public var id: RunID { runId }
+    public init(runId: RunID, query: String = "") { self.runId = runId; self.query = query }
+}
+
 /// Base service tabs plus Git/Maven tools resolved from the service's working directory.
 public enum InspectorTab: String, CaseIterable, Sendable, Identifiable {
     case logs
@@ -60,6 +67,7 @@ public final class InspectorState {
 
     public let logs: LogSession
     public let search: LogSearchModel
+    public var retainedSearch: RetainedLogSearchTarget?
 
     @ObservationIgnored var runLoads: Set<ServiceRef> = []
     @ObservationIgnored var detailLoads: Set<RunID> = []

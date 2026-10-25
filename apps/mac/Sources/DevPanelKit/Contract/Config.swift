@@ -265,6 +265,7 @@ public struct MavenProjectConfig: Codable, Hashable, Sendable, Identifiable {
 }
 
 public struct ProjectConfig: Codable, Hashable, Sendable {
+    public var instance: ProjectInstance?
     public var schemaVersion: Int
     public var name: String
     public var root: String
@@ -279,7 +280,8 @@ public struct ProjectConfig: Codable, Hashable, Sendable {
 
     public init(
         schemaVersion: Int = 1, name: String, root: String, env: EnvMap? = nil,
-        services: [ServiceConfig], params: [ParamConfig]? = nil, actions: [ActionConfig]? = nil, maven: MavenConfig? = nil
+        services: [ServiceConfig], params: [ParamConfig]? = nil, actions: [ActionConfig]? = nil, maven: MavenConfig? = nil,
+        instance: ProjectInstance? = nil
     ) {
         self.schemaVersion = schemaVersion
         self.name = name
@@ -289,6 +291,7 @@ public struct ProjectConfig: Codable, Hashable, Sendable {
         self.params = params
         self.actions = actions
         self.maven = maven
+        self.instance = instance
     }
 }
 

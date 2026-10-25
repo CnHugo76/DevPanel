@@ -5,6 +5,8 @@ import { promisify } from "node:util";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { createServer } from 'node:http';
+import { mkdir } from 'node:fs/promises';
 const exec = promisify(execFile),
   cli = resolve(import.meta.dirname, "../src/main.ts");
 test("unreachable daemon returns machine-readable exit 3 without fallback execution", async () => {
@@ -34,6 +36,21 @@ test("invalid command returns usage exit 2", async () => {
       return true;
     },
   );
+});
+test('work flags override environment; activity uses task as a filter without attribution headers', async t => {
+  const home = await mkdtemp(join(tmpdir(), 'dp-cli-work-')); await mkdir(join(home, 'run'));
+  const requests: { path: string; headers: any }[] = [];
+  const server = createServer((req, res) => { requests.push({ path: req.url!, headers: req.headers }); res.end('[]'); });
+  await new Promise<void>(done => server.listen(join(home, 'run/devpanel.sock'), done));
+  t.after(async () => { await new Promise<void>(done => server.close(() => done())); await rm(home, { recursive: true, force: true }); });
+  const env = { ...process.env, DEVPANEL_HOME: home, DEVPANEL_PORT: '0', DEVPANEL_TASK: 'env-task', DEVPANEL_TASK_LABEL: '环境工作' };
+  await exec(process.execPath, [cli, 'status', '--task', 'flag-task', '--task-label', '命令工作', '--json'], { env });
+  assert.equal(requests[0]!.headers['x-devpanel-task'], 'flag-task');
+  assert.equal(decodeURIComponent(requests[0]!.headers['x-devpanel-task-label']), '命令工作');
+  await exec(process.execPath, [cli, 'activity', 'p', '--task', 'filter-task', '--json'], { env });
+  assert.equal(requests[1]!.path, '/api/v1/projects/p/activity?task=filter-task');
+  assert.equal(requests[1]!.headers['x-devpanel-task'], undefined);
+  await assert.rejects(exec(process.execPath, [cli, 'status', '--task-label', 'name', '--json'], { env: { ...env, DEVPANEL_TASK: '' } }), (e: any) => e.code === 2);
 });
 
 test("daemon start reports socket byte limit before creating startup files", async (t) => {

@@ -28,11 +28,13 @@ final class EditorPresenter {
     enum Sheet: Identifiable {
         case editor(ProjectEditor, EditorViewState)
         case remove(ProjectID)
+        case portable(PortableConfigSession)
 
         var id: String {
             switch self {
             case .editor(let e, _): "editor-" + (e.mode.projectId ?? "new")
             case .remove(let id): "remove-" + id
+            case .portable: "portable"
             }
         }
     }
@@ -79,6 +81,21 @@ final class EditorPresenter {
     func remove(_ id: ProjectID) {
         guard sheet == nil else { return }
         sheet = .remove(id)
+    }
+
+    func portable(_ mode: PortableConfigSession.Mode) {
+        guard sheet == nil else { return }
+        let model = model
+        let environment = PortableConfigSession.Environment(
+            projects: { @MainActor in
+                guard model.isConnected, let client = model.client else { throw ApiError.unreachable("管理服务未连接") }
+                return try await client.projects()
+            },
+            project: { try await model.fetchProject($0) },
+            validate: { try await model.validateConfig($0) },
+            register: { try await model.registerProject($0) },
+            update: { try await model.updateProject($0, ifRevision: $1, config: $2) })
+        sheet = .portable(PortableConfigSession(mode: mode, environment: environment))
     }
 
     func close() { sheet = nil }
@@ -184,6 +201,9 @@ struct EditorHost: ViewModifier {
         case .remove(let id):
             RemoveProjectSheet(presenter: presenter, model: presenter.model, projectId: id)
                 .frame(width: 460)
+        case .portable(let session):
+            PortableConfigSheet(session: session, presenter: presenter)
+                .frame(width: 740, height: min(maxHeight, 720))
         }
     }
 

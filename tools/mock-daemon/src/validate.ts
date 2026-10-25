@@ -243,6 +243,8 @@ export function validateConfig(input: unknown, opts: ValidateOptions = {}): Vali
   if (input.schemaVersion !== 1) {
     issues.push({ path: 'schemaVersion', severity: 'error', code: 'CONFIG_INVALID', message: 'schemaVersion 必须为 1' });
   }
+  const instance = input.instance;
+  if (instance !== undefined && (!isObj(instance) || !['group', 'name'].every(key => typeof instance[key] === 'string' && instance[key].trim().length > 0 && [...instance[key]].length >= 1 && [...instance[key]].length <= 80 && !/[\p{Cc}\p{Zl}\p{Zp}]/u.test(instance[key])))) issues.push({ path: 'instance', severity: 'error', code: 'CONFIG_INVALID', message: '实例分组和名称须为 1–80 字符单行文本' });
   if (typeof input.name !== 'string' || !input.name.trim()) {
     issues.push({ path: 'name', severity: 'error', code: 'CONFIG_INVALID', message: '项目名称不能为空' });
   }

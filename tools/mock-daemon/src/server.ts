@@ -1,5 +1,6 @@
-import { requestActor, validateAgentHeader } from './activity.ts';
+import { requestActor } from './activity.ts';
 import { sampleDigest } from "./digest.ts";
+import { searchLogs } from './log-search.ts';
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
@@ -163,7 +164,7 @@ export function createMockServer(opts: ServerOptions) {
     if (running && !body?.stopServices) {
       throw new HttpError(409, 'PROJECT_RUNNING', '有服务正在运行；如需一并停止请传 stopServices=true');
     }
-    const actor = requestActor(client ?? 'cli', req.headers['x-devpanel-agent']);
+    const actor = requestActor(client ?? 'cli', req.headers['x-devpanel-agent'], req.headers['x-devpanel-task'], req.headers['x-devpanel-task-label']);
     if (!body || typeof body.stopServices !== 'boolean') throw badRequest('stopServices 必须为布尔值');
     const ops = [];
     if (body.stopServices) {
@@ -181,35 +182,41 @@ export function createMockServer(opts: ServerOptions) {
   });
   route('GET', '/api/v1/projects', ({ res }) => sendJson(res, 200, engine.projects.map((p) => engine.view(p))));
   route('POST', '/api/v1/projects', async ({ req, res, client }) => {
-    const r = engine.register(await readBody(req), requestActor(client ?? 'cli', req.headers['x-devpanel-agent']));
+    const r = engine.register(await readBody(req), requestActor(client ?? 'cli', req.headers['x-devpanel-agent'], req.headers['x-devpanel-task'], req.headers['x-devpanel-task-label']));
     sendJson(res, r.status, r.body);
   });
   route('GET', '/api/v1/projects/:id', ({ res }, [id]) => sendJson(res, 200, engine.maskedProject(engine.getProj(id!))));
   route('PUT', '/api/v1/projects/:id', async ({ req, res, client }, [id]) =>
-    sendJson(res, 200, engine.update(id!, await readBody(req), requestActor(client ?? 'cli', req.headers['x-devpanel-agent']))),
+    sendJson(res, 200, engine.update(id!, await readBody(req), requestActor(client ?? 'cli', req.headers['x-devpanel-agent'], req.headers['x-devpanel-task'], req.headers['x-devpanel-task-label']))),
   );
   route('GET', '/api/v1/projects/:id/policy', ({ res }, [id]) => sendJson(res, 200, engine.getPolicy(id!)));
   route('PUT', '/api/v1/projects/:id/policy', async ({ req, res, client }, [id]) => {
-    const actor = requestActor(client ?? 'cli', req.headers['x-devpanel-agent']); engine.policies.ui(actor);
+    const actor = requestActor(client ?? 'cli', req.headers['x-devpanel-agent'], req.headers['x-devpanel-task'], req.headers['x-devpanel-task-label']); engine.policies.ui(actor);
     sendJson(res, 200, engine.setPolicy(id!, await readBody(req), actor));
   });
   route('DELETE', '/api/v1/projects/:id/services/:sid/hold', ({ req, res, client }, [id, sid]) => {
-    engine.releaseHold(id!, sid!, requestActor(client ?? 'cli', req.headers['x-devpanel-agent'])); sendJson(res, 204, null);
+    engine.releaseHold(id!, sid!, requestActor(client ?? 'cli', req.headers['x-devpanel-agent'], req.headers['x-devpanel-task'], req.headers['x-devpanel-task-label'])); sendJson(res, 204, null);
   });
-  route('GET', '/api/v1/projects/:id/activity', ({ res, url }, [id]) => { engine.getProj(id!); sendJson(res, 200, engine.activity.page(id!, url.searchParams.get('before'), Number(url.searchParams.get('limit') ?? 50))); });
+  route('GET', '/api/v1/projects/:id/activity', ({ res, url }, [id]) => {
+    engine.getProj(id!);
+    const task = url.searchParams.get('task');
+    if (task !== null && !/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/.test(task)) throw badRequest('task 格式无效');
+    const safeTask = task === null ? null : engine.actor({ client: 'cli', agent: null, taskId: task }).taskId!;
+    sendJson(res, 200, engine.activity.page(id!, url.searchParams.get('before'), Number(url.searchParams.get('limit') ?? 50), safeTask));
+  });
   // v1.1-A params
   route('POST', '/api/v1/projects/:id/params', async ({ req, res, client }, [id]) =>
-    sendJson(res, 200, engine.addParam(id!, await readBody(req), requestActor(client ?? 'ui', req.headers['x-devpanel-agent']))),
+    sendJson(res, 200, engine.addParam(id!, await readBody(req), requestActor(client ?? 'ui', req.headers['x-devpanel-agent'], req.headers['x-devpanel-task'], req.headers['x-devpanel-task-label']))),
   );
   route('PATCH', '/api/v1/projects/:id/params/:key', async ({ req, res, client }, [id, key]) =>
-    sendJson(res, 200, engine.patchParam(id!, key!, await readBody(req), requestActor(client ?? 'ui', req.headers['x-devpanel-agent']))),
+    sendJson(res, 200, engine.patchParam(id!, key!, await readBody(req), requestActor(client ?? 'ui', req.headers['x-devpanel-agent'], req.headers['x-devpanel-task'], req.headers['x-devpanel-task-label']))),
   );
   route('DELETE', '/api/v1/projects/:id/params/:key', ({ req, res, url, client }, [id, key]) => {
     const rev = url.searchParams.get('ifRevision');
     const inline = url.searchParams.get('inline');
     if (inline !== null && inline !== 'true' && inline !== 'false') throw badRequest('inline 只能是 true 或 false');
     const ifRevision = rev !== null && /^\d+$/.test(rev) ? Number(rev) : undefined;
-    sendJson(res, 200, engine.deleteParam(id!, key!, { ifRevision, inline: inline === 'true' }, requestActor(client ?? 'ui', req.headers['x-devpanel-agent'])));
+    sendJson(res, 200, engine.deleteParam(id!, key!, { ifRevision, inline: inline === 'true' }, requestActor(client ?? 'ui', req.headers['x-devpanel-agent'], req.headers['x-devpanel-task'], req.headers['x-devpanel-task-label'])));
   });
   route('DELETE', '/api/v1/projects/:id', ({ res }, [id]) => {
     engine.remove(id!);
@@ -247,17 +254,17 @@ export function createMockServer(opts: ServerOptions) {
     sendJson(res, 200, engine.mavenModel(id!, reload === '1', url.searchParams.get('mavenProjectId') ?? undefined));
   });
   route('GET', '/api/v1/projects/:id/maven/runs', ({ res, url }, [id]) => sendJson(res, 200, engine.mavenRuns(id!, url.searchParams.get('mavenProjectId') ?? undefined)));
-  route('POST', '/api/v1/projects/:id/maven/runs', async ({ req, res, client }, [id]) => sendJson(res, 202, engine.startMaven(id!, await readBody(req), requestActor(client ?? 'ui', req.headers['x-devpanel-agent']))));
+  route('POST', '/api/v1/projects/:id/maven/runs', async ({ req, res, client }, [id]) => sendJson(res, 202, engine.startMaven(id!, await readBody(req), requestActor(client ?? 'ui', req.headers['x-devpanel-agent'], req.headers['x-devpanel-task'], req.headers['x-devpanel-task-label']))));
   route('GET', '/api/v1/projects/:id/actions/:aid/runs', ({ res }, [id, aid]) => sendJson(res, 200, engine.actionRuns(id!, aid!)));
   route('POST', '/api/v1/projects/:id/actions/:aid/runs', ({ req, res, client }, [id, aid]) => {
-    const result = engine.startAction(id!, aid!, requestActor(client ?? 'ui', req.headers['x-devpanel-agent']));
+    const result = engine.startAction(id!, aid!, requestActor(client ?? 'ui', req.headers['x-devpanel-agent'], req.headers['x-devpanel-task'], req.headers['x-devpanel-task-label']));
     sendJson(res, result.created ? 202 : 200, result);
   });
   route('GET', '/api/v1/task-runs/:rid', ({ res }, [rid]) => sendJson(res, 200, engine.taskDetail(rid!)));
   route('POST', '/api/v1/task-runs/:rid/cancel', async ({ req, res }, [rid]) => {
     const body = await readBody(req);
     if (body !== undefined && (typeof body !== 'object' || body === null || Array.isArray(body) || ('force' in body && typeof body.force !== 'boolean'))) throw badRequest('force 必须是布尔值');
-    const result = engine.cancelTask(rid!, (body as { force?: boolean } | undefined)?.force ?? false, false, requestActor(typeof req.headers['x-devpanel-client'] === 'string' ? req.headers['x-devpanel-client'] : undefined, req.headers['x-devpanel-agent']));
+    const result = engine.cancelTask(rid!, (body as { force?: boolean } | undefined)?.force ?? false, false, requestActor(typeof req.headers['x-devpanel-client'] === 'string' ? req.headers['x-devpanel-client'] : undefined, req.headers['x-devpanel-agent'], req.headers['x-devpanel-task'], req.headers['x-devpanel-task-label']));
     sendJson(res, result.endedAt ? 200 : 202, result);
   });
   route('GET', '/api/v1/projects/:id/services/:sid/runs', ({ res }, [id, sid]) => sendJson(res, 200, engine.runsOf(id!, sid!)));
@@ -287,6 +294,11 @@ export function createMockServer(opts: ServerOptions) {
     const limit = num(q.get('limit'));
     if (limit !== undefined) query.limit = limit;
     sendJson(res, 200, engine.logPage(rid!, query));
+  });
+  route('GET', '/api/v1/runs/:rid/logs/search', ({ res, url }, [rid]) => {
+    const run = engine.findLogRun(rid!);
+    try { sendJson(res, 200, searchLogs(rid!, run.lines, run.truncated, url.searchParams, run.nextSeq - 1)); }
+    catch (error) { if (error instanceof RangeError) throw badRequest(error.message); throw error; }
   });
   route('GET', '/api/v1/runs/:rid/logs/stream', ({ req, res, url }, [rid]) => {
     engine.findLogRun(rid!); // 404 before switching to SSE
@@ -320,7 +332,7 @@ export function createMockServer(opts: ServerOptions) {
     res.on('close', cleanup);
   });
   route('POST', '/api/v1/operations', async ({ req, res, client }) => {
-    sendJson(res, 202, engine.submit(await readBody(req), requestActor(client ?? 'ui', req.headers['x-devpanel-agent'])));
+    sendJson(res, 202, engine.submit(await readBody(req), requestActor(client ?? 'ui', req.headers['x-devpanel-agent'], req.headers['x-devpanel-task'], req.headers['x-devpanel-task-label'])));
   });
   route('GET', '/api/v1/operations/:oid', ({ res }, [oid]) => sendJson(res, 200, engine.getOperation(oid!)));
   route('GET', '/api/v1/operations/:oid/wait', async ({ res, url }, [oid]) => {
@@ -417,7 +429,7 @@ export function createMockServer(opts: ServerOptions) {
         return;
       }
       if (!authed(req)) throw new HttpError(401, 'UNAUTHORIZED', '缺少或错误的认证信息');
-      validateAgentHeader(typeof req.headers["x-devpanel-client"] === "string" ? req.headers["x-devpanel-client"] : undefined, req.headers["x-devpanel-agent"]);
+      requestActor(typeof req.headers["x-devpanel-client"] === "string" ? req.headers["x-devpanel-client"] : undefined, req.headers["x-devpanel-agent"], req.headers["x-devpanel-task"], req.headers["x-devpanel-task-label"]);
       const method = req.method ?? 'GET';
       if (method !== 'GET' && method !== 'HEAD') {
         const c = req.headers['x-devpanel-client'];

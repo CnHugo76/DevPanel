@@ -16,3 +16,4 @@ dist/
 *.p12
 *.pfx
 *.log
+devpanel.local.inputs.json

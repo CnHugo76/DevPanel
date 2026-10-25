@@ -15,6 +15,9 @@ final class AppController {
     var shutdownBusy = false
     var shutdownError: String?
     var showInstallation = false
+    var showOnboarding = false
+    var openInstallationAfterGuide = false
+    var installationDirectory: String
     var overviewFocus = 0
     var logFocus = 0
     var revealProject: ProjectID?
@@ -29,6 +32,12 @@ final class AppController {
     init(model: AppModel, editor: EditorPresenter, prefs: ViewPreferences, defaults: UserDefaults? = .standard) {
         self.model = model; self.editor = editor; self.prefs = prefs; self.defaults = defaults
         closeHintSeen = defaults?.bool(forKey: "window.closeHintSeen") ?? false
+        if let home = ProcessInfo.processInfo.environment["DEVPANEL_HOME"] {
+            installationDirectory = URL(fileURLWithPath: home).appendingPathComponent("bin").path
+        } else {
+            installationDirectory = defaults?.string(forKey: "installation.directory")
+                ?? FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".local/bin").path
+        }
     }
     func connectNotifications() {
         guard notifications == nil else { return }
@@ -37,6 +46,20 @@ final class AppController {
     }
     var bundledRuntime: URL { Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/runtime") }
     var hasBundledCLI: Bool { FileManager.default.isExecutableFile(atPath: bundledRuntime.appendingPathComponent("bin/devpanel").path) }
+    var onboardingGuide: OnboardingGuide {
+        OnboardingGuide(runtime: hasBundledCLI ? bundledRuntime : nil,
+                        directory: URL(fileURLWithPath: installationDirectory),
+                        isolatedHome: ProcessInfo.processInfo.environment["DEVPANEL_HOME"])
+    }
+    func rememberInstallationDirectory(_ directory: URL) {
+        installationDirectory = directory.path
+        if ProcessInfo.processInfo.environment["DEVPANEL_HOME"] == nil {
+            defaults?.set(directory.path, forKey: "installation.directory")
+        }
+    }
+    func guideDismissed() {
+        if openInstallationAfterGuide { openInstallationAfterGuide = false; showInstallation = true }
+    }
     func offerInstallation() {
         guard Foundation.ProcessInfo.processInfo.environment["DEVPANEL_HOME"] == nil,
               hasBundledCLI, defaults?.bool(forKey: "installation.seen") != true else { return }
@@ -147,15 +170,20 @@ struct AppBehaviorHost: ViewModifier {
     func body(content: Content) -> some View {
         content.environment(controller)
             .modifier(PolicySnapshotHost(model: controller.model))
+            .modifier(RetainedLogSearchHost(model: controller.model))
             .environment(\.timeVisible, timeVisible)
             .background(TimeVisibility(model: controller.model, visible: $timeVisible))
             .onChange(of: controller.model.isConnected) { _, _ in controller.gitRefresh.reconcile() }
             .forceStopConfirmation(model: controller.model, target: $controller.forceStop)
             .sheet(isPresented: inline ? .constant(false) : $controller.showInstallation) { InstallationSheet(controller: controller) }
+            .sheet(isPresented: inline ? .constant(false) : $controller.showOnboarding, onDismiss: controller.guideDismissed) { OnboardingSheet(controller: controller) }
             .sheet(item: inline ? .constant(nil) : $controller.dialog) { dialog in AppDialogView(controller: controller, dialog: dialog).interactiveDismissDisabled(controller.shutdownBusy) }
             .overlay {
                 if inline, controller.showInstallation {
                     ZStack { Color.black.opacity(0.28); InstallationSheet(controller: controller).clipShape(RoundedRectangle(cornerRadius: 12)) }
+                }
+                if inline, controller.showOnboarding {
+                    ZStack { Color.black.opacity(0.28); OnboardingSheet(controller: controller).clipShape(RoundedRectangle(cornerRadius: 12)) }
                 }
                 if inline, let dialog = controller.dialog {
                     ZStack { Color.black.opacity(0.28); AppDialogView(controller: controller, dialog: dialog).clipShape(RoundedRectangle(cornerRadius: 12)) }

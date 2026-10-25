@@ -99,7 +99,7 @@ extension RunSummary {
 
     public var tone: DisplayTone {
         switch state {
-        case .running: .green
+        case .running: ready?.processTone ?? .blue
         case .starting: .blue
         case .stopping: .amber
         case .failed: .red

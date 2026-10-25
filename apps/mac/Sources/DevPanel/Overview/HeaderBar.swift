@@ -52,6 +52,17 @@ struct HeaderBar: View {
             .disabled(!model.isConnected)
             .help("添加项目（⌘N）")
             Menu {
+                let groups = Array(Set(model.projects.compactMap { $0.instance?.group })).sorted()
+                if !groups.isEmpty {
+                    Menu("筛选实例组") {
+                        Button("显示全部") { query = "" }
+                        Divider()
+                        ForEach(groups, id: \.self) { group in
+                            Button(group) { query = "group:" + group }
+                        }
+                    }
+                    Divider()
+                }
                 Button("停止所有服务并退出管理服务…") { app?.requestShutdown() }.disabled(!model.isConnected || app?.shutdownBusy == true)
                 Divider()
                 Button("关于 DevPanel") {
@@ -87,7 +98,7 @@ struct SearchField: View {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 11))
                 .foregroundStyle(Theme.text3)
-            TextField("搜索项目或服务", text: $text)
+            TextField("搜索项目、服务或实例", text: $text)
                 .textFieldStyle(.plain)
                 .font(.system(size: 12.5))
                 .focused($focused)
@@ -109,6 +120,7 @@ struct SearchField: View {
         .overlay(
             RoundedRectangle(cornerRadius: 7, style: .continuous)
                 .strokeBorder(focused ? Theme.accent : Theme.line))
+        .help("搜索项目、服务、实例、目录或项目 ID；group:组名 和 instance:实例名 可精确筛选")
     }
 }
 

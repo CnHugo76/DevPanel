@@ -3,6 +3,8 @@
 ## 使用与贡献
 
 - 项目首页：[English](../README.md) / [简体中文](../README.zh-CN.md)，包含功能、安装、CLI、数据与卸载。
+- 快速开始：[English](quickstart.md) / [简体中文](quickstart.zh-CN.md)，使用随包独立示例。
+- 配置分享、工作归属与独立实例：[English](config-sharing.md) / [简体中文](config-sharing.zh-CN.md)。
 - 功能清单与 v0.4 优化建议：[English](features.md) / [简体中文](features.zh-CN.md)，区分原生界面、CLI、功能边界与发布前待办。
 - [独立演示项目](../examples/demo/README.md)：使用临时数据体验注册、启动、就绪与日志。
 - [Agent skill](../skills/devpanel/SKILL.md)：给 Codex / Claude Code 等 Agent 的操作说明。
@@ -18,6 +20,7 @@
 
 ## 版本与实现记录
 
+- [四轮优化与验收](plan-four-rounds.md)：本轮工作区中的安装、排障、配置复用和 AI 并行工作改进，不代表已公开发行。
 - [v0.4.1](release-v0.4.1.md)、[v0.4 打包与迁移](release-v0.4.md)。
 - [v0.4 验收](plan-v0.4.md)、[v0.3 验收](plan-v0.3.md)、[v0.2 验收](plan-v0.2.md)。
 - `prompts/` 保存历史开发任务；其中的环境版本、提交号和阶段指令是当时记录，不代替贡献指南。

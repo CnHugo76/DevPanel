@@ -58,6 +58,7 @@ struct ServiceRow: View {
 
     private var ref: ServiceRef { ServiceRef(project.id, service.id) }
     private var selected: Bool { model.selection == ref }
+    private var narrowStatus: Bool { (layout.width(.status) ?? 112) < 112 }
 
     var body: some View {
         let sample = Metrics.currentSample(service, model.serviceStats(project.id, service.id))
@@ -65,8 +66,8 @@ struct ServiceRow: View {
         HStack(spacing: 0) {
             ForEach(layout.columns, id: \.self) { column in
                 cell(column, sample: sample, active: active)
-                    .padding(.leading, 10)
-                    .padding(.trailing, column == .actions ? 4 : 10)
+                    .padding(.leading, column == .status && narrowStatus ? 4 : 10)
+                    .padding(.trailing, column == .actions || (column == .status && narrowStatus) ? 4 : 10)
                     .frame(width: CGFloat(layout.width(column) ?? 0), alignment: column.trailing ? .trailing : .leading)
                     .clipped()
             }
@@ -98,7 +99,17 @@ struct ServiceRow: View {
         case .command: commandCell
         case .status:
             VStack(alignment: .leading, spacing: 3) {
-                TimeCell(model: model, rules: service.statusRefresh) { now in StatusPill(label: service.status(now: now)) }
+                TimeCell(model: model, rules: service.statusRefresh) { now in
+                    let full = service.status(now: now)
+                    let parts = full.text.components(separatedBy: " · ")
+                    VStack(alignment: .leading, spacing: 2) {
+                        StatusPill(label: StatusLabel(glyph: full.glyph, text: narrowStatus ? (parts.first ?? full.text) : full.text, tone: full.tone), compact: narrowStatus)
+                        if narrowStatus, parts.count > 1 {
+                            Text(parts.dropFirst().joined(separator: " · ")).font(.system(size: 10.5)).foregroundStyle(Theme.text3)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }.help(full.text)
+                }
                 ReadyBadge(ready: service.currentRun?.ready)
             }
         case .ports: portsCell(PortCell.make(sample?.listening, active: active))

@@ -16,6 +16,9 @@ export type ClientKind = 'ui' | 'cli';
  * (otherwise 400 BAD_REQUEST). Ignored on ui requests. A label, not authentication.
  */
 export const AGENT_HEADER = 'X-DevPanel-Agent' as const;
+/** v1.5-C: self-reported work context, never authentication. Label is URI encoded on the wire. */
+export const TASK_HEADER = 'X-DevPanel-Task' as const;
+export const TASK_LABEL_HEADER = 'X-DevPanel-Task-Label' as const;
 
 // ───────────────────────── IDs & primitives ─────────────────────────
 
@@ -142,6 +145,8 @@ export interface MavenProjectConfig extends RepositoryConfig { executable?: 'aut
 export interface ProjectConfig {
   schemaVersion: 1;
   name: string;
+  /** v1.5-C: display grouping only; separate real roots retain independent project/run identities. */
+  instance?: { group: string; name: string };
   /** Absolute path. The daemon stores the realpath-normalized form. */
   root: string;
   /** Applies to all services; a service's own env wins on conflict. */
@@ -194,6 +199,9 @@ export type ExitReason =
 export interface Actor {
   client: ClientKind | 'daemon';
   agent: string | null;
+  /** v1.5-C: optional on CLI actors; label requires taskId. Old records may omit both. */
+  taskId?: string;
+  taskLabel?: string;
 }
 
 export interface ExitInfo {
@@ -316,6 +324,8 @@ export interface MavenProjectView extends MavenProjectConfig { currentRun: TaskR
 export interface ProjectView {
   id: ProjectId;
   name: string;
+  /** v1.5-C. Display grouping only; root/projectId remain the instance identity. */
+  instance?: { group: string; name: string };
   root: string;
   revision: number;
   aggregate: ProjectAggregate;
@@ -472,6 +482,37 @@ export interface LogPage {
   hasMoreBefore: boolean;
   hasMoreAfter: boolean;
   runEnded: boolean;
+}
+
+/** v1.5-A: bounded literal search over retained logs, including lines outside the UI buffer. */
+export interface LogSearchMatch {
+  line: LogLine;
+  before: LogLine[];
+  after: LogLine[];
+}
+export interface LogSearchPage {
+  runId: RunId;
+  throughSeq: number;
+  scannedThroughSeq: number;
+  hasMore: boolean;
+  truncated: boolean;
+  matches: LogSearchMatch[];
+}
+
+/** v1.5-B: shareable file, applied explicitly through existing project routes. */
+export interface PortableConfigInput {
+  id: string;
+  /** JSON Pointer into project; only documented scalar environment/param/command/cwd fields. */
+  target: string;
+  kind: 'secret' | 'path';
+  label: string;
+  valueType?: ParamType;
+}
+export interface PortableProjectConfig {
+  format: 'devpanel.project';
+  version: 1;
+  project: Omit<ProjectConfig, 'root'>;
+  inputs: PortableConfigInput[];
 }
 
 // ───────────────────────── Daemon ─────────────────────────
