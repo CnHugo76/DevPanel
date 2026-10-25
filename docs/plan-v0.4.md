@@ -8,7 +8,7 @@
 - GitHub About Topics 已保存并读回：`macos`、`swiftui`、`developer-tools`、`cli`、`process-manager`、`local-development`、`ai-agents`、`log-viewer`、`git`、`maven`。
 - `docs/images/devpanel-demo.gif`：25,000 ms、125 帧、1180×976、335,140 bytes。由真实隔离 daemon 和两个演示服务的原生 snapshot 组成，叠加说明字幕和 CLI 指令；展示登记后 idle、Codex CLI 启动、就绪和实际端口、日志搜索、运行来源、原生 UI 停止与日志留存。字幕为讲解，非终端录屏；源画面不使用 mock。演示用临时目录，结束后正常停止并按 PID + 启动时间复核 0 残留；中间即时退出审计仍见的两个进程随后均退出，记录在 `.devpanel-dev/public-release/demo/evidence.json`。没有向日常服务发信号。
 - 源码 `7f8026b` 的 [GitHub CI](https://github.com/CnHugo76/DevPanel/actions/runs/40198272182) 已 completed/success，覆盖 TypeScript、workspace 构建、Swift 测试与原生 release 构建。
-- 两份 README 已准备新增下载入口、GIF 与显式 `VERSION=0.4.2` 的源码打包指令。GitHub 发行草稿已保存，含双语安装说明、验证范围和三个附件的说明；附件上传因 Chrome 扩展尚未允许访问文件网址受阻，已请用户开启后继续。正式发布与 README 推送结果待补记。
+- 两份 README 已新增 Releases 入口、GIF 与显式 `VERSION=0.4.2` 的源码打包指令，下载段落如实标注待发布。GitHub 发行草稿已保存，含双语安装说明、验证范围和三个附件的说明；附件上传因 Chrome 扩展尚未允许访问文件网址受阻，已请用户开启后继续。正式发布结果待补记。
 
 后续用户授权的四轮优化（2026-10-25）见 [执行与验收记录](plan-four-rounds.md)。
 

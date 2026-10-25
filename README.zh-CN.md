@@ -15,12 +15,16 @@ AI 通过 CLI 注册、启动与查询，人通过原生界面查看、调整和
 
 [功能清单与 v0.4 优化建议](docs/features.zh-CN.md) · [试用演示](examples/demo/README.md) · [文档导航](docs/README.md) · [参与贡献](CONTRIBUTING.md) · [第三方声明](THIRD_PARTY_NOTICES.md)
 
-![DevPanel 就绪状态与日志（mock 演示数据）](docs/images/devpanel-v04.png)
+[Releases](https://github.com/CnHugo76/DevPanel/releases) · macOS 14+ · [快速开始](docs/quickstart.zh-CN.md)
+
+![25 秒 DevPanel 演示：CLI 启动、就绪与端口、日志搜索、运行记录、原生界面停止服务](docs/images/devpanel-demo.gif)
+
+25 秒展示隔离环境中的两个真实服务：CLI 启动，原生面板查看状态并接管。[自己试用演示项目](examples/demo/README.md)。
 
 ## 系统要求与下载
 
 - macOS 14 或更新版本；发布包按 Apple Silicon / Intel 本机架构分别构建。
-- 发布后，在本仓库 GitHub 页面右侧的 **Releases** 下载对应架构的 `DevPanel-<version>-macos-<arch>.zip`（`arm64` 为 Apple Silicon，`x64` 为 Intel），可用随附的 `.sha256` 核验。包内版本仍为 0.4.1，公开源码另含后续改进，尚未创建公开版本标签或 GitHub Release；现在可从源码构建。
+- 可下载包见 [Releases](https://github.com/CnHugo76/DevPanel/releases)。v0.4.2 Apple Silicon 安装包已准备好，待上传并公开发布；下载后用随附的 `.sha256` 核验。Intel 用户可在 Intel Mac 上从源码构建。
 - App 内含 Node 运行时、管理服务、CLI 与采样辅助进程，使用发布包不需要另装 Node 或保留源码仓库。运行你自己的项目仍需相应的 JDK、包管理器等工具。
 
 解压后将 `DevPanel.app` 放入准备长期保留的位置。首次打开可能被 macOS 拦截：先尝试打开，再到 **系统设置 → 隐私与安全性 → 仍要打开**，按系统提示确认。发布包采用本机 ad-hoc 签名，未做开发者签名或公证。
@@ -73,7 +77,7 @@ apps/mac/scripts/bundle.sh
 `apps/mac/build/DevPanel.app` 是界面开发包。独立运行所需的完整分发包另用：
 
 ```sh
-pnpm release:local
+VERSION=0.4.2 pnpm release:local
 node scripts/release-smoke.mjs
 ```
 

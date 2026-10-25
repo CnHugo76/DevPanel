@@ -17,12 +17,16 @@ AI agents register, start, and query projects through the CLI. You inspect, adju
 
 The detailed development guides, demo instructions, and agent skill are currently written in Simplified Chinese. Issues and pull requests are welcome in English or Chinese.
 
-![DevPanel readiness and logs using mock demo data](docs/images/devpanel-v04.png)
+[Releases](https://github.com/CnHugo76/DevPanel/releases) · macOS 14+ · [Quick start](docs/quickstart.md)
+
+![25-second DevPanel demo: CLI startup, readiness and ports, log search, run history, and stopping from the native app](docs/images/devpanel-demo.gif)
+
+25 seconds with two real services in an isolated demo environment. The CLI starts them; the native app shows their state and lets you take over. [Try it yourself](examples/demo/README.md).
 
 ## Requirements and downloads
 
 - macOS 14 or later. Distribution packages are built separately on Apple Silicon and Intel Macs.
-- When releases are available, download `DevPanel-<version>-macos-<arch>.zip` from this repository's **Releases** section (`arm64` for Apple Silicon, `x64` for Intel). Verify it with the accompanying `.sha256` file. Package metadata currently reads 0.4.1, and public source includes later improvements; no public version tag or GitHub Release has been published yet. You can build from source now.
+- Check the [Releases page](https://github.com/CnHugo76/DevPanel/releases) for downloadable packages. The v0.4.2 Apple Silicon package is prepared; its upload and publication are pending. Verify ZIP downloads with the accompanying `.sha256` file. Intel users can build from source on an Intel Mac.
 - The standalone app bundles Node.js, the daemon, the CLI, and a process sampling helper. It does not require a separate Node.js installation or a source checkout. Your own projects still need their tools, such as a JDK or package manager.
 
 Extract `DevPanel.app` and place it somewhere you intend to keep it. If macOS blocks the first launch, try opening it once, then use **System Settings → Privacy & Security → Open Anyway** and follow the system prompts. Distribution packages use ad-hoc signing; they are not Developer ID signed or notarized.
@@ -75,7 +79,7 @@ apps/mac/scripts/bundle.sh
 `apps/mac/build/DevPanel.app` is an app bundle for UI development. To build the complete standalone distribution instead, run the following in the same terminal:
 
 ```sh
-pnpm release:local
+VERSION=0.4.2 pnpm release:local
 node scripts/release-smoke.mjs
 ```
 
