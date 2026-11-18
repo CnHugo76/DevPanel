@@ -85,7 +85,7 @@ struct ProjectOrganizationTests {
         let organization = ProjectOrganization(defaults: nil)
         let projects = [project("a"), project("b")]
         let group = try #require(organization.createGroup("  Demo  ", projects: projects))
-        #expect(organization.createGroup("regtrack", projects: projects) == nil)
+        #expect(organization.createGroup("demo", projects: projects) == nil)
         #expect(organization.createGroup(" \n ", projects: projects) == nil)
         #expect(organization.createGroup("bad\nname", projects: projects) == nil)
         organization.moveProject("a", to: "missing-group", projects: projects)
