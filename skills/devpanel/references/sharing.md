@@ -6,7 +6,7 @@
 
 1. 读取目标项目，运行 `devpanel project export <id> --file <新文件> --json`。导出默认拒绝覆盖。仓库文件推荐 `devpanel.json`。
 2. 审阅文件：secret 的 value 已移除；root 内 cwd 已相对化；本机绝对命令、环境、参数值变为 inputs。未标记或变形的秘密需人工识别。路径枚举 choices 无法通过标量输入迁移，先改为 string 参数。
-3. 本机输入另存 `devpanel.local.inputs.json` 并加入 `.gitignore`。它是 input ID 到标量值的对象，不复制到共享文档、日志或回复中。路径替换作用于整个标量，命令参数中的路径需填写完整参数。
+3. 本机输入另存 `devpanel.local.inputs.json` 并加入 `.gitignore`。它是 input ID 到值的对象：通常填写字符串、数字或布尔值；仅声明为 `valueType: "multiselect"` 且目标为操作参数默认值的输入允许字符串数组，项目选项等其他目标仍只接受标量（见 [操作专属参数](config.md#操作专属参数)）。本机输入不复制到共享文档、日志或回复中。路径替换作用于整个标量，命令参数中的路径需填写完整参数。
 4. `devpanel project import --config devpanel.json --root <本机目录> [--inputs devpanel.local.inputs.json] --json` 只预览。缺输入时退出 2 并列 requiredInputs/missingInputs；齐全后校验，检查 changes、validation 和 keptUserValues。
 5. 用户已授权保存配置时，加 `--apply`；更新已有根目录还须传预览的 `--if-revision`。冲突后重新读取并审阅，不循环强行覆盖。导入完成到此为止，只有另外获得启动授权才启动。
 

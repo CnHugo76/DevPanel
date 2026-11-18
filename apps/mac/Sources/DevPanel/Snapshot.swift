@@ -20,6 +20,7 @@ import SwiftUI
 ///                                      is being simulated), default 0
 ///   --timeout <sec>                    max wait for connect / stats / operations, default 15
 ///   --query <text>                     prefill the search field
+///   --action-form                      open the selected action's parameter form; never execute
 ///   --tab, --log-run, --log-search, --log-scroll-up, --log-bench
 ///                                      inspector options, see `InspectorSnapshot`
 ///   --open-editor, --editor-*, --remove-project
@@ -76,7 +77,12 @@ enum Snapshot {
         for i in arguments.indices where arguments[i] == "--collapse" && i + 1 < arguments.count {
             prefs.setCollapsed(arguments[i + 1], true)
         }
+        for i in arguments.indices where arguments[i] == "--expand" && i + 1 < arguments.count {
+            prefs.setCollapsed(arguments[i + 1], false)
+        }
         for i in arguments.indices where arguments[i] == "--expand-options" && i + 1 < arguments.count {
+            prefs.setCollapsed(arguments[i + 1], false)
+            prefs.metricProjects.insert(arguments[i + 1])
             prefs.setOptionsExpanded(arguments[i + 1], true)
         }
         model.inspector.foldStacks = !arguments.contains("--log-expand-all")
@@ -114,6 +120,10 @@ enum Snapshot {
         if let id = options.projectId {
             model.selectProject(id, tab: options.projectTab)
             if let action = options.actionId { model.projectInspector.actionChoice[id] = action }
+            if arguments.contains("--action-form"), let action = options.actionId,
+               model.project(id)?.actions.first(where: { $0.id == action })?.params?.isEmpty == false {
+                model.requestQuickAction(id, actionId: action)
+            }
             prefs.setProjectInspectorWidth(580)
             await MavenSnapshot.apply(arguments, model: model, projectId: id)
             if options.projectTab == .git {
@@ -224,8 +234,7 @@ enum Snapshot {
             contentRect: NSRect(origin: .zero, size: options.size),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered, defer: false)
-        window.titlebarAppearsTransparent = true
-        window.titleVisibility = .hidden
+        MainWindowChrome.apply(to: window)
         window.isReleasedWhenClosed = false
         if let dark = options.dark { window.appearance = NSAppearance(named: dark ? .darkAqua : .aqua) }
         let root = SnapshotRoot(model: model, prefs: prefs, query: options.query, editor: presenter, options: optionPresenter)

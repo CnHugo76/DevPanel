@@ -256,8 +256,8 @@ export function createMockServer(opts: ServerOptions) {
   route('GET', '/api/v1/projects/:id/maven/runs', ({ res, url }, [id]) => sendJson(res, 200, engine.mavenRuns(id!, url.searchParams.get('mavenProjectId') ?? undefined)));
   route('POST', '/api/v1/projects/:id/maven/runs', async ({ req, res, client }, [id]) => sendJson(res, 202, engine.startMaven(id!, await readBody(req), requestActor(client ?? 'ui', req.headers['x-devpanel-agent'], req.headers['x-devpanel-task'], req.headers['x-devpanel-task-label']))));
   route('GET', '/api/v1/projects/:id/actions/:aid/runs', ({ res }, [id, aid]) => sendJson(res, 200, engine.actionRuns(id!, aid!)));
-  route('POST', '/api/v1/projects/:id/actions/:aid/runs', ({ req, res, client }, [id, aid]) => {
-    const result = engine.startAction(id!, aid!, requestActor(client ?? 'ui', req.headers['x-devpanel-agent'], req.headers['x-devpanel-task'], req.headers['x-devpanel-task-label']));
+  route('POST', '/api/v1/projects/:id/actions/:aid/runs', async ({ req, res, client }, [id, aid]) => {
+    const result = engine.startAction(id!, aid!, requestActor(client ?? 'ui', req.headers['x-devpanel-agent'], req.headers['x-devpanel-task'], req.headers['x-devpanel-task-label']), await readBody(req));
     sendJson(res, result.created ? 202 : 200, result);
   });
   route('GET', '/api/v1/task-runs/:rid', ({ res }, [rid]) => sendJson(res, 200, engine.taskDetail(rid!)));

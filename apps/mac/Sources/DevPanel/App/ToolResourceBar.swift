@@ -53,7 +53,7 @@ struct ToolResourceBar: View {
     }
 }
 
-private struct ToolResourceDetails: View {
+struct ToolResourceDetails: View {
     let readout: ToolResourceReadout
 
     var body: some View {

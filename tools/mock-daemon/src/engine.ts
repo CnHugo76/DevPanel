@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { ActionInputError, actionConfigSecrets, actionSensitive, keepActionDefaults, maskAction, resolveActionRun, type ActionValues } from './action-params.ts';
 import { noReady, readySnapshot, logEvidence, portEvidence, type ReadyTracking } from "./ready.ts";
 /**
  * In-memory model of the daemon: projects, services, runs, operations, logs and stats.
@@ -114,6 +115,7 @@ export interface LogSubscriber {
 }
 
 interface RunRec {
+  sensitive?: string[];
   requestedBy?: Actor | null;
   readiness?: ReadyTracking;
   summary: RunSummary;
@@ -200,7 +202,7 @@ export function maskConfig(cfg: ProjectConfig): ProjectConfig {
     if (s.env) m.env = maskEnv(s.env)!;
     return m;
   });
-  if (cfg.actions) out.actions = cfg.actions.map((a) => ({ ...a, command: [...a.command], ...(a.env ? { env: maskEnv(a.env) } : {}) }));
+  if (cfg.actions) out.actions = cfg.actions.map((a) => ({ ...maskAction(a), command: [...a.command], ...(a.env ? { env: maskEnv(a.env) } : {}) }));
   const params = publicParams(cfg);
   if (params) out.params = params;
   return out;
@@ -262,7 +264,7 @@ export class Engine {
   sim: { listenFailRate: number; listenDelayMs: number | null; resourceFailRate: number } = { listenFailRate: 0.03, listenDelayMs: null, resourceFailRate: 0.07 };
   private gitRepos = new Map<string, MockGit>();
   private mavenModels = new Map<string, MavenModel>();
-  private taskRuns = new Map<string, { p: ProjRec; cfg: ActionConfig; r: RunRec; summary: TaskRunSummary; timedOut?: boolean }>();
+  private taskRuns = new Map<string, { p: ProjRec; cfg: ActionConfig; r: RunRec; summary: TaskRunSummary; timedOut?: boolean; parameters?: ReturnType<typeof resolveActionRun> }>();
   taskSimulation = { durationMs: 3500, cancelDelayMs: 200, hangOnCancel: false };
   private readyTimer: NodeJS.Timeout | null = null;
   private statsTimer: NodeJS.Timeout | null = null;
@@ -317,6 +319,7 @@ export class Engine {
       processCount: 1, note: 'mock 模拟辅助进程',
     };
     return {
+      capabilities: ['action-params-v1'],
       version: this.version,
       apiVersion: 1,
       pid: process.pid,
@@ -394,7 +397,7 @@ export class Engine {
       services,
       actions: (p.project.config.actions ?? []).map((a) => {
         const runs = this.actionRuns(p.project.id, a.id);
-        return { id: a.id, name: a.name, description: a.description ?? null, confirmWhenServicesRunning: a.confirmWhenServicesRunning ?? false, currentRun: runs.find((r) => r.endedAt === null) ?? null, lastRun: runs.find(r => r.endedAt !== null) ?? null };
+        return { id: a.id, name: a.name, description: a.description ?? null, params: maskAction(a).params ?? [], runLabel: a.runLabel, confirmWhenServicesRunning: a.confirmWhenServicesRunning ?? false, currentRun: runs.find((r) => r.endedAt === null) ?? null, lastRun: runs.find(r => r.endedAt !== null) ?? null };
       }),
       repositories: p.project.config.repositories,
       mavenProjects: p.project.config.mavenProjects?.map(t => {
@@ -409,12 +412,13 @@ export class Engine {
     return { ...p.project, config: maskConfig(p.project.config) };
   }
 
-  actor(actor: Actor, extra?: ProjectConfig): Actor {
+  actor(actor: Actor, extra?: ProjectConfig, additional: string[] = []): Actor {
     if (actor.client !== 'cli') return { client: actor.client, agent: actor.agent };
     const secrets = [...this.projects.map(p => p.project.config), ...(extra ? [extra] : [])].flatMap(c => [
+      ...actionConfigSecrets(c),
       ...(c.params ?? []).flatMap(p => p.secret && p.value !== undefined ? [String(p.value)] : []),
       ...[c.env, ...[...c.services, ...(c.actions ?? [])].map(s => s.env)].flatMap(env => Object.values(env ?? {}).flatMap(v => typeof v === 'object' && v.value ? [v.value] : [])),
-    ]).filter(Boolean).sort((a, b) => b.length - a.length);
+    ]).concat(additional, [...this.taskRuns.values()].flatMap(t => t.r.sensitive ?? [])).filter(Boolean).sort((a, b) => b.length - a.length);
     const pattern = secrets.length ? new RegExp([...new Set(secrets)].map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'g') : null;
     const clean = (value: string | undefined) => value === undefined ? undefined : pattern ? value.replace(pattern, '[REDACTED]') : value;
     return { client: actor.client, agent: actor.agent, ...(actor.taskId === undefined ? {} : { taskId: clean(actor.taskId) }), ...(actor.taskLabel === undefined ? {} : { taskLabel: clean(actor.taskLabel) }) };
@@ -452,6 +456,7 @@ export class Engine {
 
   private assertValid(cfg: unknown, existing: ProjectConfig | null): ProjectConfig {
     const res = validateConfig(cfg, {
+      previous: existing ?? undefined,
       existingSecrets: existing ? this.secretKeys(existing) : new Set(),
       existingSecretParams: existing ? secretParamKeys(existing) : new Set(),
     });
@@ -485,6 +490,7 @@ export class Engine {
       if (e) m.env = e;
       return m;
     });
+    keepActionDefaults(out, existing ?? undefined);
     return out;
   }
 
@@ -742,17 +748,24 @@ export class Engine {
     const t = this.taskRuns.get(id);
     if (!t) throw notFound('RUN_NOT_FOUND', `任务运行不存在：${id}`);
     const d = this.logRunDetail(id);
-    return { ...structuredClone(t.summary), command: d.command, cwd: d.cwd, envKeys: d.envKeys, params: d.params, log: d.log, processes: d.processes };
+    return { ...structuredClone(t.summary), ...(t.parameters ? { actionParams: structuredClone(t.parameters.snapshot) } : {}), command: d.command, cwd: d.cwd, envKeys: d.envKeys, params: d.params, log: d.log, processes: d.processes };
   }
 
-  startAction(projectId: string, actionId: string, actor: Actor = { client: "cli", agent: null }): StartTaskRunResponse {
+  startAction(projectId: string, actionId: string, actor: Actor = { client: "cli", agent: null }, input?: unknown): StartTaskRunResponse {
     actor = this.actor(actor);
     const p = this.getProj(projectId);
     const cfg = p.project.config.actions?.find((a) => a.id === actionId);
     if (!cfg) throw notFound('ACTION_NOT_FOUND', `快捷操作不存在：${actionId}`);
+    let parameters;
+    try { parameters = resolveActionRun(cfg, input, p.project.revision); }
+    catch (e) { if (e instanceof ActionInputError) throw new HttpError(e.status, e.code, e.message, e.details); throw e; }
+    actor = this.actor(actor, undefined, parameters.sensitive);
     const active = this.actionRuns(projectId, actionId).find((r) => !r.endedAt);
-    if (active) return { created: false, run: active };
-    return this.startTask(p, cfg, { kind: 'action', actionId }, actor);
+    if (active) {
+      if (stableStringify(parameters.values) !== stableStringify(this.taskRuns.get(active.id)?.parameters?.values ?? {})) throw new HttpError(409, 'TASK_RUNNING', '此操作已使用其他参数运行', { runId: active.id });
+      return { created: false, run: active };
+    }
+    return this.startTask(p, cfg, { kind: 'action', actionId }, actor, parameters);
   }
 
   /** Explicit virtual model: never scans real user projects or reads ~/.m2. */
@@ -800,22 +813,22 @@ export class Engine {
     return this.startTask(p, { id: 'maven', name: `${target ? target.name + ' · ' : ''}${request.goals.join(' ')} · ${request.moduleId}`, cwd: target?.path ?? '.', command: mavenCommand(model, request) }, { kind: 'maven', request, model }, actor);
   }
 
-  private startTask(p: ProjRec, cfg: ActionConfig, target: { kind: 'action'; actionId: string } | { kind: 'maven'; request: MavenRunRequest; model: MavenModel }, actor: Actor): StartTaskRunResponse {
+  private startTask(p: ProjRec, cfg: ActionConfig, target: { kind: 'action'; actionId: string } | { kind: 'maven'; request: MavenRunRequest; model: MavenModel }, actor: Actor, parameters?: ReturnType<typeof resolveActionRun>): StartTaskRunResponse {
     const source = actor.client === "ui" ? "ui" : "cli";
     const projectId = p.project.id;
     const actionId = target.kind === 'action' ? target.actionId : null;
     const maven = target.kind === 'maven' ? target.request : null;
     const model = target.kind === 'maven' ? target.model : null;
-    const sub = substituteService(p.project.config, cfg);
+    const sub = substituteService(p.project.config, cfg, parameters?.values);
     const res = resolveService(p.project.config, { ...cfg, command: sub.command, env: sub.env });
     if (!res.cwdExists) throw new HttpError(422, 'CWD_UNAVAILABLE', '工作目录不可用');
     if (!res.programResolved) throw new HttpError(422, 'COMMAND_NOT_FOUND', '找不到任务程序');
     const rt = this.newSvcRt(cfg.id);
-    const r = this.makeRun(p, rt, { ...cfg, id: rt.id }, Date.now(), true);
+    const r = this.makeRun(p, rt, { ...cfg, id: rt.id }, Date.now(), true, { ...p.project.config, services: [] }, parameters?.values);
     r.summary.state = 'running';
     r.summary.startedBy = actor;
     const summary: TaskRunSummary = { id: r.summary.id, projectId, kind: maven ? 'maven' : 'action', actionId, maven, label: cfg.name, configRevision: p.project.revision, source, startedBy: actor, startedAt: r.summary.startedAt, endedAt: null, pid: r.summary.pid, state: 'running', exit: null, cancelTimedOut: false };
-    this.taskRuns.set(summary.id, { p, cfg: structuredClone(cfg), r, summary });
+    this.taskRuns.set(summary.id, { p, cfg: structuredClone(cfg), r, summary, parameters });
     const history = [...this.taskRuns.values()].filter(t => t.p === p && t.summary.kind === summary.kind && t.summary.actionId === actionId);
     while (history.length > this.limits.taskRunsKept) { const old = history.shift()!; this.dropRun(old.r); this.taskRuns.delete(old.summary.id); }
     this.sys(r, `开始任务 · ${displayArgv(r.command)}`);
@@ -984,6 +997,7 @@ export class Engine {
   }
 
   appendLog(r: RunRec, stream: LogStream, text: string, ts: number = Date.now()): void {
+    for (const value of [...(r.sensitive ?? [])].sort((a, b) => b.length - a.length)) if (value) text = text.replaceAll(value, '[REDACTED]');
     const max = this.limits.logLineMaxBytes;
     const parts: string[] = [];
     if (utf8Len(text) <= max) parts.push(text);
@@ -1056,10 +1070,10 @@ export class Engine {
    * @param startCfg project config as it was when this run started (defaults to the saved one;
    *   seeding passes older param values to simulate "changed since start").
    */
-  private makeRun(p: ProjRec, s: SvcRt, cfg: ServiceConfig, startedAt: number, withPid: boolean, startCfg: ProjectConfig = p.project.config): RunRec {
+  private makeRun(p: ProjRec, s: SvcRt, cfg: ServiceConfig, startedAt: number, withPid: boolean, startCfg: ProjectConfig = p.project.config, actionValues?: ActionValues): RunRec {
     const svc = startCfg.services.find((x) => x.id === cfg.id) ?? cfg;
     const res = resolveService(startCfg, svc);
-    const sub = substituteService(startCfg, svc);
+    const sub = substituteService(startCfg, svc, actionValues);
     const profile = s.profileOverride ?? inferProfile(sub.display);
     const pid = withPid ? randInt(30000, 89000) : 0;
     const names = processesFor(profile.kind);
@@ -1078,6 +1092,7 @@ export class Engine {
     const plan = listenPlan(profile, ctx);
     const ready = readySnapshot(startCfg, cfg.ready);
     const run: RunRec = {
+      ...(actionValues ? { sensitive: actionSensitive(actionValues) } : {}),
       ...(ready ? { readiness: { config: ready, seq: 0, tails: {} } } : {}),
       summary: {
         id: newRunId(startedAt),

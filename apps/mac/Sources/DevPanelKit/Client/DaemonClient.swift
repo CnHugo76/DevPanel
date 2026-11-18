@@ -40,7 +40,8 @@ public struct DaemonClient: Sendable {
     // MARK: - Config & projects
 
     public func validate(_ config: ProjectConfig) async throws -> ValidateResult {
-        try await send(.post, ["config", "validate"], body: config)
+        if config.actions?.contains(where: { $0.params?.isEmpty == false }) == true { try await requireActionParameters() }
+        return try await send(.post, ["config", "validate"], body: config)
     }
 
     public func projects() async throws -> [ProjectView] {
@@ -48,7 +49,8 @@ public struct DaemonClient: Sendable {
     }
 
     public func register(_ config: RegisterRequest) async throws -> RegisterResponse {
-        try await send(.post, ["projects"], body: config)
+        if config.actions?.contains(where: { $0.params?.isEmpty == false }) == true { try await requireActionParameters() }
+        return try await send(.post, ["projects"], body: config)
     }
 
     public func project(_ id: ProjectID) async throws -> Project {
@@ -56,7 +58,8 @@ public struct DaemonClient: Sendable {
     }
 
     public func update(_ id: ProjectID, _ request: UpdateRequest) async throws -> UpdateResponse {
-        try await send(.put, ["projects", id], body: request)
+        if request.config.actions?.contains(where: { $0.params?.isEmpty == false }) == true { try await requireActionParameters() }
+        return try await send(.put, ["projects", id], body: request)
     }
 
     public func deleteProject(_ id: ProjectID) async throws {
@@ -137,8 +140,12 @@ public struct DaemonClient: Sendable {
     public func actionRuns(_ projectId: ProjectID, actionId: String) async throws -> [TaskRunSummary] {
         try await get(["projects", projectId, "actions", actionId, "runs"])
     }
-    public func startAction(_ projectId: ProjectID, actionId: String) async throws -> StartTaskRunResponse {
-        try await send(.post, ["projects", projectId, "actions", actionId, "runs"], body: Optional<Never>.none)
+    public func startAction(_ projectId: ProjectID, actionId: String, request: ActionRunRequest? = nil) async throws -> StartTaskRunResponse {
+        if request != nil { try await requireActionParameters() }
+        return try await send(.post, ["projects", projectId, "actions", actionId, "runs"], body: request)
+    }
+    public func requireActionParameters() async throws {
+        guard try await daemonInfo().capabilities?.contains("action-params-v1") == true else { throw ApiError(code: .badRequest, message: "管理服务不支持操作参数，请先升级管理服务。") }
     }
     public func cancelTask(_ runId: RunID, force: Bool = false) async throws -> TaskRunSummary {
         try await send(.post, ["task-runs", runId, "cancel"], body: CancelTaskRunRequest(force: force))

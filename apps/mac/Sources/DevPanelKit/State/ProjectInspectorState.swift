@@ -17,12 +17,17 @@ public enum ProjectInspectorTab: String, CaseIterable, Sendable, Identifiable {
     public var tabs: [ProjectID: ProjectInspectorTab] = [:] {
         didSet { defaults?.set(tabs.mapValues(\.rawValue), forKey: "inspector.projectTabs") }
     }
-    public var actionChoice: [ProjectID: String] = [:]
+    public var actionChoice: [ProjectID: String] = [:] {
+        didSet {
+            if let form = parameterForm, actionChoice[form.projectId] != form.actionId, !form.isSubmitting { parameterForm = nil }
+        }
+    }
     public var runs: [TaskRef: [TaskRunSummary]] = [:]
     public var runChoice: [TaskRef: RunID] = [:]
     @ObservationIgnored var runLoads: Set<TaskRef> = []
     public var error: String?
     public var confirmation: QuickActionConfirmation?
+    public var parameterForm: ActionRunSession?
     public var pending: Set<TaskRef> = []
     @ObservationIgnored private let defaults: UserDefaults?
     public init(defaults: UserDefaults? = nil) {
@@ -71,9 +76,18 @@ extension AppModel {
     }
     public func requestQuickAction(_ projectId: ProjectID, actionId: String) {
         guard isConnected, let project = project(projectId), let action = project.actions.first(where: { $0.id == actionId }) else { return }
+        guard projectInspector.parameterForm?.isSubmitting != true,
+              !projectInspector.pending.contains(TaskRef(projectId, .action(actionId))) else { return }
         selectProject(projectId, tab: .actions)
         projectInspector.actionChoice[projectId] = actionId
         if action.currentRun != nil { return }
+        let definitions = action.params ?? configs[projectId]?.config.actions?.first(where: { $0.id == actionId })?.params ?? []
+        if !definitions.isEmpty {
+            guard daemon?.capabilities?.contains("action-params-v1") == true else { projectInspector.error = "管理服务不支持操作参数，请先升级管理服务。"; return }
+            var definition = action; definition.params = definitions
+            projectInspector.parameterForm = ActionRunSession(project: project, action: definition)
+            return
+        }
         if action.confirmWhenServicesRunning && project.runningCount > 0 {
             let command = configs[projectId]?.config.actions?.first { $0.id == actionId }.map { CommandText.join($0.command) } ?? ""
             projectInspector.confirmation = QuickActionConfirmation(projectId: projectId, actionId: actionId, title: "运行 \(action.name)？", message: "\(project.name) 有 \(project.runningCount) 个服务正在运行。\n\(action.description ?? "此操作可能影响正在运行的服务。")\n\n\(command)")
@@ -82,6 +96,10 @@ extension AppModel {
     public func startQuickAction(_ projectId: ProjectID, actionId: String) async {
         let ref = TaskRef(projectId, .action(actionId))
         guard isConnected, let client, !projectInspector.pending.contains(ref) else { return }
+        if project(projectId)?.actions.first(where: { $0.id == actionId })?.params?.isEmpty == false {
+            requestQuickAction(projectId, actionId: actionId)
+            return
+        }
         projectInspector.pending.insert(ref)
         defer { projectInspector.pending.remove(ref) }
         do {

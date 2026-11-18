@@ -36,6 +36,10 @@ DevPanel 是本地项目运行面板：管理服务（daemon）+ CLI + macOS 原
 - 测试与开发运行一律设置 `DEVPANEL_HOME` 到临时目录或 `.devpanel-dev/`，**绝不**读写真实的 `~/Library/Application Support/DevPanel`，也不要注册真实项目。
 - **用户的稳定版**：用户日常使用的是 `~/.local/share/devpanel/stable`（当前为 git 标签 `v0.3.1`；回滚用的旧版本在 `~/.local/share/devpanel/stable-v0.3.0`、`stable-v0.2.0`）、`~/.local/bin/devpanel` / `devpaneld`（指向稳定版）、`/Applications/DevPanel.app`，以及用真实数据目录运行的 daemon。开发时**不要**调用 `~/.local/bin` 中的命令（直接用 `node packages/cli/src/main.ts`），**不要**运行不带 `--bin-dir` 的 `setup:cli`，不要修改稳定版目录、`/Applications/DevPanel.app`，不要停止或重启用户的 daemon。升级稳定版只由用户决定。
 
+## Skill 同步提醒
+
+涉及 CLI 命令或参数、配置格式、退出码、能力兼容或 Agent 操作流程的改动时，核对 [DevPanel skill](skills/devpanel/SKILL.md) 及相关 references。发现说明需要调整，向用户列出受影响的文件和具体差异，并询问是否同步调整 skill；用户已授权本次 skill 更新时直接完成并汇报，不重复询问。纯内部重构或不影响 Agent 使用方式的界面调整无需提醒。
+
 ## 安全底线
 
 - 只对能核验属于本次运行的进程（pid + 启动时间）发信号；禁止 `killall`、按名称或端口杀进程。

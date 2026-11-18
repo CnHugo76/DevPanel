@@ -506,7 +506,7 @@ export interface PortableConfigInput {
   target: string;
   kind: 'secret' | 'path';
   label: string;
-  valueType?: ParamType;
+  valueType?: ActionParamType;
 }
 export interface PortableProjectConfig {
   format: 'devpanel.project';
@@ -542,6 +542,8 @@ export interface DaemonToolResources {
 }
 
 export interface DaemonInfo {
+  /** v1.6-A. Missing means unsupported. Unknown capabilities must be ignored. */
+  capabilities?: string[];
   version: string;
   apiVersion: typeof API_VERSION;
   pid: number;
@@ -729,8 +731,42 @@ export interface DaemonDiscovery {
 /** Same format as ServiceId; unique within the project, separate namespace from services. */
 export type ActionId = string;
 
+/** v1.6-A. Independent of project options; multiselect travels as one JSON argv/env value. */
+export type ActionParamType = ParamType | 'multiselect';
+export type ActionParamValue = ParamValue | string[];
+export interface ActionParamConfig {
+  key: string;
+  label: string;
+  description?: string;
+  type: ActionParamType;
+  required?: boolean;
+  /** Secret defaults are masked with {secret:true}; that marker in an update keeps the old default. */
+  default?: ActionParamValue | { secret: true };
+  choices?: ParamChoice[];
+  min?: number;
+  max?: number;
+  secret?: boolean;
+}
+export interface ActionRunRequest {
+  params?: Record<string, ActionParamValue>;
+  ifRevision?: number;
+}
+export interface ActionParamSnapshot {
+  key: string;
+  label: string;
+  description?: string;
+  type: ActionParamType;
+  /** null = absent; secret values never appear here. */
+  value: ActionParamValue | { secret: true } | null;
+  /** Selected choices at run time; omitted for secrets. */
+  choices?: ParamChoice[];
+}
+
 /** An AI-defined, run-to-completion command shown as a one-click button. */
 export interface ActionConfig {
+  params?: ActionParamConfig[];
+  /** Submission button text; defaults to “开始运行”. */
+  runLabel?: string;
   id: ActionId;
   /** Button text, e.g. "clean install -DskipTests". */
   name: string;
@@ -830,6 +866,8 @@ export interface TaskRunSummary {
 }
 
 export interface TaskRunDetail extends TaskRunSummary {
+  /** v1.6-A. All operation parameters at start, including defaults and absent values. Old records omit it. */
+  actionParams?: ActionParamSnapshot[];
   /** argv actually executed; fragments from secret params are "••••". */
   command: string[];
   cwd: string;
@@ -840,6 +878,8 @@ export interface TaskRunDetail extends TaskRunSummary {
 }
 
 export interface ActionView {
+  params?: ActionParamConfig[];
+  runLabel?: string;
   id: ActionId;
   name: string;
   description: string | null;

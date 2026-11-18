@@ -25,6 +25,7 @@ public struct Limits: Codable, Hashable, Sendable {
 }
 
 public struct DaemonInfo: Codable, Hashable, Sendable {
+    public var capabilities: [String]? = nil
     public var version: String
     public var apiVersion: Int
     public var pid: Int
@@ -37,7 +38,7 @@ public struct DaemonInfo: Codable, Hashable, Sendable {
     public var toolResources: DaemonToolResources?
 
     private enum CodingKeys: String, CodingKey {
-        case version, apiVersion, pid, startedAt, home, limits, toolResources
+        case version, apiVersion, pid, startedAt, home, limits, toolResources, capabilities
         case selfUsage = "self"
     }
 }

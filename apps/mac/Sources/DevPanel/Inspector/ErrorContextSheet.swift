@@ -9,16 +9,22 @@ struct ErrorContext: Identifiable {
 
 struct ErrorContextSheet: View {
     let context: ErrorContext
+    var title = "错误上下文"
+    var summary: String? = nil
+    var canOpenLog = true
+    var openLog: (() -> Void)? = nil
+    @State private var copied = false
     @Environment(\.dismiss) private var dismiss
     var body: some View {
         let digest = context.digest
         let first = digest.blocks.first { $0.kind == .error }
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("错误上下文").font(.system(size: 17, weight: .semibold))
+                Text(title).font(.system(size: 17, weight: .semibold))
                 Spacer()
                 Button("关闭") { dismiss() }.keyboardShortcut(.cancelAction)
             }
+            if let summary { Text(summary).font(.callout).foregroundStyle(Theme.text2) }
             Text("固定运行 \(context.runId)").font(.system(size: 11.5)).foregroundStyle(Theme.text3).textSelection(.enabled)
             if let first {
                 Text("摘要内首个错误 · 行 \(first.firstSeq)–\(first.lastSeq) · 出现 \(first.occurrences) 次")
@@ -46,6 +52,16 @@ struct ErrorContextSheet: View {
             if digest.truncated {
                 Text("较早日志已被保留上限淘汰。")
                     .font(.system(size: 11.5)).foregroundStyle(Theme.amber)
+            }
+            if let openLog {
+                HStack {
+                    Button("查看本次运行日志", action: openLog).disabled(!canOpenLog)
+                    Spacer()
+                    Button(copied ? "已复制" : "复制给 AI") {
+                        copy([title, summary ?? "", digest.text].joined(separator: "\n"))
+                        copied = true
+                    }
+                }
             }
         }
         .padding(20).frame(minWidth: 620, idealWidth: 760, minHeight: 400, idealHeight: 560)

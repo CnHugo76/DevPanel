@@ -36,13 +36,19 @@ struct RootView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 // Full-size window content must not let scrolling paint into the title bar.
                 .clipped()
-            ToolResourceBar(model: model)
+            if prefs.detailed || (ProcessInfo.processInfo.arguments.contains("--snapshot") &&
+                ProcessInfo.processInfo.arguments.contains("--tool-resources-details")) {
+                ToolResourceBar(model: model)
+            }
         }
         .background(Theme.window)
         .foregroundStyle(Theme.text)
+        .environment(prefs.serviceLinks)
+        .environment(prefs.organization)
         .ignoresSafeArea(.container, edges: .top)
         .modifier(OptionHost(presenter: options))
         .editorHost(editor)
+        .modifier(ActionRunHost(model: model))
         .alert(model.projectInspector.confirmation?.title ?? "运行快捷操作？", isPresented: Binding(get: { model.projectInspector.confirmation != nil }, set: { if !$0 { model.projectInspector.confirmation = nil } }), presenting: model.projectInspector.confirmation) { confirmation in
             Button("仍然运行") { Task { await model.startQuickAction(confirmation.projectId, actionId: confirmation.actionId) } }
             Button("取消", role: .cancel) {}
@@ -87,7 +93,7 @@ struct RootView: View {
                     let selection = model.selection
                     Group {
                         if prefs.detailed {
-                            ServiceNavigator(model: model, query: query).frame(width: 220)
+                            ServiceNavigator(model: model, prefs: prefs, query: query).frame(width: 220)
                         } else {
                             OverviewView(model: model, prefs: prefs, query: query, compact: model.hasInspectorSelection)
                         }

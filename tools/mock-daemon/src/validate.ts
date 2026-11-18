@@ -9,7 +9,8 @@ import type {
   ValidateResult,
   ValidationIssue,
 } from '@devpanel/contract';
-import { refsIn, resolvableConfig, validateParams } from './params.ts';
+import { refsIn, resolvableConfig, validateParams, substituteService } from './params.ts';
+import { actionConfigSecrets, actionDefinitionIssues, actionDefaultValues, actionReferences } from './action-params.ts';
 
 /** PATH the mock daemon uses as its base environment (contract §3: decided by daemon config, not the caller's terminal). */
 export const BASE_PATH = '/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin';
@@ -186,6 +187,7 @@ function backgroundHint(command: string[]): string | null {
 }
 
 export interface ValidateOptions {
+  previous?: ProjectConfig;
   /** Paths ("env.X", "services[i].env.X" keyed by service id: "svc:<id>.X") that have a stored secret. */
   existingSecrets?: Set<string> | null;
   /** v1.1-A. Param keys that have a stored secret value (register/update); omitted/null = standalone. */
@@ -238,6 +240,7 @@ export function validateConfig(input: unknown, opts: ValidateOptions = {}): Vali
     };
   }
   issues.push(...explicitTargetIssues(input));
+  issues.push(...actionDefinitionIssues(input, opts.previous, opts.existingSecrets !== undefined && opts.existingSecrets !== null));
   const cfg = input as unknown as ProjectConfig;
   if (Array.isArray(cfg.services)) cfg.services.forEach((s,i) => { if (s?.ready !== undefined) issues.push(...readyIssues(s.ready, cfg, `services[${i}].ready`)); });
   if (input.schemaVersion !== 1) {
@@ -322,7 +325,10 @@ export function validateConfig(input: unknown, opts: ValidateOptions = {}): Vali
     }
     if (!cmdOk || typeof raw.cwd !== 'string') return;
 
-    const res = resolveService(resolvable, resolvable.services[i] ?? svc);
+    const action = svc as import('@devpanel/contract').ActionConfig;
+    const sub = action.params ? substituteService(cfg, svc) : undefined;
+    const res = resolveService(resolvable, sub ? { ...svc, command: sub.command, env: sub.env } : resolvable.services[i] ?? svc);
+    if (action.params && typeof action.env?.PATH === 'string' && actionReferences(action.env.PATH).some(k => actionDefaultValues(action)[k]?.value === undefined)) { res.pathUsed = ''; res.programResolved = null; blocked.add(svc.id); }
     services.push(res);
     if (!res.cwdExists) {
       issues.push({ path: `${at}.cwd`, severity: 'error', code: 'CWD_UNAVAILABLE', message: `工作目录不存在：${res.cwdAbs}` });
@@ -364,5 +370,8 @@ export function validateConfig(input: unknown, opts: ValidateOptions = {}): Vali
       });
     }
   }
-  return { ok: !issues.some((i) => i.severity === 'error'), issues, services };
+  const secrets = actionConfigSecrets(input).sort((a, b) => b.length - a.length);
+  const pattern = secrets.length ? new RegExp(secrets.map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'g') : null;
+  const clean = (v: any): any => typeof v === 'string' && pattern ? v.replace(pattern, '[REDACTED]') : Array.isArray(v) ? v.map(clean) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, child]) => [k, clean(child)])) : v;
+  return clean({ ok: !issues.some((i) => i.severity === 'error'), issues, services });
 }

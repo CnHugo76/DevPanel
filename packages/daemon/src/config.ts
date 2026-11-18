@@ -17,6 +17,7 @@ import {
   formatValue,
 } from "./params.ts";
 import { Fault } from "./storage.ts";
+import { actionConfigSecrets, actionDefinitionIssues, actionDefaultValues, actionReferences, actionSensitive, keepActionDefaults, maskAction, preserveActionChoices, type ActionValues } from './action-params.ts';
 
 export type BaseEnv = Record<string, string>;
 export function baseEnvironment(): BaseEnv {
@@ -43,6 +44,7 @@ export function effectiveEnv(base: BaseEnv, ...maps: (EnvMap | undefined)[]) {
 }
 export function secrets(config: ProjectConfig) {
   return [
+    ...actionConfigSecrets(config),
     ...(config.params || []).flatMap((p) =>
       p.secret && p.value !== undefined ? [formatValue(p.value)] : [],
     ),
@@ -89,6 +91,7 @@ export function redact<T>(
 }
 export function mask(config: ProjectConfig): ProjectConfig {
   const c = structuredClone(config);
+  if (c.actions) c.actions = c.actions.map(maskAction);
   for (const env of [c.env, ...[...c.services, ...(c.actions || [])].map((s) => s.env)])
     for (const key of Object.keys(env || {}))
       if (typeof env![key] !== "string") env![key] = { secret: true };
@@ -96,7 +99,7 @@ export function mask(config: ProjectConfig): ProjectConfig {
     if (p.secret) delete p.value;
     p.usedBy = uses(config, p.key);
   }
-  return redact(c, secrets(config));
+  return preserveActionChoices(c, redact(c, secrets(config)));
 }
 export function findProgram(
   program: string,
@@ -132,6 +135,7 @@ export function validate(
   base: BaseEnv,
   previous?: ProjectConfig,
   mode: "validate" | "save" = "validate",
+  runActionValues?: ActionValues,
 ): ValidateResult {
   const issues: ValidationIssue[] = [],
     services: ServiceResolution[] = [];
@@ -154,7 +158,7 @@ export function validate(
       ],
       services,
     };
-  issues.push(...paramIssues(input, previous, mode === "save"), ...targetIssues(input));
+  issues.push(...paramIssues(input, previous, mode === "save"), ...targetIssues(input), ...actionDefinitionIssues(input, previous, mode === 'save'));
   if (input.schemaVersion !== 1)
     issue("schemaVersion", "schemaVersion 必须为 1");
   if (!str(input.name)) issue("name", "请输入项目名称");
@@ -261,6 +265,7 @@ export function validate(
       if (!cwdExists) issue(`${p}.cwd`, "工作目录不存在", "CWD_UNAVAILABLE");
       let env = base;
       let unknownPath = false;
+      let actionSecrets: string[] = [];
       let unknownProgram = false;
       let program = s.command[0] as string;
       if (!issues.some((x) => x.severity === "error")) {
@@ -271,11 +276,16 @@ export function validate(
           // resolving another service that has not been validated yet.
           true,
         );
-        const expanded = expandService(resolved, resolved[scope]![i]!);
+        const definition = resolved[scope]![i]!;
+        const values = scope === 'actions' ? actionDefaultValues(definition) : runActionValues;
+        actionSecrets = actionSensitive(values ?? {});
+        const expanded = expandService(resolved, definition, false, values);
         program = expanded.command[0]!;
         const path = expanded.env?.PATH;
         unknownPath = typeof path === "object" && path.value === undefined;
         env = effectiveEnv(base, expanded.env);
+        const originalPath = definition.env?.PATH;
+        if (values && typeof originalPath === 'string' && actionReferences(originalPath).some(k => values[k]?.value === undefined)) { unknownPath = true; env.PATH = ''; }
         const missing =
           resolved.params?.filter((p) => p.secret && p.value === undefined) ||
           [];
@@ -309,8 +319,8 @@ export function validate(
         cwdAbs,
         cwdExists,
         program: s.command[0] as string,
-        programResolved,
-        pathUsed,
+        programResolved: redact(programResolved, actionSecrets, 0),
+        pathUsed: redact(pathUsed, actionSecrets, 0),
       });
       const text = s.command.join(" ");
       if (
@@ -360,7 +370,7 @@ export function validate(
           values.push(v.value);
   return redact(
     { ok: !issues.some((x) => x.severity === "error"), issues, services },
-    [...values, ...(previous ? secrets(previous) : [])],
+    [...values, ...actionConfigSecrets(input), ...actionSensitive(runActionValues ?? {}), ...(previous ? secrets(previous) : [])],
   );
 }
 export function resolveSecrets(
@@ -369,6 +379,7 @@ export function resolveSecrets(
   allowUnresolved = false,
 ): ProjectConfig {
   const c = structuredClone(config);
+  keepActionDefaults(c, previous);
   const merge = (env?: EnvMap, old?: EnvMap) => {
     for (const [key, v] of Object.entries(env || {}))
       if (typeof v !== "string" && v.value === undefined) {

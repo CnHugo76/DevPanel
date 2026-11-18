@@ -33,6 +33,7 @@ import { startReport, reportText } from "./ready-report.ts";
 import { digestText } from "./digest-text.ts";
 import { waitTask } from "./task-commands.ts";
 import { exportProject, importProject } from './portable-commands.ts';
+import { hasActionParams, readActionParams, requireActionParams } from './action-input.ts';
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const usage = () =>
   new ClientError({
@@ -147,6 +148,8 @@ async function main() {
       group: { type: "string" },
       instance: { type: "string" },
       "if-revision": { type: "string" },
+      params: { type: 'string' },
+      'params-file': { type: 'string' },
       module: { type: "string" },
       "maven-project": { type: "string" },
       profiles: { type: "string", short: "P", multiple: true },
@@ -174,11 +177,12 @@ async function main() {
     print(
       "DevPanel：本地项目运行面板\n\n" +
         usage().message +
-        "\n\n控制命令支持 --service <id>（可重复）、--no-wait、--timeout <秒>、--json。\n启动/重启支持 --wait-ready、--ready-timeout <秒>。日志支持 --digest、--after-seq <行号>、--max-bytes <字节>、--json。保留日志检索：--search <文本> [--case-sensitive] [--after-seq <行号>] [--through-seq <快照行号>] [--limit 1–100] [--context 0–5]；不能与 --follow/--digest/--tail 合用。\n配置分享：project export <id> --file <新文件>；project import --config <文件> --root <目录> [--inputs <本机输入>] 默认预览，保存加 --apply；更新需 --if-revision。实例显示用成对的 --group / --instance。\n工作归属：--task <ID> [--task-label <名称>]；activity --task 只筛选工作动态。\nMaven 支持 --maven-project <工程ID> 选择已登记工程，--module <模块ID> 选择工程内模块。\n所有服务控制均经由 daemon；注册和更新不会执行项目命令。",
+        "\n\n控制命令支持 --service <id>（可重复）、--no-wait、--timeout <秒>、--json。\n启动/重启支持 --wait-ready、--ready-timeout <秒>。日志支持 --digest、--after-seq <行号>、--max-bytes <字节>、--json。保留日志检索：--search <文本> [--case-sensitive] [--after-seq <行号>] [--through-seq <快照行号>] [--limit 1–100] [--context 0–5]；不能与 --follow/--digest/--tail 合用。\n快捷操作参数：action run <项目ID> <操作ID> --params <JSON对象> 或 --params-file <文件|->（stdin），可加 --if-revision；仅用于本次运行。\n配置分享：project export <id> --file <新文件>；project import --config <文件> --root <目录> [--inputs <本机输入>] 默认预览，保存加 --apply；更新需 --if-revision。实例显示用成对的 --group / --instance。\n工作归属：--task <ID> [--task-label <名称>]；activity --task 只筛选工作动态。\nMaven 支持 --maven-project <工程ID> 选择已登记工程，--module <模块ID> 选择工程内模块。\n所有服务控制均经由 daemon；注册和更新不会执行项目命令。",
     );
     return;
   }
   if (!cmd) throw usage();
+  if ((v.params !== undefined || v['params-file'] !== undefined) && !(cmd === 'action' && arg === 'run')) throw usage();
   if (v["wait-ready"] && (v["no-wait"] || !["start", "restart"].includes(cmd))) throw usage();
   if (v["ready-timeout"] !== undefined) { if (!v["wait-ready"]) throw usage(); numeric(v["ready-timeout"], 900); }
   if (cmd === "daemon") {
@@ -255,14 +259,16 @@ async function main() {
       print(result.value); process.exitCode = result.code; return;
     }
     if (arg === "register" && p.length === 2) {
-      print(await api("/projects", "POST", load(v.config)));
+      const config = load(v.config); if (hasActionParams(config)) await requireActionParams();
+      print(await api("/projects", "POST", config));
       return;
     }
     if (arg === "validate" && p.length === 2) {
+      const config = load(v.config); if (hasActionParams(config)) await requireActionParams();
       const result = await api<{ ok: boolean }>(
         "/config/validate",
         "POST",
-        load(v.config),
+        config,
       );
       print(result);
       if (!result.ok) process.exitCode = 2;
@@ -277,10 +283,11 @@ async function main() {
     if (arg === "update") {
       const revision = numeric(v["if-revision"], NaN);
       if (!Number.isInteger(revision) || revision < 1) throw usage();
+      const config = load(v.config); if (hasActionParams(config)) await requireActionParams();
       print(
         await api(`/projects/${id}`, "PUT", {
           ifRevision: revision,
-          config: load(v.config),
+          config,
           ...(v["override-user-values"] ? { overrideUserValues: true } : {}),
         }),
       );
@@ -373,7 +380,12 @@ async function main() {
     const pid = need(third);
     if (arg === "list" && p.length === 3) { print((await api<ProjectView>(`/projects/${pid}/view`)).actions); return; }
     if (arg !== "run" || p.length !== 4) throw usage();
-    const start = await api<StartTaskRunResponse>(`/projects/${pid}/actions/${need(p[3])}/runs`, "POST", {});
+    const params = await readActionParams(v.params, v['params-file']);
+    const project = await api<ProjectView>(`/projects/${pid}/view`);
+    if (params !== undefined || v['if-revision'] !== undefined || project.actions.find(a => a.id === p[3])?.params?.length) await requireActionParams();
+    const revision = v['if-revision'] === undefined ? undefined : Number(v['if-revision']);
+    if (revision !== undefined && (!Number.isSafeInteger(revision) || revision < 1)) throw usage();
+    const start = await api<StartTaskRunResponse>(`/projects/${pid}/actions/${need(p[3])}/runs`, "POST", { ...(params === undefined ? {} : { params }), ...(revision === undefined ? {} : { ifRevision: revision }) });
     const result = await waitTask(start, { noWait: v["no-wait"], follow: v.follow, timeout: numeric(v.timeout, 60), json: jsonOutput });
     print(result.value); process.exitCode = result.code; return;
   }

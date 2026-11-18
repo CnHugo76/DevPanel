@@ -98,9 +98,13 @@ public struct PortChip: Sendable, Equatable, Identifiable {
     public var url: URL { URL(string: "http://localhost:\(port)")! }
 
     public var help: String {
+        help(opening: url)
+    }
+
+    public func help(opening url: URL) -> String {
         let listen = addresses.map { Self.hostPort($0, port) }.joined(separator: "、")
         let reach = lan ? "监听所有网卡，同一网络的其他设备也能访问" : "监听 \(listen)"
-        return "\(reach)\n点击在浏览器打开 http://localhost:\(port)"
+        return "\(reach)\n点击在浏览器打开 \(url.absoluteString)"
     }
 
     static func hostPort(_ address: String, _ port: Int) -> String {

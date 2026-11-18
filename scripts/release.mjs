@@ -10,7 +10,7 @@ import { sourceProvenance } from './release-provenance.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const source = sourceProvenance(root);
-const version = process.env.VERSION ?? '0.4.1';
+const version = process.env.VERSION ?? '0.4.3';
 if (!/^[0-9]+\.[0-9]+\.[0-9]+(?:-[a-zA-Z0-9.-]+)?$/.test(version)) throw Error('VERSION 格式无效');
 if (process.platform !== 'darwin' || !['arm64', 'x64'].includes(process.arch)) throw Error('仅在 macOS arm64/x64 本机打包');
 const output = resolve(process.argv[2] ?? join(root, '.devpanel-dev/codex/v04/release'));
@@ -41,7 +41,8 @@ for (const name of ['LICENSE', 'THIRD_PARTY_NOTICES.md']) {
 }
 cpSync(join(root, 'skills/devpanel'), join(app, 'Contents/Resources/skills/devpanel'), { recursive: true });
 cpSync(join(root, 'examples/demo'), join(app, 'Contents/Resources/demo'), { recursive: true });
-for (const name of ['quickstart.md', 'quickstart.zh-CN.md', 'config-sharing.md', 'config-sharing.zh-CN.md']) {
+cpSync(join(root, 'examples/action-parameters'), join(app, 'Contents/Resources/action-parameters'), { recursive: true });
+for (const name of ['quickstart.md', 'quickstart.zh-CN.md', 'config-sharing.md', 'config-sharing.zh-CN.md', 'action-parameters.md', 'action-parameters.zh-CN.md']) {
   cpSync(join(root, 'docs', name), join(app, 'Contents/Resources', name));
 }
 const runtime = join(app, 'Contents/Resources/runtime');

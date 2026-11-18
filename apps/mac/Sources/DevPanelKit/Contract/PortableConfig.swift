@@ -6,7 +6,7 @@ public struct PortableConfigInput: Codable, Hashable, Sendable, Identifiable {
     public var target: String
     public var kind: Kind
     public var label: String
-    public var valueType: ParamType?
+    public var valueType: ActionParamType?
 }
 
 /// v1.5-B. `project` deliberately has no root; local inputs live in a separate file.

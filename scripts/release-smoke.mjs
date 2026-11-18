@@ -24,7 +24,7 @@ const cli = join(chosenBin, 'devpanel');
 const metadata = JSON.parse(readFileSync(join(runtime, 'runtime.json'), 'utf8'));
 assert.match(metadata.source?.commit ?? '', /^[a-f0-9]{40}$/);
 assert.match(metadata.source?.sha256 ?? '', /^[a-f0-9]{64}$/);
-for (const name of ['quickstart.md', 'quickstart.zh-CN.md', 'skills/devpanel/SKILL.md', 'demo/create-config.mjs', 'source-files.json']) {
+for (const name of ['quickstart.md', 'quickstart.zh-CN.md', 'skills/devpanel/SKILL.md', 'demo/create-config.mjs', 'action-parameters/create-config.mjs', 'action-parameters.zh-CN.md', 'source-files.json']) {
   assert(existsSync(join(app, 'Contents/Resources', name)), `发布包缺少 ${name}`);
 }
 const env = { PATH: '/usr/bin:/bin', HOME: home, DEVPANEL_HOME: join(home, 'data'), DEVPANEL_PORT: '0', LANG: 'en_US.UTF-8' };
@@ -34,6 +34,13 @@ writeFileSync(join(home, 'config.json'), JSON.stringify({ schemaVersion: 1, name
   env: { TOKEN: { secret: true, value: secret } },
   params: [{ key: 'password', label: '密码', type: 'string', secret: true, value: secret }],
   services: [{ id: 'server', name: '服务', cwd: '.', command: [node, '-e', 'console.log("ready", process.env.TOKEN, process.argv[1]); console.log("x".repeat(100)); setInterval(()=>{},1000)', '${password}'], stopTimeoutSec: 2 }],
+  actions: [{ id: 'deploy', name: '示例打包部署', cwd: '.', runLabel: '开始部署',
+    command: [node, '-e', 'console.log(JSON.stringify({services:JSON.parse(process.argv[1]),backup:process.env.BACKUP_DATABASE}));console.log(process.argv[2])', '${action.services}', '${action.token}'],
+    env: { BACKUP_DATABASE: '${action.backup}' }, params: [
+      { key: 'services', label: '部署服务', type: 'multiselect', required: true, default: ['frontend', 'backend'], choices: [{ value: 'frontend', label: '前端' }, { value: 'backend', label: '后端' }, { value: 'runtime', label: 'Runtime' }] },
+      { key: 'backup', label: '备份数据库', type: 'boolean', default: true },
+      { key: 'token', label: '密钥', type: 'string', secret: true, default: secret },
+    ] }],
 }));
 const outputs = [];
 let identities = [];
@@ -81,6 +88,7 @@ try {
   started = true;
   remember(daemon.pid);
   assert.equal(daemon.version, metadata.version, 'daemon 返回版本必须与发布包一致');
+  assert(daemon.capabilities.includes('action-params-v1'));
   const discovery = JSON.parse(readFileSync(join(env.DEVPANEL_HOME, 'daemon.json'), 'utf8'));
   assert.equal(discovery.version, metadata.version, '发现文件版本必须与发布包一致');
   project = command(['project', 'register', '--config', join(home, 'config.json')]).project.id;
@@ -100,6 +108,17 @@ try {
   assert(search.matches.length > 0);
   assert(JSON.stringify(search).includes('[REDACTED]'));
   command(['status', project]);
+  const actionConfig = command(['project', 'show', project]);
+  const deployed = command(['action', 'run', project, 'deploy', '--params', '{"services":["backend","runtime"],"backup":false}', '--if-revision', '1']);
+  assert.equal(deployed.state, 'succeeded');
+  assert.deepEqual(deployed.actionParams.map(p => p.value), [['backend', 'runtime'], false, { secret: true }]);
+  assert.deepEqual(deployed.actionParams[0].choices.map(c => c.label), ['后端', 'Runtime']);
+  const actionLogs = command(['logs', project, '--run', deployed.id]);
+  assert(actionLogs.some(line => line.text.includes('"backup":"false"')));
+  assert(actionLogs.some(line => line.text.includes('[REDACTED]')));
+  const defaults = command(['action', 'run', project, 'deploy']);
+  assert.deepEqual(defaults.actionParams.slice(0, 2).map(p => p.value), [['frontend', 'backend'], true]);
+  assert.deepEqual(command(['project', 'show', project]), actionConfig);
   command(['stop', project]);
   command(['project', 'remove', project]);
   project = undefined;

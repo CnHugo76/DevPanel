@@ -2,6 +2,7 @@ import { realpathSync, statSync } from 'node:fs';
 import type { Project, ProjectView, ValidateResult } from '@devpanel/contract';
 import { api, ClientError } from './client.ts';
 import { changedPaths, exportConfig, hideInputs, prepareImport, readConfigFile, saveExport } from './portable-config.ts';
+import { hasActionParams, requireActionParams } from './action-input.ts';
 
 export async function exportProject(id: string, file: string) {
   const project = await api<Project>(`/projects/${encodeURIComponent(id)}`);
@@ -18,6 +19,7 @@ export async function importProject(options: { file: string; root: string; input
   const document = readConfigFile(options.file);
   const values = options.inputs ? readConfigFile(options.inputs, 64 * 1024) : {};
   const prepared = prepareImport(document, root, values);
+  if (hasActionParams(prepared.config)) await requireActionParams();
   if (options.group !== undefined || options.instance !== undefined) {
     if (!options.group || !options.instance) throw invalid('--group 与 --instance 必须同时提供');
     prepared.config.instance = { group: options.group, name: options.instance };

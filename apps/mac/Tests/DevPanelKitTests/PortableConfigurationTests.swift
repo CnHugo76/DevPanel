@@ -112,13 +112,14 @@ struct PortableConfigurationTests {
         #expect(throws: PortableConfigError.self) { try PortableConfiguration.export(config) }
     }
 
-    @Test func fileLimitsAndScalarOnlyInputsAreEnforced() throws {
+    @Test func fileLimitsAndTypedInputsAreEnforced() throws {
         #expect(throws: PortableConfigError.self) { try PortableConfiguration.decode(Data(repeating: 32, count: PortableConfiguration.documentByteLimit + 1)) }
         #expect(throws: PortableConfigError.self) { try PortableConfiguration.decodeInputs(Data(repeating: 32, count: PortableConfiguration.inputsByteLimit + 1)) }
-        for text in [#"{"x":null}"#, #"{"x":{}}"#, #"{"x":[]}"#, #"{"__proto__":"value"}"#] {
+        for text in [#"{"x":null}"#, #"{"x":{}}"#, #"{"x":[1]}"#, #"{"__proto__":"value"}"#] {
             #expect(throws: PortableConfigError.self) { try PortableConfiguration.decodeInputs(Data(text.utf8)) }
         }
         #expect(try PortableConfiguration.decodeInputs(Data(#"{"x":false,"y":42,"z":""}"#.utf8)).count == 3)
+        #expect(try PortableConfiguration.decodeInputs(Data(#"{"x":[]}"#.utf8))["x"] == .array([]))
     }
 
     @Test func fileReaderRejectsFIFOAndExportRefusesOverwrite() async throws {

@@ -43,7 +43,7 @@ public enum PortableConfiguration {
         guard data.count <= inputsByteLimit else { throw invalid("本机输入文件超过 64 KiB 上限。") }
         guard let object = try? JSONDecoder().decode(JSONValue.self, from: data), case .object(let values) = object,
               values.values.allSatisfy(isScalar), values.keys.allSatisfy({ !forbidden.contains($0) }) else {
-            throw invalid("本机输入文件必须是输入 ID 到字符串、数值或布尔值的 JSON 对象。")
+            throw invalid("本机输入文件必须是输入 ID 到字符串、数值、布尔值或字符串数组的 JSON 对象。")
         }
         return values
     }
@@ -65,7 +65,7 @@ public enum PortableConfiguration {
         root.removeValue(forKey: "root")
         project = .object(root)
         var inputs: [PortableConfigInput] = []
-        func input(_ target: [String], kind: PortableConfigInput.Kind, label: String, type: ParamType? = nil) throws {
+        func input(_ target: [String], kind: PortableConfigInput.Kind, label: String, type: ActionParamType? = nil) throws {
             let pointer = pointer(target)
             inputs.append(PortableConfigInput(id: "\(kind.rawValue)_\(inputs.count + 1)", target: pointer,
                                               kind: kind, label: label, valueType: type))
@@ -99,6 +99,19 @@ public enum PortableConfiguration {
                         try input(base + ["command", String(arg)], kind: .path, label: "\(name) 命令参数 \(arg + 1)", type: .string)
                     }
                 }
+                if collection == "actions" {
+                    for (j, param) in (item["params"]?.arrayValue ?? []).enumerated() {
+                        let target = base + ["params", String(j), "default"]
+                        let type = ActionParamType(raw: param["type"]?.stringValue ?? "invalid")
+                        if (param["choices"]?.arrayValue ?? []).contains(where: { $0["value"]?.stringValue.map(isMachinePath) == true }) { throw invalid("本机路径枚举无法安全分享，请改为文本参数。") }
+                        if param["default"] != nil && param["secret"]?.boolValue == true {
+                            try input(target, kind: .secret, label: "\(name) · \(param["label"]?.stringValue ?? "参数")", type: type)
+                            project = try replacing(project, at: target[...], with: .object(["secret": .bool(true)]), allowMissingLeaf: true)
+                        } else if param["default"]?.stringValue.map(isMachinePath) == true {
+                            try input(target, kind: .path, label: "\(name) · \(param["label"]?.stringValue ?? "参数")", type: type)
+                        }
+                    }
+                }
                 try env(item["env"], prefix: base + ["env"], label: "\(name) ")
             }
         }
@@ -107,7 +120,7 @@ public enum PortableConfiguration {
             if (param["choices"]?.arrayValue ?? []).contains(where: { isMachinePath($0["value"]?.stringValue ?? "") }) {
                 throw invalid("选项 \(key) 的枚举取值包含本机路径；请改为 string 选项后再导出。")
             }
-            let type = param["type"]?.stringValue.map(ParamType.init(raw:))
+            let type = param["type"]?.stringValue.map(ActionParamType.init(raw:))
             if param["secret"]?.boolValue == true {
                 try input(["params", String(index), "value"], kind: .secret, label: "选项 \(key)", type: type)
             } else if let value = param["value"]?.stringValue, isMachinePath(value) {
@@ -150,7 +163,7 @@ public enum PortableConfiguration {
                 }
             }
             project = try replacing(project, at: tokens[...], with: value,
-                                    allowMissingLeaf: input.kind == .secret || (tokens.count == 3 && tokens[0] == "params" && tokens[2] == "value"))
+                                    allowMissingLeaf: input.kind == .secret || (tokens.count == 3 && tokens[0] == "params" && tokens[2] == "value") || (tokens.count == 5 && tokens[0] == "actions" && tokens[4] == "default"))
         }
         project = try replacing(project, at: ["root"][...], with: .string(canonicalRoot(root)), allowMissingLeaf: true)
         do { return try project.decode(as: ProjectConfig.self) }
@@ -174,7 +187,8 @@ public enum PortableConfiguration {
             _ = try allowedType(input, project: document.project, tokens: parts)
         }
         for target in secretTargets(document.project) {
-            guard value(document.project, at: try tokens(target)) == nil,
+            let stored = value(document.project, at: try tokens(target))
+            guard stored == nil || stored == .object(["secret": .bool(true)]),
                   document.inputs.contains(where: { $0.target == target && $0.kind == .secret }) else {
                 throw invalid("秘密值必须移到独立本机输入文件，并声明必填输入。")
             }
@@ -185,10 +199,10 @@ public enum PortableConfiguration {
     private static let projectKeys: Set<String> = ["schemaVersion", "name", "services", "env", "params", "actions", "maven", "repositories", "mavenProjects", "instance"]
     private static func invalid(_ message: String) -> PortableConfigError { PortableConfigError(message: message) }
     private static func isScalar(_ value: JSONValue) -> Bool {
-        switch value { case .string, .bool: true; case .number(let n): n.isFinite; default: false }
+        switch value { case .string, .bool: true; case .number(let n): n.isFinite; case .array(let a): a.allSatisfy { $0.stringValue != nil }; default: false }
     }
-    private static func matches(_ value: JSONValue, type: ParamType) -> Bool {
-        switch (value, type) { case (.string, .string), (.string, .enum), (.bool, .boolean): true; case (.number(let n), .number): n.isFinite; default: false }
+    private static func matches(_ value: JSONValue, type: ActionParamType) -> Bool {
+        switch (value, type) { case (.string, .string), (.string, .enum), (.bool, .boolean): true; case (.number(let n), .number): n.isFinite; case (.array(let a), .multiselect): a.allSatisfy { $0.stringValue.map { !$0.contains("\0") } == true }; default: false }
     }
     private static func pointer(_ tokens: [String]) -> String {
         "/" + tokens.map { $0.replacingOccurrences(of: "~", with: "~0").replacingOccurrences(of: "/", with: "~1") }.joined(separator: "/")
@@ -210,14 +224,17 @@ public enum PortableConfiguration {
         }
         return current
     }
-    private static func allowedType(_ input: PortableConfigInput, project: JSONValue, tokens: [String]) throws -> ParamType {
-        var type: ParamType = .string
+    private static func allowedType(_ input: PortableConfigInput, project: JSONValue, tokens: [String]) throws -> ActionParamType {
+        var type: ActionParamType = .string
         var expectedSecret = false
         var allowed = false
-        if tokens.count == 3, tokens[0] == "params", let param = value(project, at: Array(tokens.prefix(2))), tokens[2] == "value" {
+        if tokens.count == 5, tokens[0] == "actions", tokens[2] == "params", tokens[4] == "default", let param = value(project, at: Array(tokens.prefix(4))) {
             expectedSecret = param["secret"]?.boolValue == true
-            type = ParamType(raw: param["type"]?.stringValue ?? "invalid")
-            allowed = type.isKnown
+            type = ActionParamType(raw: param["type"]?.stringValue ?? "invalid"); allowed = type.isKnown
+        } else if tokens.count == 3, tokens[0] == "params", let param = value(project, at: Array(tokens.prefix(2))), tokens[2] == "value" {
+            expectedSecret = param["secret"]?.boolValue == true
+            type = ActionParamType(raw: param["type"]?.stringValue ?? "invalid")
+            allowed = type.isKnown && type != .multiselect
         } else {
             var base: [String] = []
             var rest = tokens
@@ -237,7 +254,7 @@ public enum PortableConfiguration {
         }
         if input.kind == .path {
             let stored = value(project, at: tokens)
-            let declaredParam = tokens.count == 3 && tokens[0] == "params" && tokens[2] == "value"
+            let declaredParam = (tokens.count == 3 && tokens[0] == "params" && tokens[2] == "value") || (tokens.count == 5 && tokens[0] == "actions" && tokens[4] == "default")
             guard (stored?.stringValue != nil || (declaredParam && stored == nil)), type == .string || type == .enum else {
                 throw invalid("路径输入只能替换已存在的字符串标量。")
             }
@@ -271,7 +288,14 @@ public enum PortableConfiguration {
         }
         env(project["env"], base: ["env"])
         for collection in ["services", "actions"] {
-            for (i, item) in (project[collection]?.arrayValue ?? []).enumerated() { env(item["env"], base: [collection, String(i), "env"]) }
+            for (i, item) in (project[collection]?.arrayValue ?? []).enumerated() {
+                env(item["env"], base: [collection, String(i), "env"])
+                if collection == "actions" {
+                    for (j, param) in (item["params"]?.arrayValue ?? []).enumerated() where param["secret"]?.boolValue == true && param["default"] != nil {
+                        targets.append(pointer([collection, String(i), "params", String(j), "default"]))
+                    }
+                }
+            }
         }
         for (i, item) in (project["params"]?.arrayValue ?? []).enumerated() where item["secret"]?.boolValue == true {
             targets.append(pointer(["params", String(i), "value"]))

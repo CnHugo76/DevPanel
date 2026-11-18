@@ -56,6 +56,7 @@ private struct ActionEditorCard: View {
                 }
             }
             Button("＋ 环境变量") { action.service.env.append(EnvRow()) }
+            ActionParameterEditor(action: $action)
             ForEach(editor.localErrors.keys.filter { $0.hasPrefix("actions[\(index)]") }.sorted(), id: \.self) { key in
                 Text(editor.localErrors[key] ?? "").font(.caption).foregroundStyle(Theme.red)
             }

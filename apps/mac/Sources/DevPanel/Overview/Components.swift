@@ -187,16 +187,18 @@ struct ForceStopButton: View {
     }
 }
 
-/// `8081 ↗` (+ `局域网`), opens http://localhost:<port>.
+/// `8081 ↗` (+ `局域网`), opens the service's shortcut or the current port's default.
 struct PortChipView: View {
     let chip: PortChip
+    var targetURL: URL? = nil
+    var editLink: (() -> Void)? = nil
     @Environment(\.isStale) private var stale
     /// Narrow column: "局域网" becomes an amber dot (still explained in the help).
     var shortLAN = false
 
     var body: some View {
         Button {
-            NSWorkspace.shared.open(chip.url)
+            NSWorkspace.shared.open(targetURL ?? chip.url)
         } label: {
             HStack(spacing: 3) {
                 Text("\(String(chip.port)) ↗")
@@ -218,8 +220,44 @@ struct PortChipView: View {
             .fixedSize()
         }
         .buttonStyle(.plain)
-        .help(chip.help)
+        .help(chip.help(opening: targetURL ?? chip.url))
+        .contextMenu {
+            if let editLink { Button("编辑快捷打开地址…", action: editLink) }
+        }
         .pointerStyleLink()
+    }
+}
+
+/// Read the sample here so live updates only invalidate this label.
+struct ResourceUsageLabel: View {
+    let sample: () -> ResourceSample?
+    @Environment(\.isStale) private var stale
+
+    var body: some View {
+        let sample = sample()
+        let cpu = Metrics.cpu(sample, active: true)
+        let mem = Metrics.memory(sample, active: true)
+        HStack(spacing: 4) {
+            Text("CPU").foregroundStyle(Theme.text2)
+            value(cpu).help(cpu.help ?? "")
+            Text("· 内存").foregroundStyle(Theme.text2)
+            value(mem).help(mem.help ?? "")
+            if cpu.partial || mem.partial {
+                Text("部分").font(.system(size: 10)).foregroundStyle(Theme.amber)
+            }
+        }
+        .font(.system(size: 12))
+        .monospacedDigit()
+        .lineLimit(1)
+        .fixedSize()
+        .staleDimmed()
+        .accessibilityElement(children: .combine)
+    }
+
+    private func value(_ m: MetricText) -> some View {
+        Text(m.text)
+            .fontWeight(m.kind == .value ? .semibold : .regular)
+            .foregroundStyle(m.kind == .value && !stale ? Theme.text : Theme.text3)
     }
 }
 

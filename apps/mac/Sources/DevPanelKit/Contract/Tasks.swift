@@ -1,6 +1,8 @@
 import Foundation
 
 public struct ActionConfig: Codable, Hashable, Sendable, Identifiable {
+    public var params: [ActionParamConfig]? = nil
+    public var runLabel: String? = nil
     public var id: String
     public var name: String
     public var description: String?
@@ -92,6 +94,7 @@ public struct TaskRunSummary: Codable, Hashable, Sendable, Identifiable {
     }
 }
 public struct TaskRunDetail: Codable, Hashable, Sendable {
+    public var actionParams: [ActionParamSnapshot]? = nil
     public var id: RunID
     public var projectId: ProjectID
     public var kind: TaskRunKind
@@ -115,6 +118,8 @@ public struct TaskRunDetail: Codable, Hashable, Sendable {
     public var processes: [RunProcessInfo]
 }
 public struct ActionView: Codable, Hashable, Sendable, Identifiable {
+    public var params: [ActionParamConfig]? = nil
+    public var runLabel: String? = nil
     public var id: String
     public var name: String
     public var description: String?

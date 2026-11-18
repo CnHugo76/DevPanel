@@ -421,7 +421,7 @@ export async function startServer(
           if (parts.length === 5 && parts[2] === "actions" && parts[4] === "runs") {
             if (method === "GET") { reply(manager.taskHistory(pid, { kind: "action", actionId: parts[3]! })); return; }
             if (method === "POST") {
-              const result = await manager.startAction(pid, parts[3]!, actor);
+              const result = await manager.startAction(pid, parts[3]!, actor, await body(req));
               reply(result, result.created ? 202 : 200); return;
             }
           }

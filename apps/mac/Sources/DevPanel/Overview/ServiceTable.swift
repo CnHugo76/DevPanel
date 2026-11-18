@@ -52,28 +52,28 @@ struct ServiceRow: View {
     let layout: ColumnLayout
     let forceStop: (ForceStopTarget) -> Void
 
+    var simple = false
+
     @Environment(\.isStale) private var stale
     @Environment(\.hoverEnabled) private var hoverEnabled
+    @Environment(ServiceLinkPreferences.self) private var links
+    @Environment(ProjectOrganization.self) private var organization
     @State private var hover = false
+    @State private var editingLink = false
+    @State private var editingPort: Int?
 
     private var ref: ServiceRef { ServiceRef(project.id, service.id) }
     private var selected: Bool { model.selection == ref }
     private var narrowStatus: Bool { (layout.width(.status) ?? 112) < 112 }
 
     var body: some View {
-        let sample = Metrics.currentSample(service, model.serviceStats(project.id, service.id))
-        let active = service.currentRun != nil
-        HStack(spacing: 0) {
-            ForEach(layout.columns, id: \.self) { column in
-                cell(column, sample: sample, active: active)
-                    .padding(.leading, column == .status && narrowStatus ? 4 : 10)
-                    .padding(.trailing, column == .actions || (column == .status && narrowStatus) ? 4 : 10)
-                    .frame(width: CGFloat(layout.width(column) ?? 0), alignment: column.trailing ? .trailing : .leading)
-                    .clipped()
+        Group {
+            if simple {
+                compactRow
+            } else {
+                detailedRow
             }
         }
-        .padding(.vertical, 9)
-        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
         .background(selected ? Theme.sel : hover ? Theme.graySoft : .clear)
         .contentShape(Rectangle())
         .onHover { hover = $0 && hoverEnabled }
@@ -86,10 +86,70 @@ struct ServiceRow: View {
             }
         }
         .contextMenu {
+            serviceOrderMenu
+            Button("编辑快捷打开地址…") { editingPort = nil; editingLink = true }
             Button(service.locked == true ? "解锁" : "锁定") { Task { await model.setServiceLocked(ref, locked: service.locked != true) } }.disabled(stale)
+        }
+        .sheet(isPresented: $editingLink) {
+            ServiceLinkSheet(links: links, ref: ref, serviceName: service.name,
+                             ports: editingPort.map { preferred in [preferred] + model.shortcutPorts(ref).filter { $0 != preferred } } ?? model.shortcutPorts(ref))
         }
         .accessibilityElement(children: .contain)
         .accessibilityAddTraits(selected ? .isSelected : [])
+        .modifier(ArrangementDrop { value, after in
+            guard case .service(let projectID, let serviceID) = value,
+                  projectID == project.id, serviceID != service.id,
+                  project.services.contains(where: { $0.id == serviceID }) else { return false }
+            organization.placeService(serviceID, in: project, beside: service.id, after: after)
+            return true
+        })
+    }
+
+    private var compactRow: some View {
+        let metricsBelowName = layout.totalWidth < 650
+        let active = service.currentRun != nil
+        return VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 8) {
+                ArrangementHandle(value: .service(project: project.id, service: service.id), label: "拖动服务 " + service.name)
+                Button(service.name) { model.select(ref) }
+                    .buttonStyle(.plain).lineLimit(1).help(service.name)
+                if service.locked == true { Image(systemName: "lock").help("AI 操作已锁定") }
+                if service.hold != nil { SupervisionNote(model: model, project: project, service: service) }
+                Spacer(minLength: 4)
+                if active && !metricsBelowName { resourceUsage }
+                TimeCell(model: model, rules: service.statusRefresh) { now in
+                    StatusPill(label: service.status(now: now))
+                }
+                Button("日志") { model.openLogs(ref) }.buttonStyle(.borderless)
+                actionsCell
+            }
+            if active && metricsBelowName {
+                resourceUsage.padding(.leading, 28).padding(.bottom, 5)
+            }
+        }
+        .font(.callout).padding(.leading, 29).padding(.trailing, 10).frame(minHeight: 36)
+    }
+
+    private var resourceUsage: some View {
+        ResourceUsageLabel {
+            Metrics.currentSample(service, model.serviceStats(project.id, service.id))?.sample
+        }
+    }
+
+    private var detailedRow: some View {
+        let sample = Metrics.currentSample(service, model.serviceStats(project.id, service.id))
+        let active = service.currentRun != nil
+        return HStack(spacing: 0) {
+            ForEach(layout.columns, id: \.self) { column in
+                cell(column, sample: sample, active: active)
+                    .padding(.leading, column == .status && narrowStatus ? 4 : 10)
+                    .padding(.trailing, column == .actions || (column == .status && narrowStatus) ? 4 : 10)
+                    .frame(width: CGFloat(layout.width(column) ?? 0), alignment: column.trailing ? .trailing : .leading)
+                    .clipped()
+            }
+        }
+        .padding(.vertical, 9)
+        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
     }
 
     @ViewBuilder
@@ -124,6 +184,7 @@ struct ServiceRow: View {
     private var nameCell: some View {
         let paramChanged = model.hasPendingParams(project.id, service.id)
         return HStack(spacing: 9) {
+            ArrangementHandle(value: .service(project: project.id, service: service.id), label: "拖动服务 \(service.name)")
             ServiceIdentityMark(color: Theme.process(ProcessPalette.index(of: service.id, in: project)))
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: 4) {
@@ -206,7 +267,10 @@ struct ServiceRow: View {
 
     private func chipRow(_ chips: [PortChip], count: Int, short: Bool) -> some View {
         HStack(spacing: 4) {
-            ForEach(chips.prefix(count)) { PortChipView(chip: $0, shortLAN: short) }
+            ForEach(chips.prefix(count)) { chip in
+                PortChipView(chip: chip, targetURL: links.url(for: ref, port: chip.port),
+                             editLink: { editingPort = chip.port; editingLink = true }, shortLAN: short)
+            }
             if count < chips.count {
                 Text("+\(chips.count - count)")
                     .font(.system(size: 11))
@@ -244,11 +308,21 @@ struct ServiceRow: View {
                 ) { run(.restart) }
             }
             MoreMenu(size: service.availableActions.forceStop ? 22 : 26) {
+                serviceOrderMenu
                 Button("显示详情") { model.select(ref) }
                 Button("打开日志") { model.openLogs(ref) }
+                Button("编辑快捷打开地址…") { editingPort = nil; editingLink = true }
                 Button(service.locked == true ? "解锁" : "锁定") { Task { await model.setServiceLocked(ref, locked: service.locked != true) } }.disabled(stale)
                 Button("复制服务 ID") { copy(service.id) }
             }
+        }
+    }
+
+    private var serviceOrderMenu: some View {
+        Group {
+            Button("上移服务") { organization.shiftService(service.id, in: project, down: false) }
+            Button("下移服务") { organization.shiftService(service.id, in: project, down: true) }
+            Divider()
         }
     }
 

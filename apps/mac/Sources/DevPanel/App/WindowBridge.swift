@@ -1,6 +1,23 @@
 import AppKit
 import SwiftUI
 
+/// Let AppKit lay out the native window buttons at the compact header's center.
+/// The empty toolbar leaves the SwiftUI header controls and drag area interactive.
+@MainActor enum MainWindowChrome {
+    static func apply(to window: NSWindow) {
+        window.title = "DevPanel"
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.toolbarStyle = .unifiedCompact
+        window.titlebarSeparatorStyle = .none
+        if window.toolbar == nil {
+            let toolbar = NSToolbar(identifier: "DevPanel.MainWindow")
+            toolbar.allowsUserCustomization = false
+            window.toolbar = toolbar
+        }
+    }
+}
+
 @MainActor final class AppDelegate: NSObject, NSApplicationDelegate {
     weak var controller: AppController?
     func applicationWillTerminate(_ notification: Notification) { controller?.model.stop() }
@@ -30,6 +47,7 @@ struct WindowBridge: NSViewRepresentable {
         func attach(_ window: NSWindow) {
             controller.window = window
             guard window.delegate !== self else { return }
+            MainWindowChrome.apply(to: window)
             previous = window.delegate; window.delegate = self
         }
         func windowShouldClose(_ sender: NSWindow) -> Bool {

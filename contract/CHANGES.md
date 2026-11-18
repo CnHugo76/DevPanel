@@ -17,6 +17,167 @@
 
 ## 已生效
 
+### [已生效] v1.6-A 快捷操作专属参数与执行前就地选择 — 提出方：Codex — 2026-10-27
+
+- 动机：用户要求在“快捷操作”页选择本次部署服务、切换是否备份后执行。目前 `ActionConfig` 只能引用项目选项，运行端点不读取请求体，`ParamValue` 不支持数组；临时修改项目选项再恢复会改变共享配置，也无法可靠表达并行操作的本次选择。
+- 状态：用户于 2026-10-27 明确同意本提案并要求实现；以下契约已生效，产品实现与验收进度见 docs/plan-v0.4.md。
+
+#### 类型差异
+
+沿用项目选项的四个标量类型，单独扩展操作参数；不扩大项目级 `ParamType` / `ParamValue` 的取值范围。
+
+```ts
+export type ActionParamType = ParamType | 'multiselect';
+export type ActionParamValue = ParamValue | string[];
+
+export interface ActionParamConfig {
+  /** 与项目选项 key 格式一致；只要求在所属操作内唯一。 */
+  key: string;
+  label: string;
+  description?: string;
+  type: ActionParamType;
+  required?: boolean; // 缺省 false
+  /** secret 的默认值响应为 {secret:true}；请求中该标记表示保持原默认值。 */
+  default?: ActionParamValue | { secret: true };
+  choices?: ParamChoice[]; // enum / multiselect 必填，非空且 value 唯一
+  min?: number;           // 仅 number；有限数值
+  max?: number;           // 仅 number；有限数值
+  secret?: boolean;
+}
+
+export interface ActionRunRequest {
+  params?: Record<string, ActionParamValue>;
+  /** 可选；原生表单必须发送打开表单时的 revision。 */
+  ifRevision?: number;
+}
+
+export interface ActionParamSnapshot {
+  key: string;
+  label: string;
+  description?: string;
+  type: ActionParamType;
+  /** null = 未提供且无默认值；false / 0 / [] 不等于缺省。 */
+  value: ActionParamValue | { secret: true } | null;
+  /** 仅非敏感枚举，保存当时已选值的 value / label / description。 */
+  choices?: ParamChoice[];
+}
+
+// ActionConfig 新增：
+// params?: ActionParamConfig[];
+// runLabel?: string; // 可选提交按钮文字；缺省“开始运行”，示例“开始部署”
+
+// ActionView 新增：
+// params?: ActionParamConfig[]; // 同配置的已脱敏定义，便于 UI / action list 发现参数
+// runLabel?: string;
+
+// TaskRunDetail 新增：
+// actionParams?: ActionParamSnapshot[];
+// 现有 params 仍只保存实际引用的项目选项，保持原类型与语义。
+
+// DaemonInfo 新增：
+// capabilities?: string[]; // 支持本提案时包含 'action-params-v1'；未知能力忽略
+```
+
+#### 配置、校验与一次运行的语义
+
+- 参数按定义顺序显示；`string` / `boolean` / `number` / `enum` / `multiselect` 对应文本框 / 开关 / 数字框 / 单选 / 多选复选框。名称、候选值与自定义 runLabel 须非空，文本不得包含 NUL；key、类型、范围、候选项与默认值在保存时校验。min 不得大于 max；其他类型不能带数字范围，非枚举类型不能带 choices；default 保持标记只允许用于 secret 参数。定义与默认值的保存不执行命令。
+- 有效值只取“本次请求显式提供的值 → 所属操作的默认值 → 未提供”。不读取或写回项目级选项、不记住上次选择、不从其他操作取值，不递增项目 revision，不改变选项设置者或配置更新时间。下次打开表单重新使用配置默认值。
+- `required:true` 必须有符合类型的有效值：文本不能全为空白，多选至少一项；`false` 和 `0` 均算有效提供。无默认值的必填参数允许保存定义，执行前必须填写；可选且未提供的参数快照为 null，引用时替换为空字符串。
+- 不做字符串到布尔或数字的隐式转换；数字须有限且符合 min/max；单选须在候选项中，多选须为无重复的候选值字符串数组，并按候选项定义顺序规范化。显式空数组仅在非必填多选中有效，传参时编码为 `[]`。
+- 请求体允许省略或为 `{}`，等同只用默认值；未知请求字段、非对象请求体、无效 JSON、无效 ifRevision 返回 400 `BAD_REQUEST`。未知参数 key 返回 422 `CONFIG_INVALID`，issue.code 为 `PARAM_UNKNOWN`；类型、必填、候选值、重复值或范围错误同为 422，issue.code 为 `PARAM_INVALID`，path 指向 `params.<key>`。错误不回显提交值。修订号不匹配返回现有 409 `REVISION_MISMATCH`。
+- 完整校验、展开与快照使用同一份配置和 revision，在建立运行或 spawn 前完成。校验失败不创建运行、不执行命令。参数值只能是自身数据属性，拒绝原型属性；遵循既有 HTTP 请求大小上限。
+- 对没有参数的操作继续接受原有空请求并一键执行。对于正在运行的同一操作：有效操作参数相同则沿用 200 `created:false`；不同则 409 `TASK_RUNNING`，只返回既有 runId，不能把新选择当作已生效。比较使用私有有效值，不能比较脱敏标记。不同操作仍可并行，保留各自快照。
+
+#### 安全传参
+
+- 操作参数采用显式命名空间 `${action.<key>}`，项目选项继续使用 `${key}`，因此同名 key 不会遮蔽。`$${action.<key>}` 为字面量。只在所属操作的 `command[1..]` 与生效的普通字符串 `action.env` 中展开；不得用于 command[0]、cwd 或其他元数据。项目 env 与服务不获得操作参数作用域。
+- 标量沿用 §3.1：数字为十进制、布尔为 `true` / `false`，文本保持原值；每个 argv 元素展开后仍是一个元素，不重新分词或递归解析插入值。
+- 多选固定编码为紧凑 JSON 数组字符串。例如 `['frontend', 'backend']` 的传递文本为 `["frontend","backend"]`；命令参数是一个 argv 元素，环境变量是同一 JSON 文本。显式数组顺序采用上述规范化顺序。脚本据此解析 JSON，不猜逗号分隔或展开规则。
+- 已有 sh/bash/zsh `-c` / `-…c` 的脚本 argv 继续对完整替换值执行现有、感知引号上下文的 POSIX 字面量转义；后续位置参数仍是普通 argv。项目选项与操作参数在一次模板扫描中替换，不能把一个参数值中的 `${...}` 当作另一个引用。shell 元字符、空格、引号、中文与换行不改变 argv 边界。
+- 未知的 `${action.<key>}` 在所属操作中报 `PARAM_UNKNOWN`；操作参数在不支持的操作字段中引用时报 `PARAM_INVALID`。其他已有字段的占位符语义不变。操作专属参数未使用可沿用 `WARN_PARAM_UNUSED`，不进入项目选项的 `usedBy` 或删除写回流程。
+- 保存定义时，对缺少本次值的参数仅检查模板，不要求填出必填运行值。若操作的有效 PATH 因此无法确定，沿用未解析敏感 PATH 的表示：programResolved=null、pathUsed=""，不据此报 COMMAND_NOT_FOUND；执行请求补齐参数后，在创建运行前完整验证实际 cwd 与有效 PATH / 程序，失败按既有 CONFIG_INVALID / COMMAND_NOT_FOUND 等 issue 返回。
+
+#### 快照与敏感值
+
+- 新建操作运行时保存全部操作参数的有效值及 key / 名称 / 类型 / 说明 / 当时已选候选项标签，包括采用默认值、未被命令引用和未提供的参数。后续编辑或删除操作不会改变历史；不根据当前定义反推旧运行。
+- 新 daemon 对新操作运行总是返回 `actionParams`（无参数为 `[]`）；旧记录缺失该字段时，界面显示“未保存操作参数快照”。Maven 不使用此字段。运行详情中的现有项目 `params` 字段保持原样。
+- `secret:true` 的 default 在配置、ActionView、校验结果和导出中隐藏；运行快照的已提供值一律为 `{secret:true}`，不返回已选候选标签。command 的相关片段为 `••••`。日志、日志摘要、检索、SSE、动态、CLI 输出、排查信息及错误均不得泄露值。枚举候选项与说明属于公开定义，不能把秘密写进定义元数据。
+- 参数默认值的 `{secret:true}` 保持标记只匹配同项目、同 actionId、同 key 的既有敏感默认值；新注册或新 key 没有原值时拒绝保存。省略 default 表示没有默认值，允许明确删除默认值；独立 validate 接受保持标记，保存时核验。
+- 本次敏感值在展开、来源字段净化和日志采集前就纳入既有敏感值处理；不能只从 project.config 收集。数组同时登记各原始元素及最终 JSON 文本。私有运行信息如为沿用现有脱敏/恢复机制保留原值，遵循既有 0600 存储与运行留存上限，不加入公开快照或项目配置。结束、重启、改默认值后读取旧运行仍脱敏。
+
+#### CLI/API 与旧版兼容
+
+- `POST /projects/:projectId/actions/:actionId/runs` 新增上述 `ActionRunRequest` 请求体，响应结构仍为 `StartTaskRunResponse`。默认值解析、必填及类型校验在 daemon 执行，CLI、界面和直接 API 请求一致。
+- CLI 增加 `action run <project-id> <action-id> --params <JSON对象>` 或 `--params-file <文件或->`，二者互斥；`-` 从 stdin 读取。文件/输入有界读取，不回显解析文本；敏感输入推荐经 stdin 或本机文件传入。可选 `--if-revision` 对应请求 revision。现有 no-wait/follow/timeout/json 与退出码保持，参数校验错误退出 2；`action list` 提供已脱敏参数定义。
+- 旧 daemon 的该路由不读取请求体，会静默忽略新参数。新 CLI / 原生在保存含操作参数的配置、导入此类配置或按操作参数执行之前，必须确认 `GET /daemon` 的 capabilities 含 `action-params-v1`；缺失则报告需要升级，不保存、不发运行请求，也不退回项目选项方案。只看 `apiVersion:1` 或应用版本号不够。直接 API 调用者同样须先确认能力。
+- 新 daemon 向旧客户端提供可忽略的可选字段；旧配置、无参数操作和既有运行详情继续可读。旧客户端运行带参数操作时只能使用已保存默认值，缺必填值照常报错；完整的执行前表单需要新版客户端。
+- 可分享配置同步处理 `actions[*].params[*].default`：导出将敏感默认值替换为 `{secret:true}` 并声明本机待填输入，导入不得把缺失秘密当作清空；本机绝对路径默认值沿用路径输入规则。`PortableConfigInput.valueType` 扩展接受 `multiselect`，仅此类型的操作默认值输入允许字符串数组；项目选项等原目标仍限定为原标量。数组输入只能填写声明的操作参数默认值位置，不能改变定义、候选项或任意配置结构。含本机绝对路径的枚举候选项继续拒绝导出。分享格式 version 仍为 1，新导入端拒绝不支持的输入类型；已有文件行为不变。
+
+#### “示例打包部署”示例
+
+```json
+{
+  "id": "deploy-demo",
+  "name": "示例打包部署",
+  "description": "选择本次部署服务及是否先备份数据库。",
+  "cwd": ".",
+  "command": ["node", "scripts/deploy-demo.mjs", "--services", "${action.services}"],
+  "env": { "BACKUP_DATABASE": "${action.backupDatabase}" },
+  "runLabel": "开始部署",
+  "params": [
+    {
+      "key": "services",
+      "label": "部署服务",
+      "description": "至少选择一个本次需要部署的服务。",
+      "type": "multiselect",
+      "required": true,
+      "default": ["frontend", "backend"],
+      "choices": [
+        { "value": "frontend", "label": "前端" },
+        { "value": "backend", "label": "后端" },
+        { "value": "runtime", "label": "Runtime" }
+      ]
+    },
+    {
+      "key": "backupDatabase",
+      "label": "备份数据库",
+      "description": "部署前备份数据库。",
+      "type": "boolean",
+      "default": true
+    }
+  ]
+}
+```
+
+本例脚本名为接口示意，不代表已修改用户项目或已具备部署脚本。脚本从 `--services` 后的一个 argv 解析 JSON，从 `BACKUP_DATABASE` 读取 `true` / `false`。
+
+```json
+{
+  "ifRevision": 7,
+  "params": { "services": ["backend", "runtime"], "backupDatabase": false }
+}
+```
+
+对应 CLI（projectId 为占位符）：
+
+```bash
+devpanel action run <project-id> deploy-demo --params '{"services":["backend","runtime"],"backupDatabase":false}' --if-revision 7 --json
+```
+
+实际 argv 为 `node`、`scripts/deploy-demo.mjs`、`--services`、`["backend","runtime"]` 四个元素，环境变量 BACKUP_DATABASE 为 `false`。运行记录显示“部署服务：后端、Runtime；备份数据库：关闭”，再次打开表单仍为“前端、后端；开启”。
+
+#### 界面与另一方影响
+
+- 原生沿用“快捷操作”检查器：点击运行，在当前页所属窗口打开参数表单，标题是操作名；字段显示名称、说明与默认值，三项服务用可同时勾选的复选框，备份用开关。按钮为“取消”与 `runLabel`（本例“开始部署”）。Esc / 取消仅关闭表单，无 HTTP 运行请求、无运行记录；关闭后焦点回到原运行按钮。
+- 有参数时必须展示表单，即使所有参数已有默认值；没有参数时保持当前一键执行及既有的服务运行确认规则。有参数且需服务运行确认时，把提醒并入同一表单，不再跳去选项页或叠加第二个确认框。服务运行状态变化在提交时重新核对，必要时留在表单更新提醒，等待用户再次明确提交。
+- 校验错误就地显示在字段下并聚焦首个错误；未提供的可选值与显式空值分开，提供“本次不传”状态；敏感默认值仅提示“使用已保存的默认值”，用户修改后才发送覆盖值。提交中禁用重复提交，不能把“取消表单”解释为“取消已开始的任务”。提交成功后回到原页并选中对应运行，参数摘要固定在该运行日志旁，支持展开；切换历史运行按 runId 读取快照。
+- 表单草稿限定为 projectId + actionId + 打开时 revision，不写 UserDefaults。打开时配置无法载入不执行；断连禁用提交；revision 过期保留本次草稿并要求刷新复核，不自动改值或重试执行。切换项目/操作时关闭草稿，避免错目标；提交结果不确定时查询已有运行，不自动重发部署。
+- 编辑项目的快捷操作分区可编辑专属参数定义、默认值、候选项、必填/敏感、数字范围与运行按钮文字。新参数与项目“选项”分开显示。旧操作不会自动迁移；真实部署项目的配置和脚本适配不在本次仓库改动中隐式执行。
+- 确认后同步契约语义/类型、daemon 校验/展开/快照/脱敏/持久化、CLI、mock、Swift 模型与编辑器/表单/运行详情、配置分享、使用文档及 `skills/devpanel/`。旧 Web UI 维持现有兼容检查，不增加新功能页。实现次序及验收见 [v0.4 记录](../docs/plan-v0.4.md#2026-10-27-快捷操作专属参数需求与待确认契约)。
+
+- 确认结论：按本提案实现，多选固定为一个 argv/env 中的 JSON 数组文本；同步正式契约、daemon、CLI、mock、原生与配置分享。
+
+
 ### [已生效] v1.5-A 保留日志全文检索 — 提出方：Codex — 2026-10-25
 - 动机：用户授权四轮优化的第二轮要求从失败定位证据、搜索一次运行仍保留的全部日志；现有界面只搜索已加载缓存。
 - 差异：增加只读 `GET /runs/:runId/logs/search`，服务与任务共用。`q` 为 1–200 字符的普通文字，不执行正则；默认不区分大小写，可传 `caseSensitive=true`。`after` 为排他 seq 游标，`through` 为首次响应确定的快照上界，后续分页原样传回；`limit` 默认 50、范围 1–100，`context` 默认 2、范围 0–5。

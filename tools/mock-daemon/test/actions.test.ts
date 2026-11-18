@@ -31,6 +31,37 @@ async function ended(e: Engine, id: string) {
   throw new Error('task did not finish');
 }
 
+test('action parameters are isolated, typed, masked and captured with selected labels', async () => {
+  const { e, config, p } = setup();
+  config.actions![0]!.params = [
+    { key: 'services', label: '部署服务', type: 'multiselect', required: true, default: ['frontend', 'backend'], choices: [{ value: 'frontend', label: '前端' }, { value: 'backend', label: '后端' }, { value: 'runtime', label: 'Runtime' }] },
+    { key: 'backup', label: '备份数据库', type: 'boolean', default: true },
+    { key: 'token', label: '令牌', type: 'string', secret: true, default: 'private-default' },
+  ];
+  config.actions![0]!.command = ['node', 'deploy.js', '${action.services}', '${action.backup}', '${action.token}', '${mode}'];
+  const updated = e.update(p.id, { ifRevision: 1, config }, { client: 'ui', agent: null });
+  const before = e.maskedProject(e.getProj(p.id));
+  const actor = { client: 'ui' as const, agent: null };
+  assert.ok(e.daemonInfo().capabilities?.includes('action-params-v1'));
+  for (const params of [{ services: [] }, { services: ['wrong'] }, { services: ['backend', 'backend'] }, { backup: 'false' }, { unknown: true }]) {
+    assert.throws(() => e.startAction(p.id, 'build', actor, { params }), (error: unknown) => error instanceof HttpError && error.error.code === 'CONFIG_INVALID');
+  }
+  assert.equal(e.actionRuns(p.id, 'build').length, 0);
+  const params = { services: ['runtime', 'backend'], backup: false, token: 'one-time-token' };
+  const run = e.startAction(p.id, 'build', actor, { params, ifRevision: updated.revision });
+  assert.equal(e.startAction(p.id, 'build', actor, { params: { ...params, services: ['backend', 'runtime'] } }).created, false);
+  assert.throws(() => e.startAction(p.id, 'build', actor, { params: { ...params, backup: true } }), (error: unknown) => error instanceof HttpError && error.error.code === 'TASK_RUNNING');
+  const detail = await ended(e, run.run.id);
+  assert.deepEqual(detail.command.slice(2), ['["backend","runtime"]', 'false', '••••', 'local']);
+  assert.deepEqual(detail.actionParams?.map(p => p.value), [['backend', 'runtime'], false, { secret: true }]);
+  assert.equal(detail.actionParams?.[0]?.choices?.[0]?.label, '后端');
+  assert.ok(!JSON.stringify(detail).includes('one-time-token'));
+  assert.deepEqual(e.maskedProject(e.getProj(p.id)), before);
+  const next = e.startAction(p.id, 'build', actor);
+  assert.deepEqual(e.taskDetail(next.run.id).actionParams?.map(p => p.value), [['frontend', 'backend'], true, { secret: true }]);
+  await ended(e, next.run.id);
+});
+
 test('actions validate without running; refs, secrets, inline and keep markers follow services', () => {
   const { e, config, p } = setup();
   assert.deepEqual(p.config.params?.[0]?.usedBy, [{ serviceId: 'action:build', where: 'command', index: 2 }]);

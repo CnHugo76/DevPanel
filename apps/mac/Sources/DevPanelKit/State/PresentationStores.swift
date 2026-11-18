@@ -25,9 +25,16 @@ private struct ServiceDisplay: Equatable {
 @Observable @MainActor final class ServiceStatsStore {
     @ObservationIgnored private var raw: ServiceStats?
     private var display = ServiceDisplay(nil)
+    private var socketRun: RunID?
+    private var sockets: [ListeningPort]?
+
+    func listening(for run: RunID) -> [ListeningPort]? { socketRun == run ? sockets : nil }
+
     var value: ServiceStats? { _ = display; return raw }
     func update(_ value: ServiceStats?) {
         raw = value
+        if socketRun != value?.runId { socketRun = value?.runId }
+        if sockets != value?.listening { sockets = value?.listening }
         let next = ServiceDisplay(value)
         if display != next { display = next }
     }

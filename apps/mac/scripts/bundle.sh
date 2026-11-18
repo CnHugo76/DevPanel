@@ -3,7 +3,7 @@
 #
 #   apps/mac/scripts/bundle.sh            # build/DevPanel.app
 #   apps/mac/scripts/bundle.sh /absolute/output/directory
-#   VERSION=0.4.1-dev apps/mac/scripts/bundle.sh
+#   VERSION=0.4.3-dev apps/mac/scripts/bundle.sh
 #
 # Never starts the app, the daemon or any project.
 set -eu
@@ -11,7 +11,7 @@ set -eu
 HERE=$(cd "$(dirname "$0")/.." && pwd)
 cd "$HERE"
 
-VERSION=${VERSION:-0.4.1}
+VERSION=${VERSION:-0.4.3}
 BUILD_NUMBER=${BUILD_NUMBER:-$(git rev-list --count HEAD 2>/dev/null || echo 1)}
 OUTPUT_DIR=${1:-"$HERE/build"}
 mkdir -p "$OUTPUT_DIR"

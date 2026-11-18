@@ -95,6 +95,9 @@ struct TaskOutput: View {
     let ref: TaskRef
     var body: some View {
         VStack(spacing: 0) {
+            if case .action = ref.target, let runId = model.viewedRunId(for: ref) {
+                ActionParameterSummary(model: model, runId: runId).id(runId)
+            }
             LogsTab(model: model, ref: .task(ref), project: project, currentRunId: model.taskRuns(ref).first { $0.endedAt == nil }?.id)
             if let run = model.taskRuns(ref).first(where: { $0.id == model.viewedRunId(for: ref) }) {
                 TaskRunText(model: model, run: run, includeResources: true)

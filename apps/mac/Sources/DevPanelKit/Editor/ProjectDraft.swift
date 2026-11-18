@@ -325,6 +325,13 @@ public struct ProjectDraft: Hashable, Sendable {
                 let service = one.config.services[0]
                 if !actionIDs.insert(service.id).inserted { errors["actions[\(i)].id"] = "快捷操作 ID 重复" }
                 var action = ActionConfig(id: service.id, name: service.name, description: draft.description.isEmpty ? nil : draft.description, cwd: service.cwd, command: service.command, env: service.env, stopTimeoutSec: service.stopTimeoutSec, confirmWhenServicesRunning: draft.confirmWhenServicesRunning ? true : nil)
+                if !draft.params.isEmpty {
+                    action.params = draft.params.enumerated().compactMap { j, param in
+                        do { return try param.build() }
+                        catch { errors["actions[\(i)].params[\(j)]"] = error.localizedDescription; return nil }
+                    }
+                }
+                action.runLabel = draft.runLabel.isEmpty ? nil : draft.runLabel
                 let timeout = draft.timeoutText.trimmingCharacters(in: .whitespaces)
                 if !timeout.isEmpty {
                     if let value = Int(timeout), (1...86400).contains(value) { action.timeoutSec = value }

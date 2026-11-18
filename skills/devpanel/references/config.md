@@ -168,6 +168,32 @@ Spring Boot 后端（项目根有 `mvnw`）+ Vite 前端：
 
 `devpanel project remove <project-id> --json` 只删除 DevPanel 里的配置、运行记录和日志，不碰项目文件。有服务在运行时返回 `PROJECT_RUNNING`；只在用户要求移除时使用。
 
+## 操作专属参数
+
+确认 daemon 提供 `action-params-v1` 后，在 `actions` 中添加 `params`。每项包含 `key`、`label`、`type`，可带 `description`、`required`、`default`、`secret`；数字可设 `min` / `max`，单选 `enum` 和多选 `multiselect` 必须提供不重复的 `choices: [{value,label?,description?}]`。
+
+```jsonc
+{
+  "id": "deploy-demo", "name": "示例打包部署", "cwd": ".", "runLabel": "开始部署",
+  "command": ["node", "deploy.mjs", "--services", "${action.services}"],
+  "env": { "BACKUP_DATABASE": "${action.backup}" },
+  "params": [
+    { "key": "services", "label": "部署服务", "type": "multiselect", "required": true,
+      "default": ["frontend", "backend"], "choices": [
+        { "value": "frontend", "label": "前端" }, { "value": "backend", "label": "后端" },
+        { "value": "runtime", "label": "Runtime" }
+      ] },
+    { "key": "backup", "label": "备份数据库", "type": "boolean", "default": true }
+  ]
+}
+```
+
+`${action.key}` 只在此操作的 `command[1..]` 或普通字符串 `env` 中展开；`${key}` 继续表示项目选项，`$${action.key}` 为字面量。多选编码成一个紧凑 JSON 字符串 argv / env，脚本用 JSON 解析，保持 argv 边界。复杂 Shell 逻辑优先将值放在 `-c` 之后的位置参数中。
+
+必填文本不能全空白，必填多选至少一项；false、0 有效。可选未提供值展开为空文本；不跨操作取值、不记忆上次运行。无参数的操作继续一键执行。编辑保存或分享导入都不执行操作。
+
+敏感默认值读取为 `{"secret":true}`，只在同 actionId + key 下保持原默认值；省略 default 表示删除默认值。候选项、名称和说明是公开定义，不能写入秘密。分享导出将敏感默认值转为必须另填的本机输入，多选本机输入保留字符串数组类型。
+
 ## Git 仓库与 Maven 工程（v0.4.1）
 
 确认 `devpanel --help` 包含 `--maven-project` 后可用：

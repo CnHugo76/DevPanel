@@ -17,6 +17,8 @@ import type {
 } from '@devpanel/contract';
 import { HttpError } from './errors.ts';
 import { stableStringify } from './util.ts';
+import { actionDefaultValues, expandAction, type ActionValues } from './action-params.ts';
+import type { ActionConfig } from '@devpanel/contract';
 
 export const PARAM_KEY_RE = /^[a-zA-Z][a-zA-Z0-9_]{0,31}$/;
 /** What a fragment that came from a secret param looks like in RunDetail.command and sys lines. */
@@ -308,7 +310,7 @@ function paramMap(cfg: ProjectConfig): Map<string, ParamConfig> {
   return new Map(list.filter((p): p is ParamConfig => isObj(p) && typeof p.key === 'string').map((p) => [p.key, p]));
 }
 
-export function substituteService(cfg: ProjectConfig, svc: ServiceConfig): Substitution {
+export function substituteService(cfg: ProjectConfig, svc: ServiceConfig, actionValues?: ActionValues): Substitution {
   const params = paramMap(cfg);
   const used = new Set<string>();
   const scriptIdx = shellScriptIndex(svc.command);
@@ -338,6 +340,13 @@ export function substituteService(cfg: ProjectConfig, svc: ServiceConfig): Subst
   for (const p of cfg.params ?? []) {
     if (!used.has(p.key)) continue;
     out[p.key] = p.secret ? { secret: true } : (p.value as ParamValue);
+  }
+  const values = actionValues ?? ((svc as ActionConfig).params ? actionDefaultValues(svc) : undefined);
+  if (values) {
+    const actual = expandAction(cfg, svc, values), masked = expandAction(cfg, svc, values, true);
+    for (const [key, v] of Object.entries(actual.env ?? {})) env[key] = typeof v === 'string' ? v : v.value ?? '';
+    for (const [key, v] of Object.entries(masked.env ?? {})) displayEnv[key] = typeof v === 'string' ? v : MASK;
+    return { command: actual.command, display: masked.command, env, displayEnv, envKeys: Object.keys(env), params: out };
   }
   return { command, display, env, displayEnv, envKeys: Object.keys(merged), params: out };
 }

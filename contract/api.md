@@ -53,7 +53,7 @@
 | GET | `/operations/:operationId` | – | `Operation` | 结束后至少保留 10 分钟 |
 | GET | `/operations/:operationId/wait` | `?timeoutMs=` (≤ 60000) | `Operation` | 长轮询：结束或超时即返回当前状态 |
 | GET | `/events` | – | SSE `DaemonEvent` | 见 §7 |
-| POST | `/projects/:projectId/actions/:actionId/runs` | – | 202 / 200 `StartTaskRunResponse` | v1.2-C，见 §11 |
+| POST | `/projects/:projectId/actions/:actionId/runs` | `ActionRunRequest`（可省略） | 202 / 200 `StartTaskRunResponse` | v1.2-C，见 §11 |
 | GET | `/projects/:projectId/actions/:actionId/runs` | – | `TaskRunSummary[]` | v1.2-C |
 | GET | `/projects/:projectId/maven` | `?reload=1` | `MavenModel` | v1.2-C；无 pom → 404 `MAVEN_UNAVAILABLE` |
 | POST | `/projects/:projectId/maven/runs` | `MavenRunRequest` | 202 `StartTaskRunResponse` | v1.2-C；忙 → 409 `TASK_RUNNING` |
@@ -250,7 +250,7 @@ devpanel param list <project-id> [--json]                                    # v
 devpanel param set <project-id> <key> <value> [--if-revision <n>] [--json]   # 设置者为 agent
 devpanel param remove <project-id> <key> [--inline] [--if-revision <n>] [--json]
 devpanel action list <project-id> [--json]                                                     # v1.2-C
-devpanel action run <project-id> <action-id> [--no-wait] [--follow] [--timeout <sec>] [--json]
+devpanel action run <project-id> <action-id> [--params <JSON> | --params-file <文件或->] [--if-revision <n>] [--no-wait] [--follow] [--timeout <sec>] [--json]
 devpanel maven modules <project-id> [--json]
 devpanel maven run <project-id> [--module <id>] [-P <p>]... [--skip-tests] [--offline] [--also-make] <goal>... [--no-wait] [--follow] [--json]
 devpanel task cancel <run-id> [--force] [--json]
@@ -327,7 +327,7 @@ devpanel --agent <name> …                                                     
 
 ### 11.2 快捷操作
 - 配置：`ProjectConfig.actions`（`ActionConfig`），校验规则同服务（ID 格式与唯一性、cwd、程序可解析、`${key}` 选项引用）；`usedBy` 中以 `serviceId = "action:<actionId>"` 表示引用。
-- 同一快捷操作同时最多一个运行：再次运行返回 200 `{ created: false, run: <现有运行> }`；不同快捷操作可并行。
+- 同一快捷操作同时最多一个运行：有效操作参数相同的再次运行返回 200 `{ created: false, run: <现有运行> }`；不同参数返回 409 `TASK_RUNNING`（details.runId），见 §21。不同快捷操作可并行。
 - `confirmWhenServicesRunning` 只供客户端确认，daemon 不阻止。
 
 ### 11.3 Maven
@@ -492,3 +492,52 @@ Actor 新增可选 taskId、taskLabel。CLI 的 --task/--task-label 优先于 DE
 服务操作、运行、配置动态、任务运行与取消沿用 Actor 存储工作信息。项目动态支持 task 筛选（GET activity 的 task 查询参数；CLI activity --task），分页保持原有 before/limit 语义，筛选后应用 limit。客户端可以按 task 展示关联工作，不改变操作/运行身份。
 
 ProjectConfig 新增可选 instance={group,name}，两字段均为 1–80 个 Unicode 标量的单行显示文本且不能全为空白，ProjectView 同步提供可选 instance。它仅作分组/标识：同一真实 root 仍唯一，不同 root 的项目保持独立 projectId、配置版本、服务、日志、端口设置与暂停/锁定。导入允许 --group/--instance 显式覆盖显示信息（须同时提供）。不创建/切换/删除 worktree，不自动分配端口，不扫描或接管外部进程。旧配置/客户端不受影响。
+
+
+## 21. 快捷操作专属参数（v1.6-A）
+
+操作参数定义见 `ActionParamConfig`，通过 `ActionConfig.params` 保存，并由 `ActionView.params` 返回已脱敏定义；`runLabel` 是可选提交按钮文字。运行请求为 `ActionRunRequest`，详情新增 `actionParams: ActionParamSnapshot[]`，不改变项目选项与其历史 `params` 字段。
+
+### 配置、校验与一次运行的语义
+
+- 参数按定义顺序显示；`string` / `boolean` / `number` / `enum` / `multiselect` 对应文本框 / 开关 / 数字框 / 单选 / 多选复选框。名称、候选值与自定义 runLabel 须非空，文本不得包含 NUL；key、类型、范围、候选项与默认值在保存时校验。min 不得大于 max；其他类型不能带数字范围，非枚举类型不能带 choices；default 保持标记只允许用于 secret 参数。定义与默认值的保存不执行命令。
+- 有效值只取“本次请求显式提供的值 → 所属操作的默认值 → 未提供”。不读取或写回项目级选项、不记住上次选择、不从其他操作取值，不递增项目 revision，不改变选项设置者或配置更新时间。下次打开表单重新使用配置默认值。
+- `required:true` 必须有符合类型的有效值：文本不能全为空白，多选至少一项；`false` 和 `0` 均算有效提供。无默认值的必填参数允许保存定义，执行前必须填写；可选且未提供的参数快照为 null，引用时替换为空字符串。
+- 不做字符串到布尔或数字的隐式转换；数字须有限且符合 min/max；单选须在候选项中，多选须为无重复的候选值字符串数组，并按候选项定义顺序规范化。显式空数组仅在非必填多选中有效，传参时编码为 `[]`。
+- 请求体允许省略或为 `{}`，等同只用默认值；未知请求字段、非对象请求体、无效 JSON、无效 ifRevision 返回 400 `BAD_REQUEST`。未知参数 key 返回 422 `CONFIG_INVALID`，issue.code 为 `PARAM_UNKNOWN`；类型、必填、候选值、重复值或范围错误同为 422，issue.code 为 `PARAM_INVALID`，path 指向 `params.<key>`。错误不回显提交值。修订号不匹配返回现有 409 `REVISION_MISMATCH`。
+- 完整校验、展开与快照使用同一份配置和 revision，在建立运行或 spawn 前完成。校验失败不创建运行、不执行命令。参数值只能是自身数据属性，拒绝原型属性；遵循既有 HTTP 请求大小上限。
+- 对没有参数的操作继续接受原有空请求并一键执行。对于正在运行的同一操作：有效操作参数相同则沿用 200 `created:false`；不同则 409 `TASK_RUNNING`，只返回既有 runId，不能把新选择当作已生效。比较使用私有有效值，不能比较脱敏标记。不同操作仍可并行，保留各自快照。
+
+### 安全传参
+
+- 操作参数采用显式命名空间 `${action.<key>}`，项目选项继续使用 `${key}`，因此同名 key 不会遮蔽。`$${action.<key>}` 为字面量。只在所属操作的 `command[1..]` 与生效的普通字符串 `action.env` 中展开；不得用于 command[0]、cwd 或其他元数据。项目 env 与服务不获得操作参数作用域。
+- 标量沿用 §3.1：数字为十进制、布尔为 `true` / `false`，文本保持原值；每个 argv 元素展开后仍是一个元素，不重新分词或递归解析插入值。
+- 多选固定编码为紧凑 JSON 数组字符串。例如 `['frontend', 'backend']` 的传递文本为 `["frontend","backend"]`；命令参数是一个 argv 元素，环境变量是同一 JSON 文本。显式数组顺序采用上述规范化顺序。脚本据此解析 JSON，不猜逗号分隔或展开规则。
+- 已有 sh/bash/zsh `-c` / `-…c` 的脚本 argv 继续对完整替换值执行现有、感知引号上下文的 POSIX 字面量转义；后续位置参数仍是普通 argv。项目选项与操作参数在一次模板扫描中替换，不能把一个参数值中的 `${...}` 当作另一个引用。shell 元字符、空格、引号、中文与换行不改变 argv 边界。
+- 未知的 `${action.<key>}` 在所属操作中报 `PARAM_UNKNOWN`；操作参数在不支持的操作字段中引用时报 `PARAM_INVALID`。其他已有字段的占位符语义不变。操作专属参数未使用可沿用 `WARN_PARAM_UNUSED`，不进入项目选项的 `usedBy` 或删除写回流程。
+- 保存定义时，对缺少本次值的参数仅检查模板，不要求填出必填运行值。若操作的有效 PATH 因此无法确定，沿用未解析敏感 PATH 的表示：programResolved=null、pathUsed=""，不据此报 COMMAND_NOT_FOUND；执行请求补齐参数后，在创建运行前完整验证实际 cwd 与有效 PATH / 程序，失败按既有 CONFIG_INVALID / COMMAND_NOT_FOUND 等 issue 返回。
+
+### 快照与敏感值
+
+- 新建操作运行时保存全部操作参数的有效值及 key / 名称 / 类型 / 说明 / 当时已选候选项标签，包括采用默认值、未被命令引用和未提供的参数。后续编辑或删除操作不会改变历史；不根据当前定义反推旧运行。
+- 新 daemon 对新操作运行总是返回 `actionParams`（无参数为 `[]`）；旧记录缺失该字段时，界面显示“未保存操作参数快照”。Maven 不使用此字段。运行详情中的现有项目 `params` 字段保持原样。
+- `secret:true` 的 default 在配置、ActionView、校验结果和导出中隐藏；运行快照的已提供值一律为 `{secret:true}`，不返回已选候选标签。command 的相关片段为 `••••`。日志、日志摘要、检索、SSE、动态、CLI 输出、排查信息及错误均不得泄露值。枚举候选项与说明属于公开定义，不能把秘密写进定义元数据。
+- 参数默认值的 `{secret:true}` 保持标记只匹配同项目、同 actionId、同 key 的既有敏感默认值；新注册或新 key 没有原值时拒绝保存。省略 default 表示没有默认值，允许明确删除默认值；独立 validate 接受保持标记，保存时核验。
+- 本次敏感值在展开、来源字段净化和日志采集前就纳入既有敏感值处理；不能只从 project.config 收集。数组同时登记各原始元素及最终 JSON 文本。私有运行信息如为沿用现有脱敏/恢复机制保留原值，遵循既有 0600 存储与运行留存上限，不加入公开快照或项目配置。结束、重启、改默认值后读取旧运行仍脱敏。
+
+### CLI/API 与旧版兼容
+
+- `POST /projects/:projectId/actions/:actionId/runs` 新增上述 `ActionRunRequest` 请求体，响应结构仍为 `StartTaskRunResponse`。默认值解析、必填及类型校验在 daemon 执行，CLI、界面和直接 API 请求一致。
+- CLI 增加 `action run <project-id> <action-id> --params <JSON对象>` 或 `--params-file <文件或->`，二者互斥；`-` 从 stdin 读取。文件/输入有界读取，不回显解析文本；敏感输入推荐经 stdin 或本机文件传入。可选 `--if-revision` 对应请求 revision。现有 no-wait/follow/timeout/json 与退出码保持，参数校验错误退出 2；`action list` 提供已脱敏参数定义。
+- 旧 daemon 的该路由不读取请求体，会静默忽略新参数。新 CLI / 原生在保存含操作参数的配置、导入此类配置或按操作参数执行之前，必须确认 `GET /daemon` 的 capabilities 含 `action-params-v1`；缺失则报告需要升级，不保存、不发运行请求，也不退回项目选项方案。只看 `apiVersion:1` 或应用版本号不够。直接 API 调用者同样须先确认能力。
+- 新 daemon 向旧客户端提供可忽略的可选字段；旧配置、无参数操作和既有运行详情继续可读。旧客户端运行带参数操作时只能使用已保存默认值，缺必填值照常报错；完整的执行前表单需要新版客户端。
+- 可分享配置同步处理 `actions[*].params[*].default`：导出将敏感默认值替换为 `{secret:true}` 并声明本机待填输入，导入不得把缺失秘密当作清空；本机绝对路径默认值沿用路径输入规则。`PortableConfigInput.valueType` 扩展接受 `multiselect`，仅此类型的操作默认值输入允许字符串数组；项目选项等原目标仍限定为原标量。数组输入只能填写声明的操作参数默认值位置，不能改变定义、候选项或任意配置结构。含本机绝对路径的枚举候选项继续拒绝导出。分享格式 version 仍为 1，新导入端拒绝不支持的输入类型；已有文件行为不变。
+
+
+### 原生交互
+
+- 原生沿用“快捷操作”检查器：点击运行，在当前页所属窗口打开参数表单，标题是操作名；字段显示名称、说明与默认值，三项服务用可同时勾选的复选框，备份用开关。按钮为“取消”与 `runLabel`（本例“开始部署”）。Esc / 取消仅关闭表单，无 HTTP 运行请求、无运行记录；关闭后焦点回到原运行按钮。
+- 有参数时必须展示表单，即使所有参数已有默认值；没有参数时保持当前一键执行及既有的服务运行确认规则。有参数且需服务运行确认时，把提醒并入同一表单，不再跳去选项页或叠加第二个确认框。服务运行状态变化在提交时重新核对，必要时留在表单更新提醒，等待用户再次明确提交。
+- 校验错误就地显示在字段下并聚焦首个错误；未提供的可选值与显式空值分开，提供“本次不传”状态；敏感默认值仅提示“使用已保存的默认值”，用户修改后才发送覆盖值。提交中禁用重复提交，不能把“取消表单”解释为“取消已开始的任务”。提交成功后回到原页并选中对应运行，参数摘要固定在该运行日志旁，支持展开；切换历史运行按 runId 读取快照。
+- 表单草稿限定为 projectId + actionId + 打开时 revision，不写 UserDefaults。打开时配置无法载入不执行；断连禁用提交；revision 过期保留本次草稿并要求刷新复核，不自动改值或重试执行。切换项目/操作时关闭草稿，避免错目标；提交结果不确定时查询已有运行，不自动重发部署。
+- 编辑项目的快捷操作分区可编辑专属参数定义、默认值、候选项、必填/敏感、数字范围与运行按钮文字。新参数与项目“选项”分开显示。旧操作不会自动迁移；真实部署项目的配置和脚本适配不在本次仓库改动中隐式执行。

@@ -3,8 +3,13 @@ import type { Actor, ClientKind, MavenRunRequest, ActionConfig, TaskRunSummary, 
 import type { Manager, StoredRun } from "./manager.ts";
 import { daemonActor } from "./activity.ts";
 import { Fault, id, now, sleep } from "./storage.ts";
+import { ActionInputError, resolveActionRun, type ActionValues } from './action-params.ts';
+import { canonical, validate } from './config.ts';
+import type { ActionParamSnapshot } from '@devpanel/contract';
 export type TaskTarget = { kind: "action"; actionId: string } | { kind: "maven" };
 export interface TaskMetadata {
+  actionValues?: ActionValues;
+  actionParams?: ActionParamSnapshot[];
   target: { kind: "action"; actionId: string } | { kind: "maven"; request: MavenRunRequest };
   label: string;
   source: ClientKind;
@@ -37,7 +42,7 @@ export class TaskRuns {
   detail(rid: string): TaskRunDetail {
     const d = this.host.detail(rid);
     return { ...this.summary(this.host.run(rid)), command: d.command, cwd: d.cwd, envKeys: d.envKeys,
-      params: d.params, log: d.log, processes: d.processes };
+      params: d.params, ...(this.host.run(rid).task?.actionParams === undefined ? {} : { actionParams: this.host.safe(this.host.run(rid).task!.actionParams!) }), log: d.log, processes: d.processes };
   }
   async startMaven(pid: string, input: unknown, actor: Actor) {
     const source = actor.client === "ui" ? "ui" : "cli";
@@ -58,12 +63,22 @@ export class TaskRuns {
     return [...this.host.runs.values()].filter(r => r.task && r.detail.projectId === pid && this.matches(r.task.target, target))
       .reverse().map(r => this.summary(r));
   }
-  async startAction(pid: string, aid: string, actor: Actor) {
+  async startAction(pid: string, aid: string, actor: Actor, input?: unknown) {
+    const pending = this.taskStarts.get(JSON.stringify([pid, 'action', aid]));
+    if (pending) await pending;
     const source = actor.client === "ui" ? "ui" : "cli";
-    const a = this.host.project(pid).config.actions?.find(a => a.id === aid);
+    const project = this.host.project(pid), a = project.config.actions?.find(a => a.id === aid);
     if (!a) throw new Fault("ACTION_NOT_FOUND", "快捷操作不存在", 404);
+    let resolved;
+    try { resolved = resolveActionRun(a, input, project.revision); }
+    catch (e) { if (e instanceof ActionInputError) throw new Fault(e.code, e.message, e.status, e.details); throw e; }
+    if (a.params?.length) {
+      const validation = validate({ ...project.config, services: [{ ...a, id: 'run' }], actions: [] }, this.host.base, project.config, 'save', resolved.values);
+      if (!validation.ok) throw new Fault('CONFIG_INVALID', '操作运行配置无效', 422, this.host.safe({ issues: validation.issues }));
+    }
     return this.startTask(pid, a, {
-      target: { kind: "action", actionId: aid }, label: a.name, source, actor, timeoutSec: a.timeoutSec,
+      target: { kind: "action", actionId: aid }, label: a.name, source, actor: this.host.actor(actor, undefined, resolved.sensitive), timeoutSec: a.timeoutSec,
+      actionValues: resolved.values, actionParams: resolved.snapshot,
     });
   }
   async startTask(pid: string, definition: ActionConfig, metadata: TaskMetadata): Promise<StartTaskRunResponse> {
@@ -74,6 +89,7 @@ export class TaskRuns {
     const current = this.current(pid, metadata.target);
     if (current) {
       if (metadata.target.kind === "maven") throw new Fault("TASK_RUNNING", "项目已有 Maven 运行", 409, { runId: current.detail.id });
+      if (canonical(metadata.actionValues ?? {}) !== canonical(current.task?.actionValues ?? {})) throw new Fault('TASK_RUNNING', '此操作已使用其他参数运行，请查看当前运行', 409, { runId: current.detail.id });
       return { created: false, run: this.summary(current) };
     }
     const result: OperationTargetResult = { serviceId: definition.id, outcome: "pending", runId: null, error: null };

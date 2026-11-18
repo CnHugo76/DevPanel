@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 import Testing
 
 @testable import DevPanelKit
@@ -141,6 +142,22 @@ struct AppModelTests {
         #expect(model.operations[created.id]?.state == .succeeded)
         model.apply(.operation(created))
         #expect(model.operations[created.id]?.state == .succeeded)
+    }
+
+    @Test("repeated project events leave the overview's project observation intact")
+    func equivalentProjectUpsert() throws {
+        let model = makeModel()
+        let snap = try Self.snapshot()
+        model.apply(.snapshot(snap))
+        let project = try #require(snap.projects.first)
+        let changed = Locked(false)
+        withObservationTracking { _ = model.projects } onChange: { changed.withLock { $0 = true } }
+        model.apply(.projectUpsert(project))
+        #expect(!changed.current)
+        var renamed = project
+        renamed.name += " updated"
+        model.apply(.projectUpsert(renamed))
+        #expect(changed.current)
     }
 
     @Test("stats replace; derived counts")
@@ -376,17 +393,18 @@ struct WordingTests {
     @Test func toolbarSummary() {
         var c = ConnectionState()
         let now = Date()
-        #expect(c.summary(running: 0, total: 0, projectCount: 0, now: now) == "正在连接管理服务…")
+        #expect(c.summary(running: 0, projectCount: 0, now: now) == "正在连接管理服务…")
         c.status = .connected
-        #expect(c.summary(running: 4, total: 7, projectCount: 3, now: now) == "已连接 · 4/7 服务运行中")
-        #expect(c.summary(running: 0, total: 0, projectCount: 0, now: now) == "已连接 · 还没有项目")
+        #expect(c.summary(running: 4, projectCount: 3, now: now) == "4 个服务运行中")
+        #expect(c.summary(running: 0, projectCount: 3, now: now) == "0 个服务运行中")
+        #expect(c.summary(running: 0, projectCount: 0, now: now) == "还没有项目")
         c.status = .disconnected
         c.retryAt = now.addingTimeInterval(4.2)
-        #expect(c.summary(running: 4, total: 7, projectCount: 3, now: now) == "管理服务连接中断 · 5 秒后重连")
+        #expect(c.summary(running: 4, projectCount: 3, now: now) == "连接已断开 · 5 秒后重连")
         c.retryAt = nil
-        #expect(c.summary(running: 4, total: 7, projectCount: 3, now: now) == "管理服务连接中断 · 正在重连")
+        #expect(c.summary(running: 4, projectCount: 3, now: now) == "连接已断开 · 正在重连")
         c.status = .notRunning
-        #expect(c.summary(running: 0, total: 0, projectCount: 0, now: now) == "管理服务未运行")
+        #expect(c.summary(running: 0, projectCount: 0, now: now) == "管理服务未运行")
         #expect(c.tone == .neutral)
     }
 

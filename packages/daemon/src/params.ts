@@ -11,6 +11,7 @@ import type {
   ValidationIssue,
 } from "@devpanel/contract";
 import { Fault, now } from "./storage.ts";
+import { expandAction, type ActionValues } from './action-params.ts';
 
 const token = /\$\$\{|\$\{([a-zA-Z][a-zA-Z0-9_]{0,31})\}/g;
 export function references(text: string): string[] {
@@ -125,7 +126,9 @@ export function expandService(
   config: ProjectConfig,
   service: ServiceConfig,
   masked = false,
+  actionValues?: ActionValues,
 ): ServiceConfig {
+  if (actionValues) return expandAction(config, service, actionValues, masked);
   const params = config.params || [];
   const script = scriptIndex(service.command.map((v) => substitute(v, params)));
   const env = { ...config.env, ...service.env };

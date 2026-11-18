@@ -1,0 +1,1762 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>DevPanel · 轻量工作台原型</title>
+    <style>
+      :root {
+        --paper: #f7f7f9;
+        --ink: #20212a;
+        --sub: #646573;
+        --muted: #747580;
+        --line: #e4e4ea;
+        --purple: #5a4ed4;
+        --lav: #f0eefc;
+        --green: #247957;
+        --amber: #9c491b;
+        --sans:
+          "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC",
+          "Microsoft YaHei", sans-serif;
+        --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font: 14px/1.5 var(--sans);
+        -webkit-font-smoothing: antialiased;
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+      button {
+        color: inherit;
+        border: 0;
+        background: none;
+        cursor: pointer;
+      }
+      button:disabled {
+        cursor: wait;
+        opacity: 0.55;
+      }
+      button:focus-visible,
+      summary:focus-visible,
+      select:focus-visible {
+        outline: 3px solid #9185e8;
+        outline-offset: 3px;
+      }
+      button:hover {
+        filter: brightness(0.96);
+      }
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+      svg {
+        width: 17px;
+        height: 17px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.7;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        flex: none;
+      }
+      h1 {
+        font-size: clamp(29px, 3.3vw, 39px);
+        letter-spacing: -0.055em;
+        line-height: 1.25;
+      }
+      h2 {
+        font-size: 15px;
+        letter-spacing: -0.02em;
+      }
+      h3 {
+        font-size: 14px;
+      }
+      .bar {
+        height: 63px;
+        background: #fff;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-inline: clamp(18px, 4vw, 60px);
+      }
+      .brand,
+      .env,
+      .line,
+      .button,
+      .icon-button,
+      .search,
+      .filter,
+      .project-title,
+      .status,
+      .primary,
+      .switch,
+      .service-id,
+      .tag,
+      .head-actions {
+        display: inline-flex;
+        align-items: center;
+      }
+      .brand {
+        gap: 10px;
+        font-weight: 730;
+        font-size: 19px;
+        letter-spacing: -0.8px;
+      }
+      .brand .logo {
+        display: grid;
+        place-items: center;
+        font-size: 21px;
+        font-weight: 780;
+        font-family: var(--sans);
+        border-radius: 8px;
+        height: 31px;
+        width: 31px;
+        color: white;
+        background: linear-gradient(145deg, #9388ff, #6155da 70%, #5447c6);
+        box-shadow: inset 0 1px 1px #ffffff60;
+      }
+      .divider {
+        height: 17px;
+        width: 1px;
+        background: var(--line);
+        margin-inline: 7px;
+      }
+      .workspace,
+      .env {
+        color: var(--sub);
+        font-size: 12px;
+        letter-spacing: 0;
+        font-weight: 500;
+      }
+      .env {
+        gap: 7px;
+      }
+      .env svg {
+        width: 14px;
+        height: 14px;
+      }
+      .wrap {
+        max-width: 1040px;
+        margin: auto;
+        padding: clamp(30px, 5vh, 55px) clamp(18px, 5vw, 68px) 92px;
+      }
+      .hero {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 27px;
+      }
+      .hero p {
+        color: var(--sub);
+        margin-top: 7px;
+        font-size: 13px;
+      }
+      .search {
+        height: 35px;
+        width: 205px;
+        min-width: 0;
+        padding: 0 9px;
+        gap: 7px;
+        background: white;
+        border: 1px solid #dbdbe3;
+        border-radius: 8px;
+        color: var(--muted);
+      }
+      .search:focus-within {
+        outline: 2px solid #a79cf1;
+        outline-offset: 1px;
+      }
+      .search input {
+        width: 100%;
+        min-width: 0;
+        border: 0;
+        outline: 0;
+        background: none;
+        color: var(--ink);
+        font-size: 12px;
+      }
+      .search svg {
+        width: 15px;
+      }
+      .key {
+        font: 11px var(--mono);
+        white-space: nowrap;
+        background: #f5f5f7;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        padding: 2px 4px;
+        color: #70707d;
+      }
+      .section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 10px;
+        min-height: 25px;
+      }
+      .section-head h2,
+      .board-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .count {
+        font: 11px var(--mono);
+        color: var(--sub);
+        border: 1px solid #dedee5;
+        background: #f0f0f4;
+        padding: 1px 6px;
+        line-height: 15px;
+        border-radius: 5px;
+      }
+      .section + .section {
+        margin-top: 23px;
+      }
+      .urgent {
+        background: #fffbf7;
+        border: 1px solid #e6c8b4;
+        border-radius: 11px;
+        box-shadow: inset 3px 0 #cb7440;
+      }
+      .urgent + .urgent {
+        margin-top: 8px;
+      }
+      .urgent-inner {
+        min-height: 88px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 14px 19px;
+      }
+      .icon-tile {
+        width: 33px;
+        height: 33px;
+        border: 1px solid #dedee8;
+        border-radius: 9px;
+        background: #f2f2f7;
+        color: #64667c;
+        display: grid;
+        place-items: center;
+        flex: none;
+      }
+      .icon-tile svg {
+        width: 17px;
+        height: 17px;
+      }
+      .icon-tile.lilac {
+        color: #6554bf;
+        background: #f0edfb;
+        border-color: #e1dbf6;
+      }
+      .icon-tile.blue {
+        color: #4c648c;
+        background: #edf2f9;
+        border-color: #dbe3ef;
+      }
+      .icon-tile.sage {
+        color: #4d7268;
+        background: #edf4f0;
+        border-color: #dce9e2;
+      }
+      .icon-tile.warm {
+        color: #8b704c;
+        background: #f8f3ea;
+        border-color: #eae1d1;
+      }
+      .icon-tile.warning {
+        color: #a65223;
+        background: #fff0e3;
+        border-color: #efd3be;
+        width: 37px;
+        height: 37px;
+      }
+      .project-title {
+        gap: 8px;
+        min-width: 0;
+        text-align: left;
+        padding: 0;
+        max-width: 100%;
+      }
+      .name {
+        font-size: 14px;
+        letter-spacing: -0.2px;
+        font-weight: 650;
+        overflow-wrap: anywhere;
+      }
+      .location {
+        color: var(--sub);
+        font-size: 11px;
+        font-family: var(--mono);
+      }
+      .project-title:hover .name {
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+      .urgent-copy {
+        min-width: 0;
+        flex: 1;
+      }
+      .urgent-copy p {
+        font-size: 12px;
+        color: #8b4b26;
+        margin-top: 4px;
+      }
+      .button,
+      .primary,
+      .icon-button {
+        justify-content: center;
+        gap: 6px;
+        white-space: nowrap;
+      }
+      .button,
+      .primary {
+        font-size: 12px;
+        border-radius: 7px;
+        padding: 5px 10px;
+        min-height: 31px;
+        line-height: 1.25;
+        font-weight: 550;
+        background: #fff;
+        border: 1px solid #dcdce5;
+      }
+      .button svg,
+      .primary svg {
+        height: 14px;
+        width: 14px;
+      }
+      .button.warning {
+        background: #fff;
+        border-color: #dcbaa1;
+        color: #8f451c;
+      }
+      .primary {
+        color: #5142b0;
+        background: #faf9ff;
+        border-color: #dbd6f1;
+      }
+      .icon-button {
+        width: 29px;
+        height: 29px;
+        color: #6a6a78;
+        border-radius: 6px;
+        padding: 0;
+      }
+      .icon-button:hover,
+      .plain:hover {
+        background: #f1f0f6;
+      }
+      .head-actions {
+        gap: 8px;
+      }
+      .filter {
+        color: var(--sub);
+        font-size: 12px;
+        gap: 5px;
+        position: relative;
+      }
+      .filter svg {
+        width: 14px;
+      }
+      .filter select {
+        font-size: 12px;
+        cursor: pointer;
+        color: inherit;
+        background: transparent;
+        border: 0;
+        border-radius: 4px;
+        padding: 3px;
+      }
+      .list,
+      .board-col,
+      .pane {
+        background: #fff;
+        border: 1px solid #dedee6;
+        border-radius: 11px;
+        box-shadow: 0 1px 2px #29274204;
+      }
+      .unit + .unit {
+        border-top: 1px solid var(--line);
+      }
+      .row {
+        display: grid;
+        grid-template-columns:
+          minmax(175px, 1fr) minmax(105px, 0.43fr)
+          88px 30px;
+        align-items: center;
+        gap: 12px;
+        min-height: 58px;
+        padding: 6px 16px;
+      }
+      .row .project-title {
+        display: flex;
+        align-self: stretch;
+        gap: 12px;
+        width: 100%;
+      }
+      .row:hover {
+        background: #fafafd;
+      }
+      .list .unit:first-child .row {
+        border-radius: 11px 11px 0 0;
+      }
+      .list .unit:last-child .row {
+        border-radius: 0 0 11px 11px;
+      }
+      .status {
+        color: var(--sub);
+        gap: 7px;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #acadb9;
+        flex: none;
+      }
+      .status.running {
+        color: var(--green);
+      }
+      .status.running .dot {
+        background: #38956d;
+      }
+      .status.failed {
+        color: var(--amber);
+      }
+      .status.failed .dot {
+        background: #c4773c;
+      }
+      .status.busy {
+        color: #6953a5;
+      }
+      .status.busy .dot {
+        background: #9581c9;
+      }
+      .row > .primary,
+      .row > .button {
+        justify-self: end;
+      }
+      .row > .icon-button {
+        justify-self: end;
+      }
+      .details {
+        border-top: 1px solid var(--line);
+        padding: 12px 18px 13px 60px;
+        background: #fbfbfd;
+      }
+      .details h3 {
+        font-size: 12px;
+        color: var(--sub);
+        margin-bottom: 6px;
+      }
+      .svc {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-height: 38px;
+      }
+      .svc .service-id {
+        flex: 1;
+        gap: 8px;
+      }
+      .svc .service-id svg {
+        height: 15px;
+        width: 15px;
+        color: var(--muted);
+      }
+      .svc .status {
+        min-width: 70px;
+      }
+      .plain {
+        font-size: 12px;
+        padding: 5px 7px;
+        border-radius: 5px;
+        color: var(--purple);
+      }
+      .empty {
+        padding: 30px 20px;
+        text-align: center;
+        color: var(--sub);
+      }
+      .board {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+      .board-col {
+        align-self: start;
+      }
+      .board-head {
+        padding: 14px;
+        border-bottom: 1px solid var(--line);
+        font-weight: 650;
+      }
+      .board-card {
+        padding: 14px;
+      }
+      .board-card + .board-card {
+        border-top: 1px solid var(--line);
+      }
+      .board-title {
+        display: flex;
+        gap: 9px;
+        align-items: center;
+      }
+      .board-card .project-title {
+        display: flex;
+        flex-direction: column;
+        align-items: start;
+        gap: 1px;
+      }
+      .board-card .blurb {
+        margin-top: 9px;
+        font-size: 12px;
+        color: var(--amber);
+      }
+      .card-foot {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 12px;
+      }
+      .card-foot .status {
+        margin-right: auto;
+      }
+      .split {
+        display: grid;
+        grid-template-columns: minmax(175px, 32%) 1fr;
+        min-height: 370px;
+      }
+      .rail {
+        border-right: 1px solid var(--line);
+        padding: 7px;
+      }
+      .rail button {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        width: 100%;
+        text-align: left;
+        padding: 10px;
+        border-radius: 6px;
+      }
+      .rail button.active {
+        background: var(--lav);
+        color: #453994;
+      }
+      .rail .location {
+        display: block;
+      }
+      .rail .dot {
+        margin-left: auto;
+      }
+      .pane-content {
+        padding: 22px;
+        min-width: 0;
+      }
+      .pane-content h2 {
+        font-size: 19px;
+        margin-top: 6px;
+      }
+      .pane-content .details {
+        border: 0;
+        padding: 12px 0;
+        background: transparent;
+        margin-top: 14px;
+      }
+      .pane-content .head-actions {
+        margin-top: 15px;
+      }
+      .notice {
+        padding: 10px 12px;
+        background: #fff3e8;
+        color: #89461f;
+        border-radius: 6px;
+        font-size: 13px;
+        margin-top: 12px;
+      }
+      .switch {
+        position: fixed;
+        z-index: 2;
+        bottom: 15px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #30303b;
+        color: white;
+        gap: 3px;
+        padding: 4px 5px;
+        border-radius: 22px;
+        box-shadow: 0 3px 12px #1c193224;
+        font-size: 11px;
+        white-space: nowrap;
+      }
+      .switch button {
+        color: #eeedf4;
+        width: 28px;
+        height: 26px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+      }
+      .switch button:hover {
+        background: #50505e;
+      }
+      .switch svg {
+        width: 13px;
+        height: 13px;
+      }
+      .switch span {
+        padding: 0 7px;
+      }
+      .switch .switch-label {
+        color: #c0becf;
+        border-right: 1px solid #696875;
+        padding-right: 9px;
+        margin-right: 2px;
+      }
+      .popover {
+        position: fixed;
+        z-index: 8;
+        min-width: 136px;
+        padding: 5px;
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        box-shadow: 0 10px 30px #25223a24;
+      }
+      .popover button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        padding: 7px 9px;
+        border-radius: 4px;
+        font-size: 13px;
+      }
+      .popover button:hover {
+        background: var(--lav);
+      }
+      dialog {
+        border: 1px solid #dddce7;
+        border-radius: 14px;
+        color: var(--ink);
+        width: min(660px, calc(100vw - 28px));
+        max-height: 85dvh;
+        padding: 0;
+        box-shadow: 0 22px 85px #22203435;
+        overflow: auto;
+      }
+      dialog::backdrop {
+        background: #24243650;
+      }
+      dialog:focus {
+        outline: 0;
+      }
+      .dialog-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 19px;
+        border-bottom: 1px solid var(--line);
+        font-size: 12px;
+        color: var(--sub);
+      }
+      .dialog-body {
+        padding: 22px;
+      }
+      .dialog-body h2 {
+        font-size: 22px;
+      }
+      .dialog-body .subtitle {
+        color: var(--sub);
+        margin: 5px 0 17px;
+        font-size: 13px;
+      }
+      .log {
+        margin: 15px 0;
+        background: #25252f;
+        color: #dddae9;
+        border-radius: 8px;
+        padding: 11px 0;
+        overflow: auto;
+        font: 12px/1.9 var(--mono);
+      }
+      .log-line {
+        display: grid;
+        grid-template-columns: 28px 1fr;
+        padding: 2px 12px;
+        min-width: 400px;
+      }
+      .log-line b {
+        font-weight: 400;
+        opacity: 0.58;
+      }
+      .log-line.mark {
+        background: #4d3834;
+        color: #ffd4a6;
+        border-inline-start: 3px solid #f4b56e;
+        padding-inline-start: 9px;
+      }
+      .dialog-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+      }
+      .preview-box {
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        overflow: hidden;
+      }
+      .address {
+        background: var(--paper);
+        border-bottom: 1px solid var(--line);
+        padding: 8px 13px;
+        color: var(--sub);
+        font: 12px var(--mono);
+      }
+      .sample-page {
+        padding: 20px;
+      }
+      .sample-page h3 {
+        font-size: 16px;
+        margin-bottom: 10px;
+      }
+      .sample-item {
+        padding: 9px 0;
+        border-top: 1px solid var(--line);
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      .sample-item small {
+        color: var(--sub);
+      }
+      .toast {
+        position: fixed;
+        z-index: 10;
+        bottom: 64px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #31313c;
+        color: white;
+        padding: 7px 14px;
+        border-radius: 7px;
+        font-size: 12px;
+        pointer-events: none;
+      }
+      .toast:empty {
+        display: none;
+      }
+      dialog .copy-note {
+        font-size: 12px;
+        color: var(--green);
+        margin-right: auto;
+        align-self: center;
+      }
+      .fallback {
+        width: 100%;
+        height: 100px;
+        margin: 10px 0;
+      }
+      .menu-holder {
+        display: inline-flex;
+      }
+      .search input::-webkit-search-cancel-button {
+        cursor: pointer;
+      }
+      @media (min-width: 1400px) {
+        .wrap {
+          max-width: 1130px;
+        }
+      }
+      @media (max-width: 710px) {
+        .wrap {
+          padding-inline: 19px;
+        }
+        .bar {
+          height: 55px;
+        }
+        .hero {
+          margin-bottom: 21px;
+        }
+        .board {
+          grid-template-columns: 1fr;
+        }
+        .row {
+          grid-template-columns: minmax(120px, 1fr) 100px 77px 24px;
+          gap: 6px;
+          padding-inline: 10px;
+        }
+        .row .project-title {
+          gap: 7px;
+        }
+        .location {
+          font-size: 10px;
+        }
+        .search {
+          width: 155px;
+        }
+        .split {
+          grid-template-columns: minmax(135px, 35%) 1fr;
+        }
+        .pane-content {
+          padding: 13px;
+        }
+        .svc {
+          gap: 4px;
+          flex-wrap: wrap;
+        }
+      }
+      @media (max-width: 500px) {
+        .hero {
+          align-items: stretch;
+          flex-direction: column;
+          gap: 13px;
+        }
+        .search {
+          width: 100%;
+        }
+        .key {
+          display: none;
+        }
+        .row {
+          grid-template-columns: minmax(0, 1fr) auto 24px;
+          row-gap: 0;
+          padding-block: 10px;
+        }
+        .row .project-title {
+          grid-column: 1;
+          grid-row: 1;
+          align-self: center;
+        }
+        .row .project-title .icon-tile {
+          display: none;
+        }
+        .row .status {
+          grid-column: 1;
+          grid-row: 2;
+          margin-top: 3px;
+        }
+        .row > .primary,
+        .row > .button {
+          grid-column: 2;
+          grid-row: 1/3;
+        }
+        .row > .icon-button {
+          grid-column: 3;
+          grid-row: 1/3;
+        }
+        .urgent-inner {
+          display: grid;
+          grid-template-columns: 1fr auto;
+          padding: 12px;
+          gap: 7px;
+        }
+        .urgent-inner > .icon-tile {
+          display: none;
+        }
+        .urgent-copy {
+          grid-column: 1/-1;
+        }
+        .urgent-inner > .button {
+          justify-self: start;
+        }
+        .urgent-inner > .icon-button {
+          justify-self: end;
+        }
+        .details {
+          padding: 10px;
+        }
+        .split {
+          grid-template-columns: 1fr;
+        }
+        .rail {
+          border: 0;
+          border-bottom: 1px solid var(--line);
+          display: flex;
+          overflow-x: auto;
+        }
+        .rail button {
+          min-width: max-content;
+          width: auto;
+        }
+        .rail .icon-tile {
+          display: none;
+        }
+        .dialog-body {
+          padding: 15px;
+        }
+        .workspace,
+        .brand .divider {
+          display: none;
+        }
+      }
+      @media (min-width: 711px) and (max-height: 790px) {
+        .wrap {
+          padding-top: 25px;
+        }
+        h1 {
+          font-size: 33px;
+        }
+        .hero {
+          margin-bottom: 18px;
+        }
+        .urgent-inner {
+          min-height: 73px;
+        }
+        .section + .section {
+          margin-top: 17px;
+        }
+        .row {
+          min-height: 51px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="bar">
+      <div class="brand">
+        <span class="logo" aria-hidden="true">D</span>DevPanel<span
+          class="divider"
+        ></span
+        ><span class="workspace">本地工作区</span>
+      </div>
+      <div class="head-actions">
+        <span class="env" id="environment"></span><span class="divider"></span
+        ><button
+          class="icon-button"
+          id="reset"
+          title="重置示例"
+          aria-label="重置示例"
+        ></button>
+      </div>
+    </header>
+    <main class="wrap">
+      <div class="hero">
+        <div>
+          <h1>项目总览</h1>
+          <p id="summary"></p>
+        </div>
+        <label class="search"
+          ><span id="search-icon"></span
+          ><input
+            id="search"
+            type="search"
+            aria-label="搜索项目或服务"
+            placeholder="搜索项目或服务"
+          /><kbd class="key">⌘ K</kbd></label
+        >
+      </div>
+      <div id="content"></div>
+    </main>
+    <nav class="switch" aria-label="切换原型布局">
+      <button id="prev" aria-label="上一个布局"></button
+      ><span class="switch-label">布局</span><span id="variant-name"></span
+      ><button id="next" aria-label="下一个布局"></button>
+    </nav>
+    <div class="toast" id="toast" role="status"></div>
+    <dialog id="dialog" aria-labelledby="dialog-title"></dialog>
+    <script>
+      "use strict";
+      // One offline prototype. The three layouts share the same in-memory services.
+      const $ = (id) => document.getElementById(id);
+      const shapes = {
+        search: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>',
+        reset: '<path d="M3 10a9 9 0 1 1 1 7M3 4v6h6"/>',
+        monitor:
+          '<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/>',
+        box: '<path d="m12 3 9 5-9 5-9-5 9-5Zm-9 5v9l9 5 9-5V8m-9 5v9"/>',
+        panel:
+          '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11"/>',
+        blocks:
+          '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="8.5" y="14" width="7" height="7" rx="1"/>',
+        book: '<path d="M3 5c4-1 6 0 9 2 3-2 5-3 9-2v14c-4-1-6 0-9 2-3-2-5-3-9-2V5Zm9 2v14"/>',
+        bag: '<path d="M4 8h16l1 12H3L4 8Zm4 0V7a4 4 0 0 1 8 0v1"/>',
+        terminal:
+          '<rect x="2.5" y="4" width="19" height="16" rx="2"/><path d="m6 9 3 3-3 3m6 0h5"/>',
+        warn: '<path d="m12 3 9 16a1 1 0 0 1-1 2H4a1 1 0 0 1-1-2l9-16Z"/><path d="M12 8v5m0 3v.3"/>',
+        out: '<path d="M7 17 18 6M8 6h10v10"/>',
+        arrow: '<path d="M4 12h15m-6-6 6 6-6 6"/>',
+        left: '<path d="m14 6-6 6 6 6"/>',
+        right: '<path d="m10 6 6 6-6 6"/>',
+        play: '<path d="m7 4 13 8-13 8V4Z"/>',
+        dots: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+        close: '<path d="m6 6 12 12M18 6 6 18"/>',
+        filter: '<path d="M4 7h16M7 12h10m-7 5h4"/>',
+        copy: '<rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>',
+      };
+      function icon(name) {
+        return (
+          '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+          shapes[name] +
+          "</svg>"
+        );
+      }
+      function service(name, port, state, web = false) {
+        return { name, port, state, web };
+      }
+      function seed() {
+        return [
+          {
+            id: "archive",
+            name: "order-service",
+            location: "archive/",
+            icon: "box",
+            color: "warm",
+            services: [service("后端", 8080, "failed")],
+          },
+          {
+            id: "orders",
+            name: "order-service",
+            location: "work/",
+            icon: "box",
+            color: "lilac",
+            services: [
+              service("前端", 3000, "running", true),
+              service("后端", 8081, "running"),
+            ],
+          },
+          {
+            id: "admin",
+            name: "web-admin",
+            icon: "panel",
+            color: "blue",
+            services: [service("前端", 5173, "running", true)],
+          },
+          {
+            id: "shop",
+            name: "shop-portal",
+            icon: "bag",
+            color: "sage",
+            services: [
+              service("前端", 4173, "running", true),
+              service("接口", 8001, "running"),
+            ],
+          },
+          {
+            id: "ml",
+            name: "ml-api",
+            icon: "blocks",
+            color: "lilac",
+            services: [service("接口", 8000, "stopped")],
+          },
+          {
+            id: "docs",
+            name: "docs-site",
+            icon: "book",
+            color: "warm",
+            services: [service("文档", 4321, "stopped", true)],
+          },
+          {
+            id: "ready",
+            name: "readiness-demo",
+            icon: "terminal",
+            color: "blue",
+            services: [service("示例服务", 9090, "stopped")],
+          },
+        ];
+      }
+      let projects = seed(),
+        expanded = new Set(),
+        selected = "archive",
+        filter = "all",
+        generation = 0,
+        timer;
+      const variants = {
+        list: "紧凑列表",
+        board: "状态分栏",
+        focus: "项目与详情",
+      };
+      let variant =
+        new URLSearchParams(location.search).get("variant") || "list";
+      if (!Object.hasOwn(variants, variant)) variant = "list";
+      function state(p) {
+        const states = p.services.map((s) => s.state);
+        return (
+          ["failed", "busy", "running"].find((s) => states.includes(s)) ||
+          "stopped"
+        );
+      }
+      const labels = {
+        failed: "启动失败",
+        busy: "启动中",
+        running: "运行中",
+        stopped: "已停止",
+      };
+      function status(p) {
+        const st = state(p),
+          n = p.services.filter((s) => s.state === "running").length;
+        return statusText(
+          st,
+          st === "running" && p.services.length > 1
+            ? n + "/" + p.services.length + " 运行中"
+            : labels[st],
+        );
+      }
+      function statusText(st, txt) {
+        return (
+          '<span class="status ' +
+          st +
+          '"><i class="dot"></i>' +
+          txt +
+          "</span>"
+        );
+      }
+      function btn(
+        action,
+        id,
+        label,
+        classes = "button",
+        sym = "",
+        tail = false,
+      ) {
+        return (
+          '<button class="' +
+          classes +
+          '" data-action="' +
+          action +
+          '" data-id="' +
+          id +
+          '">' +
+          (sym && !tail ? icon(sym) : "") +
+          label +
+          (sym && tail ? icon(sym) : "") +
+          "</button>"
+        );
+      }
+      function kebab(p) {
+        return (
+          '<button class="icon-button" aria-label="' +
+          p.name +
+          ' 更多操作" data-action="menu" data-id="' +
+          p.id +
+          '">' +
+          icon("dots") +
+          "</button>"
+        );
+      }
+      function tile(p) {
+        return (
+          '<span class="icon-tile ' + p.color + '">' + icon(p.icon) + "</span>"
+        );
+      }
+      function name(p) {
+        return (
+          '<span class="name">' +
+          p.name +
+          "</span>" +
+          (p.location ? '<span class="location">' + p.location + "</span>" : "")
+        );
+      }
+      function web(p) {
+        return p.services.find((s) => s.web && s.state === "running");
+      }
+      function primary(p) {
+        if (state(p) === "failed")
+          return btn(
+            "diagnose",
+            p.id,
+            "查看错误",
+            "button warning",
+            "arrow",
+            true,
+          );
+        if (state(p) === "busy")
+          return '<button class="primary" disabled>启动中…</button>';
+        if (web(p))
+          return btn(
+            "open",
+            p.id,
+            p.id === "orders" ? "打开前端" : "打开",
+            "button",
+            "out",
+            true,
+          );
+        return state(p) === "running"
+          ? btn("inspect", p.id, "服务详情")
+          : btn("start", p.id, "启动", "primary", "play");
+      }
+      function services(p) {
+        return (
+          '<div class="details"><h3>服务</h3>' +
+          p.services
+            .map(
+              (s, i) =>
+                '<div class="svc"><span class="service-id">' +
+                icon(s.web ? "panel" : "terminal") +
+                s.name +
+                "</span>" +
+                statusText(s.state, labels[s.state]) +
+                btn(
+                  s.state === "failed" ? "diagnose" : "log",
+                  p.id + "/" + i,
+                  s.state === "failed" ? "出错位置" : "日志",
+                  "plain",
+                ) +
+                (s.state === "running"
+                  ? btn("stop", p.id + "/" + i, "停止", "plain")
+                  : s.state === "busy"
+                    ? ""
+                    : btn("start", p.id + "/" + i, "启动", "plain")) +
+                "</div>",
+            )
+            .join("") +
+          "</div>"
+        );
+      }
+      function row(p) {
+        return (
+          '<div class="unit"><div class="row"><button class="project-title" aria-expanded="' +
+          expanded.has(p.id) +
+          '" data-action="expand" data-id="' +
+          p.id +
+          '">' +
+          tile(p) +
+          name(p) +
+          "</button>" +
+          status(p) +
+          primary(p) +
+          kebab(p) +
+          "</div>" +
+          (expanded.has(p.id) ? services(p) : "") +
+          "</div>"
+        );
+      }
+      function issue(p) {
+        return (
+          '<div class="urgent"><div class="urgent-inner"><span class="icon-tile warning">' +
+          icon("warn") +
+          '</span><div class="urgent-copy"><button class="project-title" aria-expanded="' +
+          expanded.has(p.id) +
+          '" data-action="expand" data-id="' +
+          p.id +
+          '">' +
+          name(p) +
+          "</button><p>后端启动失败 · 日志提示 8080 端口已被占用</p></div>" +
+          primary(p) +
+          kebab(p) +
+          "</div>" +
+          (expanded.has(p.id) ? services(p) : "") +
+          "</div>"
+        );
+      }
+      function counter(n) {
+        return '<span class="count">' + n + "</span>";
+      }
+      function listView(ps) {
+        const issues = ps.filter((p) => state(p) === "failed"),
+          rest = ps.filter((p) => state(p) !== "failed"),
+          shown = rest.filter((p) => filter === "all" || state(p) === filter);
+        const options = [
+          ["all", "全部状态"],
+          ["running", "运行中"],
+          ["stopped", "已停止"],
+        ]
+          .map(
+            ([val, txt]) =>
+              '<option value="' +
+              val +
+              '" ' +
+              (filter === val ? "selected" : "") +
+              ">" +
+              txt +
+              "</option>",
+          )
+          .join("");
+        return (
+          (issues.length
+            ? '<section class="section"><div class="section-head"><h2>需要处理 ' +
+              counter(issues.length) +
+              "</h2></div>" +
+              issues.map(issue).join("") +
+              "</section>"
+            : "") +
+          (rest.length
+            ? '<section class="section"><div class="section-head"><h2>' +
+              (issues.length ? "其他项目" : "项目") +
+              " " +
+              counter(shown.length) +
+              '</h2><label class="filter">' +
+              icon("filter") +
+              '<select id="state-filter" aria-label="筛选项目状态">' +
+              options +
+              '</select></label></div><div class="list">' +
+              (shown.length
+                ? shown.map(row).join("")
+                : '<div class="empty">没有此状态的项目</div>') +
+              "</div></section>"
+            : "")
+        );
+      }
+      function boardView(ps) {
+        return (
+          '<div class="board">' +
+          [
+            ["failed", "需要处理"],
+            ["running", "运行中"],
+            ["stopped", "已停止"],
+          ]
+            .map(([group, title]) => {
+              const items = ps.filter(
+                (p) =>
+                  state(p) === group ||
+                  (group === "running" && state(p) === "busy"),
+              );
+              return (
+                '<section class="board-col"><h2 class="board-head">' +
+                title +
+                " " +
+                counter(items.length) +
+                "</h2>" +
+                (items
+                  .map(
+                    (p) =>
+                      '<div class="board-card"><div class="board-title">' +
+                      tile(p) +
+                      '<button class="project-title" data-action="inspect" data-id="' +
+                      p.id +
+                      '">' +
+                      name(p) +
+                      "</button></div>" +
+                      (state(p) === "failed"
+                        ? '<p class="blurb">后端 · 8080 端口已被占用</p>'
+                        : "") +
+                      '<div class="card-foot">' +
+                      primary(p) +
+                      kebab(p) +
+                      "</div></div>",
+                  )
+                  .join("") || '<div class="empty">暂无项目</div>') +
+                "</section>"
+              );
+            })
+            .join("") +
+          "</div>"
+        );
+      }
+      function focusView(ps) {
+        const p = ps.find((p) => p.id === selected) || ps[0];
+        return (
+          '<div class="pane split"><div class="rail">' +
+          ps
+            .map(
+              (item) =>
+                '<button class="' +
+                (item.id === p.id ? "active" : "") +
+                '" data-action="select" data-id="' +
+                item.id +
+                '">' +
+                tile(item) +
+                "<span>" +
+                name(item) +
+                "</span>" +
+                statusText(state(item), "") +
+                "</button>",
+            )
+            .join("") +
+          '</div><section class="pane-content">' +
+          status(p) +
+          "<h2>" +
+          p.name +
+          "</h2>" +
+          (p.location
+            ? '<span class="location">' + p.location + "</span>"
+            : "") +
+          (state(p) === "failed"
+            ? '<div class="notice">后端启动失败 · 日志提示 8080 端口已被占用</div>'
+            : "") +
+          '<div class="head-actions">' +
+          primary(p) +
+          kebab(p) +
+          "</div>" +
+          services(p) +
+          "</section></div>"
+        );
+      }
+      function render() {
+        const query = $("search").value.trim().toLowerCase(),
+          filtered = projects.filter((p) =>
+            [p.name, p.location || "", ...p.services.map((s) => s.name)].some(
+              (v) => v.toLowerCase().includes(query),
+            ),
+          );
+        $("summary").textContent =
+          projects.length +
+          " 个本地项目 · " +
+          projects.filter((p) => state(p) === "running").length +
+          " 个项目运行中";
+        $("variant-name").textContent = variants[variant];
+        $("content").innerHTML = !filtered.length
+          ? '<div class="list empty">没有匹配的项目或服务</div>'
+          : { list: listView, board: boardView, focus: focusView }[variant](
+              filtered,
+            );
+      }
+      function notify(s) {
+        clearTimeout(timer);
+        $("toast").textContent = s;
+        timer = setTimeout(() => ($("toast").textContent = ""), 2200);
+      }
+      function choose(step) {
+        closeMenu();
+        const keys = Object.keys(variants);
+        variant =
+          keys[(keys.indexOf(variant) + step + keys.length) % keys.length];
+        const url = new URL(location.href);
+        url.searchParams.set("variant", variant);
+        try {
+          history.replaceState(null, "", url);
+        } catch {}
+        render();
+      }
+      function dialog(p, title, subtitle, body) {
+        const d = $("dialog");
+        d.innerHTML =
+          '<div class="dialog-head"><span>' +
+          p.name +
+          (p.location ? " · " + p.location : "") +
+          '</span><button class="icon-button" data-action="close" aria-label="关闭">' +
+          icon("close") +
+          '</button></div><div class="dialog-body"><h2 id="dialog-title">' +
+          title +
+          '</h2><p class="subtitle">' +
+          subtitle +
+          "</p>" +
+          body +
+          "</div>";
+        if (!d.open) d.showModal();
+      }
+      const failLines = [
+        ["INFO", "Starting order-service"],
+        ["INFO", "Tomcat initialized with port 8080"],
+        ["ERROR", "Web server failed to start. Port 8080 was already in use."],
+        ["CAUSE", "java.net.BindException: Address already in use"],
+        ["EXIT", "Process exited with code 1"],
+      ];
+      function logBox(lines, focus = -1) {
+        return (
+          '<div class="log" aria-label="运行日志">' +
+          lines
+            .map(
+              ([type, text], i) =>
+                '<div class="log-line ' +
+                (i === focus ? "mark" : "") +
+                '"><b>' +
+                (i + 1) +
+                "</b><span>" +
+                type +
+                "  " +
+                text +
+                "</span></div>",
+            )
+            .join("") +
+          "</div>"
+        );
+      }
+      function diagnose(p) {
+        dialog(
+          p,
+          "后端启动失败",
+          "本次运行退出（1） · 错误出现在第 3 行",
+          logBox(failLines, 2) +
+            '<div class="dialog-actions"><span class="copy-note" role="status"></span>' +
+            btn("copy", p.id, "复制给 AI", "primary", "copy") +
+            "</div>",
+        );
+      }
+      function inspect(p) {
+        dialog(p, "项目详情", p.services.length + " 个服务", services(p));
+      }
+      function showLog(p, i) {
+        const s = p.services[i] || p.services[0];
+        if (s.state === "failed") {
+          diagnose(p);
+          return;
+        }
+        const lines =
+          s.state === "running"
+            ? [
+                ["INFO", "Starting " + p.name],
+                ["INFO", s.name + " listening on port " + s.port],
+              ]
+            : [
+                [
+                  "INFO",
+                  s.state === "busy"
+                    ? "Starting " + p.name
+                    : "当前没有正在运行的服务",
+                ],
+              ];
+        dialog(p, s.name + "日志", labels[s.state], logBox(lines));
+      }
+      function preview(p) {
+        const s = web(p);
+        if (!s) return;
+        const examples = {
+          orders: ["最新订单", "ORD-1042", "ORD-1041", "ORD-1040"],
+          admin: ["管理工作台", "用户管理", "访问记录", "通知中心"],
+          shop: ["商品目录", "帆布手提袋", "手冲咖啡壶", "随行杯"],
+          docs: ["项目文档", "快速开始", "配置说明", "常用命令"],
+        };
+        const [heading, ...items] = examples[p.id] || [
+          "项目首页",
+          "服务已启动",
+        ];
+        dialog(
+          p,
+          "前端预览",
+          "当前服务的模拟页面",
+          '<div class="preview-box"><div class="address">localhost:' +
+            s.port +
+            '</div><div class="sample-page"><h3>' +
+            heading +
+            "</h3>" +
+            items
+              .map(
+                (item, i) =>
+                  '<div class="sample-item">' +
+                  item +
+                  (p.id === "orders"
+                    ? "<small>" + ["待发货", "已完成", "已完成"][i] + "</small>"
+                    : "") +
+                  "</div>",
+              )
+              .join("") +
+            "</div></div>",
+        );
+      }
+      function change(project, index, start) {
+        const targets =
+          index === undefined ? project.services : [project.services[index]];
+        const pending = [];
+        for (const service of targets) {
+          if (
+            (start && service.state === "busy") ||
+            (!start && service.state === "failed")
+          )
+            continue;
+          service.revision = (service.revision || 0) + 1;
+          service.state = start ? "busy" : "stopped";
+          if (start) pending.push({ service, revision: service.revision });
+        }
+        render();
+        if (!start) {
+          notify("已停止所选服务");
+          return;
+        }
+        const currentGeneration = generation;
+        notify("正在启动…");
+        setTimeout(() => {
+          if (generation !== currentGeneration) return;
+          const active = pending.filter(
+            (item) => item.service.revision === item.revision,
+          );
+          if (!active.length) return;
+          const failed = project.id === "archive";
+          for (const item of active)
+            item.service.state = failed ? "failed" : "running";
+          render();
+          notify(failed ? "启动失败，8080 端口仍被占用" : "服务已启动");
+        }, 650);
+      }
+      async function copyReport(p) {
+        const report = [
+          p.name + "（" + p.location + "） / 后端",
+          "本次运行退出（1）",
+          ...failLines.map(
+            ([type, line], i) => i + 1 + "  " + type + "  " + line,
+          ),
+        ].join("\n");
+        try {
+          await navigator.clipboard.writeText(report);
+          $("dialog").querySelector(".copy-note").textContent =
+            "已复制排障信息";
+        } catch {
+          const el = document.createElement("textarea");
+          el.className = "fallback";
+          el.readOnly = true;
+          el.value = report;
+          const area = $("dialog").querySelector(".dialog-body");
+          area.querySelector(".fallback")?.remove();
+          area.append(el);
+          el.select();
+          $("dialog").querySelector(".copy-note").textContent =
+            "已选中排障信息，可复制";
+        }
+      }
+      function closeMenu() {
+        document.querySelector(".popover")?.remove();
+      }
+      function openMenu(p, el) {
+        closeMenu();
+        const menu = document.createElement("div");
+        menu.className = "popover";
+        const options = [
+          ["inspect", "项目详情"],
+          ...(state(p) === "running"
+            ? [
+                ["stop", "停止项目"],
+                ["restart", "重新启动"],
+              ]
+            : state(p) === "busy"
+              ? [["stop", "取消启动"]]
+              : state(p) === "failed"
+                ? [["restart", "重新启动"]]
+                : []),
+        ];
+        menu.innerHTML = options
+          .map(([action, name]) => btn(action, p.id, name, ""))
+          .join("");
+        document.body.append(menu);
+        const r = el.getBoundingClientRect(),
+          b = menu.getBoundingClientRect();
+        menu.style.left =
+          Math.max(6, Math.min(innerWidth - b.width - 6, r.right - b.width)) +
+          "px";
+        menu.style.top =
+          (r.bottom + b.height + 8 > innerHeight
+            ? r.top - b.height - 4
+            : r.bottom + 4) + "px";
+        menu.querySelector("button")?.focus();
+      }
+      function reset() {
+        generation++;
+        projects = seed();
+        expanded.clear();
+        selected = "archive";
+        filter = "all";
+        $("search").value = "";
+        closeMenu();
+        if ($("dialog").open) $("dialog").close();
+        render();
+        notify("已重置示例");
+      }
+      document.addEventListener("click", (e) => {
+        const el = e.target.closest("[data-action]");
+        if (!el) {
+          if (!e.target.closest(".popover")) closeMenu();
+          return;
+        }
+        const action = el.dataset.action,
+          [id, idx] = (el.dataset.id || "").split("/"),
+          p = projects.find((x) => x.id === id),
+          i = idx === undefined ? undefined : Number(idx);
+        if (action !== "menu") closeMenu();
+        if (action === "close") {
+          $("dialog").close();
+          return;
+        }
+        if (!p) return;
+        switch (action) {
+          case "expand":
+            expanded.has(id) ? expanded.delete(id) : expanded.add(id);
+            render();
+            break;
+          case "select":
+            selected = id;
+            render();
+            break;
+          case "inspect":
+            inspect(p);
+            break;
+          case "menu":
+            openMenu(p, el);
+            break;
+          case "open":
+            preview(p);
+            break;
+          case "diagnose":
+            diagnose(p);
+            break;
+          case "log":
+            showLog(p, i);
+            break;
+          case "copy":
+            copyReport(p);
+            break;
+          case "start":
+          case "restart":
+          case "stop":
+            if ($("dialog").open) $("dialog").close();
+            change(p, i, action !== "stop");
+            break;
+        }
+      });
+      document.addEventListener("change", (e) => {
+        if (e.target.id === "state-filter") {
+          filter = e.target.value;
+          render();
+          $("state-filter")?.focus();
+        }
+      });
+      $("search").addEventListener("input", () => {
+        closeMenu();
+        render();
+      });
+      $("dialog").addEventListener("click", (e) => {
+        if (e.target === $("dialog")) {
+          const r = $("dialog").getBoundingClientRect();
+          if (
+            e.clientX < r.left ||
+            e.clientX > r.right ||
+            e.clientY < r.top ||
+            e.clientY > r.bottom
+          )
+            $("dialog").close();
+        }
+      });
+      document.addEventListener("keydown", (e) => {
+        if (
+          (e.metaKey || e.ctrlKey) &&
+          e.key.toLowerCase() === "k" &&
+          !$("dialog").open
+        ) {
+          e.preventDefault();
+          $("search").focus();
+          return;
+        }
+        if (e.key === "Escape") {
+          closeMenu();
+          return;
+        }
+        if (
+          e.altKey ||
+          e.metaKey ||
+          e.ctrlKey ||
+          $("dialog").open ||
+          e.target.closest("input,textarea,select,[contenteditable],.popover")
+        )
+          return;
+        if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+          e.preventDefault();
+          choose(e.key === "ArrowRight" ? 1 : -1);
+        }
+      });
+      $("prev").onclick = () => choose(-1);
+      $("next").onclick = () => choose(1);
+      $("reset").onclick = reset;
+      $("prev").innerHTML = icon("left");
+      $("next").innerHTML = icon("right");
+      $("search-icon").innerHTML = icon("search");
+      $("reset").innerHTML = icon("reset");
+      $("environment").innerHTML = icon("monitor") + "模拟环境";
+      render();
+    </script>
+  </body>
+</html>

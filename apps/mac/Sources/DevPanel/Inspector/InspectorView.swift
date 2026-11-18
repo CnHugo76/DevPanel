@@ -116,6 +116,7 @@ struct InspectorHeader: View {
             ProjectIdentityCaption(project: project)
             SupervisionNote(model: model, project: project, service: service)
             InspectorMeta(model: model, project: project, service: service)
+            ServiceLinkControl(model: model, ref: ServiceRef(project.id, service.id), serviceName: service.name)
             if let assessment = ServiceAssessment.make(service) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("当前服务 · " + assessment.evidence)

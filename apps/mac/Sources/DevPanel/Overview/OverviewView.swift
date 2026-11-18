@@ -2,245 +2,126 @@ import AppKit
 import DevPanelKit
 import SwiftUI
 
-/// The overview: every project as a card, in registration order (ui-design v2 §3).
 struct OverviewView: View {
     let model: AppModel
     let prefs: ViewPreferences
     let query: String
-    /// The inspector is open.
     let compact: Bool
 
     @Environment(EditorPresenter.self) private var editor: EditorPresenter?
+    @State private var filter: OverviewStateFilter = .all
     @State private var forceStop: ForceStopTarget?
-    @Environment(\.isStale) private var stale
-
-    /// main padding 20×2 + card border 1×2 + table margin 10×2 + table border 1×2.
-    static let tableInset: CGFloat = 64
+    @State private var diagnosis: OverviewDiagnosis?
 
     var body: some View {
-        let filtered = OverviewFilter.apply(model.projects, query: query)
+        let sections = prefs.organization.sections(model.projects, query: query)
+        let list = CompactProjectList(sections: sections, filter: filter)
+        let searching = !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         GeometryReader { geo in
-            let layout = ColumnLayout.make(tableWidth: Double(geo.size.width - Self.tableInset), compact: compact)
+            let width = min(960, max(0, geo.size.width - (compact ? 28 : 64)))
+            let layout = ColumnLayout.make(tableWidth: max(0, width - 24), compact: compact)
             ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(spacing: 16) {
-                    ForEach(filtered) { item in
-                        ProjectCard(
-                            model: model, prefs: prefs, item: item, layout: layout,
-                            forceStop: { forceStop = $0 }).id(item.project.id)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 18) {
+                        if !list.attention.isEmpty {
+                            LazyVStack(alignment: .leading, spacing: 6) {
+                                heading("需要处理", count: list.attention.count)
+                                ForEach(list.attention) { item in
+                                    row(item, layout: layout, problem: item.firstProblem)
+                                        .background(Theme.amberSoft.opacity(0.45))
+                                        .background(Theme.card)
+                                        .overlay(alignment: .leading) { Rectangle().fill(Theme.amber).frame(width: 3) }
+                                        .clipShape(RoundedRectangle(cornerRadius: 9))
+                                        .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(Theme.amber.opacity(0.32)))
+                                        .id(item.id)
+                                }
+                            }
+                        }
+                        if sections.isEmpty {
+                            Text(EmptyStateCopy.noMatch(query)).foregroundStyle(Theme.text3)
+                        } else {
+                            VStack(alignment: .leading, spacing: 6) {
+                                HStack {
+                                    heading(list.attention.isEmpty ? "项目" : "其他项目", count: list.otherCount)
+                                    Spacer()
+                                    Picker("筛选项目状态", selection: $filter) {
+                                        ForEach(OverviewStateFilter.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                                    }.labelsHidden().fixedSize().controlSize(.small)
+                                }
+                                LazyVStack(spacing: 0) {
+                                    ForEach(list.sections) { section in
+                                        if section.id != list.sections.first?.id { Divider() }
+                                        if section.group != nil {
+                                            ProjectGroupHeader(organization: prefs.organization, section: section,
+                                                projects: model.projects, searching: searching)
+                                                .padding(.horizontal, 12).background(Theme.card2)
+                                                .id(section.id)
+                                        }
+                                        if section.group == nil || searching || !prefs.organization.isCollapsed(section.id) {
+                                            ForEach(section.projects) { item in
+                                                if section.group != nil { Divider() }
+                                                row(item, layout: layout).id(item.id)
+                                            }
+                                            if section.group != nil && section.members.isEmpty {
+                                                Text("可拖入项目或在分组菜单中添加成员")
+                                                    .font(.callout).foregroundStyle(Theme.text3).padding(8)
+                                            }
+                                        }
+                                    }
+                                    if list.otherCount == 0 && list.sections.isEmpty {
+                                        Text("没有符合此状态的项目").font(.callout).foregroundStyle(Theme.text3).padding(14)
+                                    }
+                                }
+                                .background(Theme.card)
+                                .clipShape(RoundedRectangle(cornerRadius: 9))
+                                .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(Theme.line))
+                            }
+                        }
+                        if !searching && !prefs.organization.groups(in: model.projects).isEmpty {
+                            UngroupedDropArea(organization: prefs.organization, projects: model.projects)
+                        }
                     }
+                    .frame(width: width, alignment: .leading)
+                    .padding(.vertical, compact ? 14 : 22)
+                    .frame(maxWidth: .infinity)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 18)
-                .padding(.bottom, 28)
-                if filtered.isEmpty {
-                    Text(EmptyStateCopy.noMatch(query.trimmingCharacters(in: .whitespaces)))
-                        .foregroundStyle(Theme.text3)
-                        .padding(.top, 60)
-                }
-            }
-            .onChange(of: editor?.revealGeneration) { _, _ in
-                if let id = editor?.revealProject {
+                .onChange(of: editor?.revealGeneration) { _, _ in
+                    guard let id = editor?.revealProject else { return }
+                    filter = .all
                     prefs.setCollapsed(id, false)
-                    Task { @MainActor in
-                        await Task.yield()
-                        proxy.scrollTo(id, anchor: .top)
+                    if let p = model.project(id), let g = prefs.organization.groupID(for: p), prefs.organization.isCollapsed(g) {
+                        prefs.organization.toggleCollapsed(g)
                     }
+                    Task { @MainActor in await Task.yield(); proxy.scrollTo(id, anchor: .top) }
                 }
-            }
+                .onChange(of: prefs.organization.revealGeneration) { _, _ in
+                    guard let id = prefs.organization.revealGroup else { return }
+                    filter = .all
+                    Task { @MainActor in await Task.yield(); proxy.scrollTo(id, anchor: .top) }
+                }
             }
         }
+        .sheet(item: $diagnosis) { OverviewProblemSheet(model: model, diagnosis: $0) }
         .forceStopConfirmation(model: model, target: $forceStop)
     }
-}
 
-// MARK: - Project card
-
-struct ProjectCard: View {
-    let model: AppModel
-    let prefs: ViewPreferences
-    let item: FilteredProject
-    let layout: ColumnLayout
-    let forceStop: (ForceStopTarget) -> Void
-
-    @Environment(AppController.self) private var controller: AppController?
-    @Environment(\.isStale) private var stale
-    @Environment(OptionPresenter.self) private var options: OptionPresenter?
-    @Environment(EditorPresenter.self) private var editor: EditorPresenter?
-
-    @State private var showPolicy = false
-    private var project: ProjectView { item.project }
-
-    var body: some View {
-        let collapsed = prefs.isCollapsed(project.id)
-        let params = model.params(project.id)
-        VStack(alignment: .leading, spacing: 0) {
-            header(collapsed: collapsed)
-            if project.instance != nil {
-                ProjectIdentityCaption(project: project).padding(.horizontal, 14).padding(.bottom, 10)
-            }
-
-            if layout.compact, project.services.contains(where: { $0.currentRun != nil }) {
-                HStack {
-                    ProjectTotals(model: model, projectId: project.id)
-                    Spacer(minLength: 0)
-                }.padding(.horizontal, 14).padding(.bottom, 10)
-            }
-            if let result = model.actionResults[project.id] {
-                ResultBar(model: model, project: project, result: result)
-                    .padding(.horizontal, 14)
-                    .padding(.bottom, 10)
-            }
-            if !collapsed {
-                if !params.isEmpty {
-                    ProjectOptionGroups(model: model, project: project, prefs: prefs)
-                        .padding(.leading, 40)
-                        .padding(.trailing, 14)
-                        .padding(.bottom, 14)
-                }
-                QuickActionsRow(model: model, project: project)
-                ServiceTable(
-                    model: model, project: project, services: item.services, params: params,
-                    layout: layout, forceStop: forceStop)
-                    .padding(.horizontal, 10)
-                    .padding(.bottom, 10)
-            }
-        }
-        .task(id: project.services.compactMap { $0.currentRun?.id }.joined(separator: ",") + String(model.isConnected)) {
-            for service in project.services {
-                if let run = service.currentRun { await model.loadRunDetail(run.id) }
-            }
-        }
-        .sheet(isPresented: $showPolicy) { PolicySheet(model: model, project: project) }
-        .background(Theme.card, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Theme.line))
+    private func heading(_ text: String, count: Int) -> some View {
+        HStack(spacing: 7) {
+            Text(text).font(.system(size: 14, weight: .semibold))
+            Text(String(count)).font(.caption.monospacedDigit()).foregroundStyle(Theme.text2)
+                .padding(.horizontal, 5).background(Theme.graySoft, in: RoundedRectangle(cornerRadius: 4))
+        }.frame(minHeight: 24)
     }
 
-    private func header(collapsed: Bool) -> some View {
-        let actions = stale ? .none : project.availableActions
-        return HStack(spacing: 10) {
-            Button {
-                prefs.toggleCollapsed(project.id)
-            } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: collapsed ? "chevron.right" : "chevron.down")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(Theme.text3)
-                        .frame(width: 16, height: 20)
-                    Text(project.name)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(Theme.text)
-                        .lineLimit(1)
-                        .layoutPriority(1)
-                    CountBadge(label: project.badge())
-                    if !layout.compact, project.instance == nil {
-                        Text(Format.tildePath(project.root))
-                            .font(.system(size: 11.5, design: .monospaced))
-                            .foregroundStyle(Theme.text3)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                            .help(project.root)
-                    }
-                    Spacer(minLength: 8)
-                    if !layout.compact, project.services.contains(where: { $0.currentRun != nil }) {
-                        ProjectTotals(model: model, projectId: project.id)
-                    }
-                }
-                .frame(maxWidth: .infinity, minHeight: 28, alignment: .leading)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .help(collapsed ? "展开项目" : "折叠项目")
-            .accessibilityLabel(project.name)
-            .accessibilityValue(collapsed ? "已折叠" : "已展开")
-            .accessibilityIdentifier("project-disclosure-" + project.id)
-            HStack(spacing: 0) {
-                IconButton(
-                    symbol: "▶", role: .play, help: stale ? Copy.staleReason : "启动全部", enabled: actions.start,
-                    pending: model.isPending(request(.start))
-                ) { run(.start) }
-                IconButton(
-                    symbol: "■", role: .stop, help: stale ? Copy.staleReason : "停止全部", enabled: actions.stop,
-                    pending: model.isPending(request(.stop))
-                ) { run(.stop) }
-                IconButton(
-                    symbol: "↻", help: stale ? Copy.staleReason : "重启", enabled: actions.restart,
-                    pending: model.isPending(request(.restart))
-                ) { run(.restart) }
-                MoreMenu {
-                    if project.maven != nil { Button("Maven…") { model.selectProject(project.id, tab: .maven) }.disabled(stale) }
-                    Button("项目详情…") { model.selectProject(project.id) }
-                    Button("添加选项…") { options?.add(project.id) }.disabled(stale)
-                    Button("AI 权限…") { showPolicy = true }.disabled(stale)
-                    Button("编辑项目…") { editor?.edit(project.id) }
-                        .disabled(stale)
-                    Button("导出共享配置…") { editor?.portable(.export(project.id)) }.disabled(stale)
-                    Button("复制项目 ID") { copy(project.id) }
-                    Button("在 Finder 中显示") {
-                        NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: project.root)])
-                    }
-                    if project.availableActions.forceStop {
-                        Divider()
-                        Button("强制停止…") { forceStop(ForceStopTarget(projectId: project.id, serviceIds: nil)) }
-                            .disabled(stale)
-                    }
-                    Divider()
-                    Button("移除项目…") { editor?.remove(project.id) }
-                        .disabled(stale)
-                }
-            }
-        }
-        .padding(.horizontal, 14)
-        .padding(.top, 12)
-        .padding(.bottom, 10)
-    }
-
-    private func request(_ action: ActionKind) -> ActionRequest {
-        ActionRequest(projectId: project.id, action: action)
-    }
-
-    private func run(_ action: ActionKind) {
-        let r = request(action)
-        Task { await model.runAction(r) }
+    private func row(_ item: FilteredProject, layout: ColumnLayout, problem: OverviewProblem? = nil) -> some View {
+        CompactProjectRow(model: model, prefs: prefs, item: item, search: query.trimmingCharacters(in: .whitespacesAndNewlines),
+                          layout: layout, problem: problem, forceStop: { forceStop = $0 }, diagnose: { diagnosis = $0 })
     }
 }
 
 func copy(_ text: String) {
     NSPasteboard.general.clearContents()
     NSPasteboard.general.setString(text, forType: .string)
-}
-
-/// `CPU 132.4% · 内存 1.31 GiB` (mockup `.psum`).
-struct ProjectTotals: View {
-    let model: AppModel
-    let projectId: ProjectID
-    @Environment(\.isStale) private var stale
-
-    var body: some View {
-        let sample = model.projectStats(projectId)?.total
-        let cpu = Metrics.cpu(sample, active: true)
-        let mem = Metrics.memory(sample, active: true)
-        HStack(spacing: 4) {
-            Text("CPU").foregroundStyle(Theme.text2)
-            value(cpu).help(cpu.help ?? "")
-            Text("· 内存").foregroundStyle(Theme.text2)
-            value(mem).help(mem.help ?? "")
-            if cpu.partial || mem.partial {
-                Text("部分").font(.system(size: 10)).foregroundStyle(Theme.amber)
-            }
-        }
-        .font(.system(size: 12))
-        .monospacedDigit()
-        .lineLimit(1)
-        .fixedSize()
-        .staleDimmed()
-    }
-
-    private func value(_ m: MetricText) -> some View {
-        Text(m.text)
-            .fontWeight(m.kind == .value ? .semibold : .regular)
-            .foregroundStyle(m.kind == .value && !stale ? Theme.text : Theme.text3)
-    }
 }
 
 // MARK: - Result bar

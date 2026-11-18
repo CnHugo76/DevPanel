@@ -96,6 +96,15 @@ export function seed(engine: Engine): void {
       ),
     ],
     actions: [
+      {
+        id: 'deploy-demo', name: '示例打包部署', description: '选择本次部署服务与数据库备份策略。', cwd: '.',
+        command: ['node', 'deploy-demo.mjs', '--services', '${action.services}'], env: { BACKUP_DATABASE: '${action.backup}' },
+        runLabel: '开始部署', confirmWhenServicesRunning: true,
+        params: [
+          { key: 'services', label: '部署服务', description: '本次需要打包并部署的服务。', type: 'multiselect', required: true, default: ['frontend', 'backend'], choices: [{ value: 'frontend', label: '前端' }, { value: 'backend', label: '后端' }, { value: 'runtime', label: 'Runtime' }] },
+          { key: 'backup', label: '备份数据库', description: '部署前先备份数据库。', type: 'boolean', default: true },
+        ],
+      },
       { id: 'build', name: '构建 · 当前环境', description: '引用当前 Profile 构建后端', cwd: 'backend', command: ['./mvnw', 'package', '-P${profile}'], timeoutSec: 300 },
       { id: 'clean', name: 'clean install', description: '清理 target 后重新构建，运行中的服务可能受影响。', cwd: 'backend', command: ['./mvnw', 'clean', 'install'], confirmWhenServicesRunning: true },
       { id: 'fail-demo', name: '测试失败示例', description: '模拟失败输出与退出码 1', cwd: 'backend', command: ['./mvnw', 'test'] },

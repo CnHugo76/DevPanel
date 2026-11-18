@@ -34,7 +34,7 @@ test('portable input targets cannot mutate structure or prototypes; duplicate an
   assert.throws(() => prepareImport(duplicate, '/new'), /重复/);
   assert.throws(() => prepareImport({ ...exported, inputs: [] }, '/new'), /秘密字段/);
   assert.throws(() => prepareImport(exported, '/new', { unknown: 'x' }), /未声明/);
-  assert.throws(() => prepareImport(exported, '/new', { [exported.inputs[0]!.id]: {} }), /标量/);
+  assert.throws(() => prepareImport(exported, '/new', { [exported.inputs[0]!.id]: {} }), /有效值/);
   const inline = structuredClone(exported); (inline.project.env!.TOKEN as any).value = 'inline-secret';
   assert.throws(() => prepareImport(inline, '/new'), /独立本机输入/);
   assert.throws(() => prepareImport(JSON.parse('{"format":"devpanel.project","version":1,"project":{"__proto__":{}} ,"inputs":[]}'), '/new'), /不允许/);

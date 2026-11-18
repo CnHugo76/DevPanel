@@ -1,7 +1,7 @@
 import DevPanelKit
 import SwiftUI
 
-/// The window's title bar (52 pt, mockup `.tb`): brand, connection status, search, add, ⋯.
+/// Compact window header: running count, search, add, ⋯.
 /// Drawn in SwiftUI (the system title bar is hidden) so `--snapshot` captures it too.
 struct HeaderBar: View {
     let model: AppModel
@@ -9,33 +9,27 @@ struct HeaderBar: View {
     @Binding var query: String
     @Environment(AppController.self) private var app: AppController?
     @Environment(EditorPresenter.self) private var editor: EditorPresenter?
+    @State private var creatingGroup = false
+    @State private var showingResources = false
 
     /// Room for the traffic lights.
     static let leadingInset: CGFloat = 78
-    static let height: CGFloat = 52
+    static let height: CGFloat = 40
 
     var body: some View {
         HStack(spacing: 12) {
-            RoundedRectangle(cornerRadius: 7, style: .continuous)
-                .fill(Theme.iconGradient)
-                .frame(width: 26, height: 26)
-                .overlay(Text("D").font(.system(size: 13, weight: .bold)).foregroundStyle(.white))
-                .accessibilityHidden(true)
-            Text("DevPanel")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(Theme.text)
-            ConnectionStatusLabel(model: model)
-            Spacer(minLength: 12)
-            Picker("显示模式", selection: $prefs.detailed) {
-                Text("总览").tag(false)
-                Text("详情").tag(true)
+            HStack(spacing: 7) {
+                Text("D").font(.system(size: 16, weight: .bold)).foregroundStyle(.white)
+                    .frame(width: 23, height: 23).background(Theme.iconGradient, in: RoundedRectangle(cornerRadius: 6))
+                    .accessibilityHidden(true)
+                Text("DevPanel").font(.system(size: 15, weight: .bold))
             }
-            .pickerStyle(.segmented).labelsHidden().frame(width: 112)
-            .onChange(of: prefs.detailed) { _, detailed in
-                if detailed, model.selection == nil,
-                   let project = model.projects.first, let service = project.services.first {
-                    model.select(ServiceRef(project.id, service.id))
-                }
+            if model.connectionStatus != .connected || prefs.detailed {
+                ConnectionStatusLabel(model: model)
+            }
+            Spacer(minLength: 12)
+            if prefs.detailed {
+                Button("返回总览") { prefs.detailed = false; model.select(nil) }.buttonStyle(.borderless)
             }
             SearchField(text: $query)
             Button {
@@ -43,26 +37,34 @@ struct HeaderBar: View {
             } label: {
                 Text("＋ 添加项目")
                     .font(.system(size: 12.5, weight: .medium))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Theme.accent2)
                     .padding(.horizontal, 10)
                     .frame(height: 28)
-                    .background(Theme.accent, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                    .background(Theme.accentSoft, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
             }
             .buttonStyle(.plain)
             .disabled(!model.isConnected)
             .help("添加项目（⌘N）")
             Menu {
-                let groups = Array(Set(model.projects.compactMap { $0.instance?.group })).sorted()
+                if !prefs.detailed {
+                    Button("详情视图") {
+                        prefs.detailed = true
+                    }
+                }
+                Button("DevPanel 自身资源…") { showingResources = true }
+                Divider()
+                Button("新建项目组…") { creatingGroup = true }
+                let groups = prefs.organization.groups(in: model.projects)
                 if !groups.isEmpty {
-                    Menu("筛选实例组") {
+                    Menu("筛选项目组") {
                         Button("显示全部") { query = "" }
                         Divider()
-                        ForEach(groups, id: \.self) { group in
-                            Button(group) { query = "group:" + group }
+                        ForEach(groups) { group in
+                            Button(group.name) { query = "group:" + group.name }
                         }
                     }
-                    Divider()
                 }
+                Divider()
                 Button("停止所有服务并退出管理服务…") { app?.requestShutdown() }.disabled(!model.isConnected || app?.shutdownBusy == true)
                 Divider()
                 Button("关于 DevPanel") {
@@ -84,6 +86,21 @@ struct HeaderBar: View {
         .background(WindowDragArea())
         .background(Theme.bar)
         .overlay(alignment: .bottom) { Rectangle().fill(Theme.line).frame(height: 1) }
+        .sheet(isPresented: $creatingGroup) {
+            ProjectGroupEditor(organization: prefs.organization, projects: model.projects)
+        }
+        .onChange(of: prefs.detailed) { _, detailed in
+            if detailed, !model.hasInspectorSelection, let project = model.projects.first, let service = project.services.first {
+                model.select(ServiceRef(project.id, service.id))
+            }
+        }
+        .sheet(isPresented: $showingResources) {
+            VStack(alignment: .trailing, spacing: 0) {
+                ToolResourceDetails(readout: model.toolResources.currentReadout)
+                Button("关闭") { showingResources = false }.keyboardShortcut(.cancelAction).padding(12)
+            }
+        }
+        .onChange(of: prefs.organization.revealGeneration) { _, _ in query = "" }
     }
 }
 
@@ -98,7 +115,7 @@ struct SearchField: View {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 11))
                 .foregroundStyle(Theme.text3)
-            TextField("搜索项目、服务或实例", text: $text)
+            TextField("搜索项目、服务或分组", text: $text)
                 .textFieldStyle(.plain)
                 .font(.system(size: 12.5))
                 .focused($focused)
@@ -120,11 +137,11 @@ struct SearchField: View {
         .overlay(
             RoundedRectangle(cornerRadius: 7, style: .continuous)
                 .strokeBorder(focused ? Theme.accent : Theme.line))
-        .help("搜索项目、服务、实例、目录或项目 ID；group:组名 和 instance:实例名 可精确筛选")
+        .help("搜索项目、服务、分组、实例、目录或项目 ID；group:组名 和 instance:实例名 可精确筛选")
     }
 }
 
-/// `● 已连接 · 4/7 服务运行中`
+/// Quiet running count while connected; connection problems replace it entirely.
 struct ConnectionStatusLabel: View {
     let model: AppModel
 
@@ -132,11 +149,16 @@ struct ConnectionStatusLabel: View {
         TimeCell(model: model, rules: model.connection.retryAt.map { [.countdown(until: $0)] } ?? [], freezesWhenStale: false) { now in
             let connection = model.connection
             let text = connection.summary(
-                running: model.runningServiceCount, total: model.serviceCount,
+                running: model.runningServiceCount,
                 projectCount: model.projects.count, now: now)
             let color = Theme.color(for: connection.tone)
             HStack(spacing: 6) {
-                Circle().fill(color).frame(width: 7, height: 7)
+                if connection.status != .connected {
+                    Image(systemName: connection.status == .connecting ? "arrow.triangle.2.circlepath" : "exclamationmark.circle")
+                        .font(.system(size: 11))
+                        .foregroundStyle(color)
+                        .accessibilityHidden(true)
+                }
                 Text(text)
                     .font(.system(size: 12.5))
                     .monospacedDigit()
@@ -144,6 +166,9 @@ struct ConnectionStatusLabel: View {
                     .lineLimit(1)
             }
             .accessibilityElement(children: .combine)
+            .help(connection.status == .connected
+                  ? "已连接管理服务 · 共 \(model.serviceCount) 个服务"
+                  : "服务运行状态未知；连接恢复后更新")
         }
     }
 }

@@ -1,4 +1,5 @@
 import { mavenTarget } from "./project-targets.ts";
+import { actionSensitive, preserveActionChoices } from './action-params.ts';
 import { noReady, readySnapshot, logEvidence, readyTimeoutMs, portEvidence, type ReadyTracking } from "./ready.ts";
 import { spawn, type ChildProcess } from "node:child_process";
 import { EventEmitter } from "node:events";
@@ -313,12 +314,12 @@ export class Manager extends EventEmitter {
     ];
   }
   safe<T>(v: T) {
-    return redact(v, this.allSecrets());
+    return preserveActionChoices(v, redact(v, this.allSecrets()));
   }
   /** Work labels are untrusted free text. Clean before storage, including short secret fragments. */
-  actor(actor: Actor, config?: ProjectConfig): Actor {
+  actor(actor: Actor, config?: ProjectConfig, extraSecrets: string[] = []): Actor {
     if (actor.client !== 'cli') return { client: actor.client, agent: actor.agent };
-    const context = redact({ taskId: actor.taskId, taskLabel: actor.taskLabel }, [...this.allSecrets(), ...(config ? secrets(config) : [])], 0);
+    const context = redact({ taskId: actor.taskId, taskLabel: actor.taskLabel }, [...this.allSecrets(), ...(config ? secrets(config) : []), ...extraSecrets], 0);
     return { client: actor.client, agent: actor.agent, ...(context.taskId === undefined ? {} : { taskId: context.taskId }), ...(context.taskLabel === undefined ? {} : { taskLabel: context.taskLabel }) };
   }
   event(event: DaemonEvent) {
@@ -326,6 +327,7 @@ export class Manager extends EventEmitter {
   }
   info(): DaemonInfo {
     return {
+      capabilities: ['action-params-v1'],
       version: VERSION,
       apiVersion: 1,
       pid: process.pid,
@@ -481,6 +483,7 @@ export class Manager extends EventEmitter {
       actions: (p.config.actions || []).map(a => {
         const history = this.taskHistory(pid, { kind: "action", actionId: a.id });
         return { id: a.id, name: a.name, description: a.description ?? null,
+          params: mask(p.config).actions?.find(x => x.id === a.id)?.params ?? [], runLabel: a.runLabel,
           confirmWhenServicesRunning: a.confirmWhenServicesRunning ?? false,
           currentRun: history.find(r => !r.endedAt) ?? null, lastRun: history.find(r => !!r.endedAt) ?? null };
       }),
@@ -1210,14 +1213,14 @@ export class Manager extends EventEmitter {
         409,
       );
     }
-    const expanded = expandService(p.config, s);
+    const expanded = expandService(p.config, s, false, metadata?.actionValues);
     const rid = id("r"),
       env = effectiveEnv(this.base, expanded.env),
       cwd = resolve(p.config.root, s.cwd);
     const r: StoredRun = {
       task: metadata,
       ...(!metadata && "ready" in s && s.ready ? { readiness: { config: readySnapshot(p.config, s.ready)!, seq: 0, tails: {} } } : {}),
-      configSnapshot: this.serviceSnapshot(p.config, s),
+      configSnapshot: metadata?.actionValues ? { ...expanded, stopTimeoutSec: s.stopTimeoutSec ?? 10 } : this.serviceSnapshot(p.config, s),
       detail: {
         id: rid,
         projectId: p.id,
@@ -1230,7 +1233,7 @@ export class Manager extends EventEmitter {
         state: "starting",
         exit: null,
         ready: !metadata && "ready" in s && s.ready ? { ...noReady(), state: "waiting" } : noReady(),
-        command: expandService(p.config, s, true).command,
+        command: expandService(p.config, s, true, metadata?.actionValues).command,
         params: Object.fromEntries(
           serviceParams(p.config, s).map((p) => [
             p.key,
@@ -1248,7 +1251,7 @@ export class Manager extends EventEmitter {
       error: null,
       rootExit: null,
       sequenceFloor: 1,
-      sensitive: secrets(p.config),
+      sensitive: [...secrets(p.config), ...actionSensitive(metadata?.actionValues ?? {})],
       boot: this.boot,
     };
     this.runs.set(rid, r);
@@ -1262,6 +1265,7 @@ export class Manager extends EventEmitter {
       this.base,
       p.config,
       "save",
+      metadata?.actionValues,
     );
     const error = validation.issues.find((i) => i.severity === "error");
     if (error) {
@@ -1530,7 +1534,7 @@ export class Manager extends EventEmitter {
     return this.safe(models.read(mavenTarget(project.config, mavenProjectId).config, this.base, reload));
   }
   startMaven(pid: string, input: unknown, actor: Actor = { client: "cli", agent: null }) { return this.taskRunner.startMaven(pid, input, this.actor(actor)); }
-  startAction(pid: string, aid: string, actor: Actor = { client: "cli", agent: null }) { return this.taskRunner.startAction(pid, aid, this.actor(actor)); }
+  startAction(pid: string, aid: string, actor: Actor = { client: "cli", agent: null }, input?: unknown) { return this.taskRunner.startAction(pid, aid, this.actor(actor), input); }
   taskHistory(pid: string, target: TaskTarget) { return this.taskRunner.history(pid, target); }
   cancelTask(rid: string, force: boolean, timeout = false, actor: Actor = daemonActor) { return this.taskRunner.cancel(rid, force, timeout, this.actor(actor)); }
   stopAllTasks() { return this.taskRunner.stopAll(); }

@@ -99,8 +99,14 @@ extension Operation {
         let tone: OperationSummary.Tone
         switch state {
         case .succeeded:
-            title = action == .start && !results.isEmpty && results.allSatisfy { $0.outcome == .alreadyRunning }
-                ? "已在运行" : "已\(verb)"
+            if action == .start, !results.isEmpty, results.allSatisfy({ $0.outcome == .alreadyRunning }) {
+                title = "已在运行"
+            } else if action == .stop || action == .forceStop,
+                      !results.isEmpty, results.allSatisfy({ $0.outcome == .alreadyStopped }) {
+                title = "无需停止"
+            } else {
+                title = "已\(verb)"
+            }
             tone = .ok
         case .partial where timedOut:
             title = "\(verb)未完成"

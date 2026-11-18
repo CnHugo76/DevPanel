@@ -13,6 +13,8 @@ DevPanel 是本机的项目运行面板：常驻的管理服务（daemon）托�
 
 出现 `--maven-project` 时，接入和更新项目还须明确登记 Git 仓库与 Maven 工程（[配置](references/config.md)）；面板只按配置显示目标，不递归猜目录。
 
+快捷操作需要本次参数时，按 [任务参数](references/v0.3.md#操作专属参数) 使用 `--params` / `--params-file`；定义参数见 [配置](references/config.md#操作专属参数)。
+
 在 **Agent 自身环境配置** 中设置 `DEVPANEL_AGENT`（例如 `codex`、`claude-code`）；也可逐条命令传 `--agent`，参数优先。不根据进程名、模型或目录推断名称。没有名称时显示“命令行”；名称用于记录来源，不是认证。
 
 帮助包含 `project export/import`、`--task` 时，分享/导入配置、关联 AI 工作或接入另一个 checkout，使用 [references/sharing.md](references/sharing.md)。这些能力不改变启动授权与托管规则。
@@ -44,16 +46,15 @@ DevPanel 是本机的项目运行面板：常驻的管理服务（daemon）托�
 | 码 | 含义 | 接下来 |
 | --- | --- | --- |
 | 0 | 成功 | |
-| 1 | 操作 `failed` 或其他错误 | 读报告中的错误与 digest，必要时再看原文 |
+| 1 | 操作失败、任务 `failed` / `timed-out` / `unknown` 或其他错误 | 读报告中的状态、错误与 digest；任务超时不自动重跑 |
 | 2 | 用法错误 / `CONFIG_INVALID` | 修正命令或配置；配置问题在 `error.details.issues` |
 | 3 | `DAEMON_UNREACHABLE` | 见托管规则第一条 |
 | 4 | `*_NOT_FOUND` | 用 `project list --json` 重新核对 ID |
 | 5 | `CONFIG_CONFLICT` / `REVISION_MISMATCH` / `PROJECT_RUNNING` | 见 [references/config.md](references/config.md) |
 | 6 | 操作 `partial` | 逐个看 `results[]`，分别处理失败的服务 |
 | 7 | 停止超时 | 报告 remaining，等用户决定是否强制停止 |
-| 8 | 等待超时，操作仍在进行 | 用输出里的操作 `id` 运行 `devpanel operation <operation-id> --json` 继续查询；这不是失败 |
+| 8 | CLI 等待超时，运行尚未结束 | 服务控制用输出的操作 `id` 查询 `devpanel operation <operation-id> --json`；快捷操作 / Maven 用任务运行 `id`，按 [任务等待与查询](references/v0.3.md#等待与查询) 处理；这不是执行失败 |
 | 9 | 操作被取消（通常是用户在面板点了停止） | 查询取消方并报告 |
-| 10 | 任务执行超时 | 读任务状态与摘要，报告超时；不自动重跑 |
 | 11 | 就绪等待超时 | 服务可能仍在运行；读 ready / digest，不自动停止或重启 |
 | 12 | 失败目标全部被托管规则拒绝 | 报告拒绝原因；其他目标可能已成功；与一般失败混合时按 6 / 1 处理 |
 

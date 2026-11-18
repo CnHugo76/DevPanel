@@ -417,15 +417,19 @@ struct ViewPreferencesTests {
         let suite = "devpanel.tests.\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set(["p2"], forKey: "overview.collapsedProjects")
         let a = ViewPreferences(defaults: defaults)
+        #expect(a.isCollapsed("p1"))
+        #expect(a.isCollapsed("p2"))
         a.toggleCollapsed("p1")
         a.setCollapsed("p2", true)
         a.setCollapsed("p2", false)
         a.setInspectorWidth(512)
         a.commitInspectorWidth()
         let b = ViewPreferences(defaults: defaults)
-        #expect(b.collapsed == ["p1"])
-        #expect(b.isCollapsed("p1"))
+        #expect(!b.isCollapsed("p1"))
+        #expect(!b.isCollapsed("p2"))
+        #expect(b.isCollapsed("new-project"))
         #expect(b.inspectorWidth == 512)
     }
 }

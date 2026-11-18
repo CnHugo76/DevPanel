@@ -124,6 +124,55 @@ struct OverviewModelTests {
         model.stop()
     }
 
+    @Test("a stop result reconciles a running row when the project event is missing",
+          arguments: [TargetOutcome.alreadyStopped, .stopped])
+    func stopReconcilesRunningRow(outcome: TargetOutcome) async throws {
+        var stopped = try #require(snapshot().projects.first)
+        let projectId = stopped.id
+        let serviceId = stopped.services[0].id
+        let runId = try #require(stopped.services[0].currentRun?.id)
+        stopped.services[0].lastRun?.state = .stopped
+        stopped.services[0].lastRun?.endedAt = "2026-10-20T10:13:01Z"
+        stopped.services[0].state = .stopped
+        stopped.services[0].currentRun = nil
+        stopped.runningCount -= 1
+        stopped.aggregate = .partial
+        let op = Operation(
+            id: "op_stop", projectId: projectId, action: .stop, serviceIds: [serviceId],
+            source: .ui, state: .succeeded, createdAt: "2026-10-20T10:13:00Z",
+            finishedAt: "2026-10-20T10:13:01Z",
+            results: [.init(serviceId: serviceId, outcome: outcome, runId: outcome == .stopped ? runId : nil)])
+        let stoppedData = try JSONEncoder().encode(stopped)
+        let finishedData = try JSONEncoder().encode(op)
+        var pending = op
+        pending.state = .running
+        pending.finishedAt = nil
+        pending.results = [.init(serviceId: serviceId, outcome: .pending)]
+        let pendingData = try JSONEncoder().encode(pending)
+        let viewGets = Locked(0)
+        daemon.transport.setHandler { request in
+            switch (request.httpMethod, request.url?.path) {
+            case ("POST", "/api/v1/operations"): return (202, pendingData)
+            case ("GET", "/api/v1/operations/op_stop/wait"): return (200, finishedData)
+            case ("GET", "/api/v1/projects/\(projectId)/view"):
+                viewGets.withLock { $0 += 1 }
+                return (200, stoppedData)
+            default: return (404, Data())
+            }
+        }
+        daemon.enqueue(.stream(try daemon.connectedStream()))
+        let model = makeModel()
+        model.start()
+        defer { model.stop() }
+        await eventually { model.isConnected }
+        #expect(model.project(projectId)?.service(serviceId)?.state == .running)
+        await model.runAction(.init(projectId: projectId, serviceIds: [serviceId], action: .stop))
+        await eventually { model.finishedOperation(for: projectId) != nil }
+        #expect(model.finishedOperation(for: projectId)?.summary { $0 }.title == (outcome == .stopped ? "已停止" : "无需停止"))
+        await eventually { model.project(projectId)?.service(serviceId)?.state == .stopped }
+        #expect(viewGets.current == 1)
+    }
+
     @Test("a rejected request becomes a result with the error")
     func rejected() async throws {
         let model = makeModel()

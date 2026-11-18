@@ -39,7 +39,7 @@ enum SelfCheck {
         let client = model.client
         model.stop()
 
-        out("status:     \(connection.status.rawValue)  ·  \(connection.summary(running: model.runningServiceCount, total: model.serviceCount, projectCount: model.projects.count, now: Date()))")
+        out("status:     \(connection.status.rawValue)  ·  \(connection.summary(running: model.runningServiceCount, projectCount: model.projects.count, now: Date()))")
 
         switch connection.status {
         case .connected:

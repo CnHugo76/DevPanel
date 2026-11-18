@@ -2,23 +2,9 @@
 
 **English** | [简体中文](features.zh-CN.md)
 
-This page preserves the public-source baseline identified below. The current workspace additions for setup, troubleshooting, configuration reuse and AI work context are tracked in the [four-round implementation record](plan-four-rounds.md); they have not been publicly released.
+DevPanel gives developers and AI agents a shared view of local project processes. The native macOS app and JSON CLI use the same daemon.
 
-DevPanel gives developers and AI agents a shared view of local project processes. The native macOS app and JSON CLI use the same daemon. This inventory describes the current public source, including changes after the local `v0.4.1` tag; design proposals alone do not count as implemented features.
-
-## Version status
-
-Checked on **2026-10-25**, against public source commit [`2fc5902`](https://github.com/CnHugo76/DevPanel/commit/2fc5902626de035d7d75b371bdce89afd0d2c678).
-
-| Item | Status |
-| --- | --- |
-| Local development tags | `v0.2.0`, `v0.3.0`, `v0.3.1`, `v0.4.0`, `v0.4.1` |
-| Public GitHub tags / Releases | None at the time of this check |
-| Package and default bundle version | `0.4.1`; public source also includes later tool navigation, log presentation, and open-source preparation changes |
-| Local preview package | An Apple Silicon `0.4.2-dev` preview passed packaging and standalone-runtime smoke checks; it is not a tagged release |
-| Suggested next public version | `v0.4.2`, after release checks; this is a recommendation, not an assigned tag |
-
-The old tags belong to development history retained locally. They were deliberately excluded from the new public history; see [publication notes](open-source.md). A future public tag should identify the actual source used to build that release.
+The [v0.4.3 release](https://github.com/CnHugo76/DevPanel/releases/tag/v0.4.3) includes a compact overview, local project grouping and ordering, custom service links, and per-run action parameters. The portable Apple Silicon package includes Node, the CLI, and the daemon.
 
 ## Supported capabilities
 
@@ -35,7 +21,7 @@ The old tags belong to development history retained locally. They were deliberat
 | Log digests | Copy a digest for the selected run | `logs --digest`, byte budgets and incremental reads | Deterministic error / stack / repetition / tail compression; no model calls or diagnosis |
 | Attribution and activity | Startup / stop actor, project timeline and redacted configuration differences | `--agent`, `DEVPANEL_AGENT`, `activity` | Agent names are self-reported; activity does not provide configuration rollback |
 | Human oversight | Edit policy, hold after a human stop, allow AI startup, lock / unlock services | Read policy and state; lifecycle commands obey it; explicit `--override-hold` | Policies cover service lifecycle only; actions, Maven and option edits are outside this policy scope |
-| Saved actions | Configure, run, cancel, inspect output / history / resources; optional time limits | `action list`, `action run`, `task cancel` | One current run per action; different actions can run concurrently |
+| Saved actions | Configure, select action parameters before running, cancel, inspect parameter snapshots / output / history / resources | `action list`, `action run --params / --params-file`, `task cancel` | One current run per action; [typed inputs](action-parameters.md) are isolated to each run |
 | Maven | Module / lifecycle tree, goals, profiles, skip tests, offline, dependency modules, command preview, save as action | `maven modules`, `maven run`, target selection and task cancellation | Explicit multiple roots; static POM parsing; at most one Maven run per DevPanel project |
 | Git | Branch / upstream / ahead-behind, grouped changes, status colors, three file layouts; independent unified / side-by-side diffs with inline highlighting | No dedicated Git command | File staging / unstaging, commit / amend and stash save / list / apply / pop are native UI operations |
 | Service tool navigation | Open the Git repository or Maven project associated with the selected service | Register explicit repository / Maven paths in project configuration | Uses the deepest registered ancestor of the service working directory; no recursive discovery |

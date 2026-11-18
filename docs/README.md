@@ -5,6 +5,7 @@
 - 项目首页：[English](../README.md) / [简体中文](../README.zh-CN.md)，包含功能、安装、CLI、数据与卸载。
 - 快速开始：[English](quickstart.md) / [简体中文](quickstart.zh-CN.md)，使用随包独立示例。
 - 配置分享、工作归属与独立实例：[English](config-sharing.md) / [简体中文](config-sharing.zh-CN.md)。
+- 快捷操作执行前参数：[English](action-parameters.md) / [简体中文](action-parameters.zh-CN.md)，包含配置、CLI/API 与隔离示例。
 - 功能清单与 v0.4 优化建议：[English](features.md) / [简体中文](features.zh-CN.md)，区分原生界面、CLI、功能边界与发布前待办。
 - [独立演示项目](../examples/demo/README.md)：使用临时数据体验注册、启动、就绪与日志。
 - [Agent skill](../skills/devpanel/SKILL.md)：给 Codex / Claude Code 等 Agent 的操作说明。

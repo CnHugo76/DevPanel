@@ -1,6 +1,8 @@
 import Foundation
 
 public struct ActionDraft: Identifiable, Hashable, Sendable {
+    public var params: [ActionParameterDraft] = []
+    public var runLabel: String = ""
     public var service: ServiceDraft
     public var description: String
     public var timeoutText: String
@@ -12,5 +14,6 @@ public struct ActionDraft: Identifiable, Hashable, Sendable {
     public init(config: ActionConfig) {
         let draft = ProjectDraft(config: ProjectConfig(name: "", root: "/", services: [ServiceConfig(id: config.id, name: config.name, cwd: config.cwd, command: config.command, env: config.env, stopTimeoutSec: config.stopTimeoutSec)]))
         self.init(service: draft.services[0], description: config.description ?? "", timeoutText: config.timeoutSec.map(String.init) ?? "", confirmWhenServicesRunning: config.confirmWhenServicesRunning == true)
+        params = (config.params ?? []).map(ActionParameterDraft.init); runLabel = config.runLabel ?? ""
     }
 }

@@ -235,12 +235,21 @@ public final class AppModel {
         return store.value
     }
     public func serviceStats(_ projectId: ProjectID, _ serviceId: ServiceID) -> ServiceStats? {
-        let ref = ServiceRef(projectId, serviceId)
-        if let store = serviceStores[ref] { return store.value }
+        serviceStore(ServiceRef(projectId, serviceId)).value
+    }
+
+    /// A collapsed row only observes the run and sockets, independent of CPU and memory changes.
+    public func listening(for service: ServiceView, in project: ProjectID) -> [ListeningPort]? {
+        guard let run = service.currentRun else { return nil }
+        return serviceStore(ServiceRef(project, service.id)).listening(for: run.id)
+    }
+
+    private func serviceStore(_ ref: ServiceRef) -> ServiceStatsStore {
+        if let store = serviceStores[ref] { return store }
         let store = ServiceStatsStore()
-        store.update(rawStats?.projects[projectId]?.services[serviceId])
+        store.update(rawStats?.projects[ref.projectId]?.services[ref.serviceId])
         serviceStores[ref] = store
-        return store.value
+        return store
     }
 
     // MARK: Lifecycle
@@ -291,6 +300,7 @@ public final class AppModel {
         case .projectUpsert(let p):
             scheduleActivityRefresh(p.id)
             if let i = projects.firstIndex(where: { $0.id == p.id }) {
+                guard projects[i] != p else { return }
                 projects[i] = p
             } else {
                 projects.append(p)
@@ -315,10 +325,14 @@ public final class AppModel {
 
     private func upsertOperation(_ op: Operation) {
         // An HTTP response can arrive after a newer event; never move a finished op backwards.
-        if let existing = operations[op.id], existing.isFinished, !op.isFinished { return }
+        let existing = operations[op.id]
+        if existing == op || (existing?.isFinished == true && !op.isFinished) { return }
         operations[op.id] = op
         if op.isFinished {
             for (key, id) in inflight where id == op.id { inflight[key] = nil }
+            if existing?.isFinished != true && (op.action == .stop || op.action == .forceStop) {
+                Task { [weak self] in await self?.reconcileStopResult(op) }
+            }
         }
         let finished = operations.values.filter(\.isFinished)
         if finished.count > Self.maxFinishedOperations {
@@ -326,6 +340,30 @@ public final class AppModel {
                 .prefix(finished.count - Self.maxFinishedOperations)
             for o in drop { operations[o.id] = nil }
         }
+    }
+
+    private func reconcileStopResult(_ op: Operation) async {
+        guard isConnected, let client, let before = project(op.projectId) else { return }
+        let hasStaleRun = op.results.contains { result in
+            guard let run = before.service(result.serviceId)?.currentRun else { return false }
+            switch result.outcome {
+            case .stopped: return result.runId == run.id
+            case .alreadyStopped:
+                guard let finished = Timestamps.date(op.finishedAt), let started = Timestamps.date(run.startedAt) else { return true }
+                return started <= finished
+            default: return false
+            }
+        }
+        guard hasStaleRun else { return }
+
+        // The result can arrive via long poll even when the project event is delayed.
+        // If an event updates the project during this fetch, keep the event's state.
+        let generation = connectionGeneration
+        guard let latest = try? await client.projectView(op.projectId), latest.id == op.projectId,
+              isConnected, generation == connectionGeneration, project(op.projectId) == before,
+              latest != before else { return }
+        apply(.projectUpsert(latest))
+        refreshConfigs(using: client)
     }
 
     // MARK: Actions
@@ -369,7 +407,8 @@ public final class AppModel {
         inflight[key] = .some(nil)
         let startedAt = env.now()
         do {
-            let op = try await perform(request)
+            let accepted = try await perform(request)
+            let op = operations[accepted.id] ?? accepted
             if op.isFinished {
                 inflight[key] = nil
             } else {
@@ -440,6 +479,7 @@ public final class AppModel {
     // MARK: Selection
 
     public func select(_ ref: ServiceRef?) {
+        if projectInspector.parameterForm?.isSubmitting != true { projectInspector.parameterForm = nil }
         guard let ref else {
             inspectorSelection = nil
             syncLogSession()
@@ -452,6 +492,7 @@ public final class AppModel {
     }
 
     public func selectProject(_ id: ProjectID, tab: ProjectInspectorTab? = nil) {
+        if let form = projectInspector.parameterForm, (form.projectId != id || (tab != nil && tab != .actions)), !form.isSubmitting { projectInspector.parameterForm = nil }
         guard let project = project(id) else { return }
         if let tab, let ref = serviceForTool(id, tab: tab) {
             selectServiceTab(tab == .git ? .git : .maven, for: ref)

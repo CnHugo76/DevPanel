@@ -41,15 +41,15 @@ public enum StatusTone: Sendable, Equatable {
 }
 
 extension ConnectionState {
-    /// Toolbar text, e.g. "已连接 · 4/7 服务运行中" or "管理服务连接中断 · 5 秒后重连".
-    public func summary(running: Int, total: Int, projectCount: Int, now: Date) -> String {
+    /// Toolbar text: running count when connected, otherwise connection and retry status.
+    public func summary(running: Int, projectCount: Int, now: Date) -> String {
         switch status {
         case .connecting:
             return "正在连接管理服务…"
         case .connected:
-            return projectCount == 0 ? "已连接 · 还没有项目" : "已连接 · \(running)/\(total) 服务运行中"
+            return projectCount == 0 ? "还没有项目" : "\(running) 个服务运行中"
         case .disconnected:
-            return "管理服务连接中断 · \(retryText(now: now, verb: "重连"))"
+            return "连接已断开 · \(retryText(now: now, verb: "重连"))"
         case .unauthorized:
             return "管理服务拒绝了认证 · \(retryText(now: now, verb: "重试"))"
         case .notRunning:

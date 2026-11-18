@@ -1,6 +1,6 @@
 import { closeSync, constants, fstatSync, openSync, readSync, writeFileSync } from 'node:fs';
 import { isAbsolute, relative } from 'node:path';
-import type { ParamType, ParamValue, PortableConfigInput, PortableProjectConfig, ProjectConfig } from '@devpanel/contract';
+import type { ActionParamType, ParamValue, PortableConfigInput, PortableProjectConfig, ProjectConfig } from '@devpanel/contract';
 import { ClientError } from './client.ts';
 
 const invalid = (message: string) => new ClientError({ error: { code: 'CONFIG_INVALID', message } });
@@ -54,7 +54,7 @@ export function exportConfig(config: ProjectConfig): PortableProjectConfig {
     }
   }
   const inputs: PortableConfigInput[] = [];
-  const input = (target: string, kind: 'secret' | 'path', valueType: ParamType = 'string') => {
+  const input = (target: string, kind: 'secret' | 'path', valueType: ActionParamType = 'string') => {
     inputs.push({ id: `input${inputs.length + 1}`, target, kind, label: target, valueType });
   };
   const env = (values: any, target: string) => {
@@ -82,6 +82,12 @@ export function exportConfig(config: ProjectConfig): PortableProjectConfig {
         if (localPath(arg)) { item.command[i] = ''; input(`${target}/command/${i}`, 'path'); }
       });
       env(item.env, `${target}/env`);
+      if (scope === 'actions') for (const [j, param] of (item.params ?? []).entries()) {
+        if (!object(param)) throw invalid('操作参数结构无效');
+        if (param.choices?.some((c: any) => localPath(c?.value))) throw invalid('本机路径枚举无法安全移植，请改为 string 参数');
+        if (param.default !== undefined && param.secret) { param.default = { secret: true }; input(`${target}/params/${j}/default`, 'secret', param.type); }
+        else if (localPath(param.default)) { delete param.default; input(`${target}/params/${j}/default`, 'path', param.type); }
+      }
     }
   }
   for (const [index, param] of (project.params ?? []).entries()) {
@@ -95,7 +101,7 @@ export function exportConfig(config: ProjectConfig): PortableProjectConfig {
 }
 
 /** A target is a known scalar slot, never an arbitrary pointer setter. */
-function targetSlot(project: any, input: PortableConfigInput): { parent: any; key: string; type: ParamType } {
+function targetSlot(project: any, input: PortableConfigInput): { parent: any; key: string; type: ActionParamType } {
   if (!input.target.startsWith('/') || /~(?![01])/.test(input.target)) throw invalid('输入目标不是有效 JSON Pointer');
   const parts = input.target.slice(1).split('/').map(p => p.replace(/~1/g, '/').replace(/~0/g, '~'));
   if (parts.some(p => forbidden.has(p))) throw invalid('输入目标包含不允许的属性');
@@ -103,8 +109,12 @@ function targetSlot(project: any, input: PortableConfigInput): { parent: any; ke
     if (!Array.isArray(array) || key === undefined || !/^(0|[1-9]\d*)$/.test(key) || !Number.isSafeInteger(Number(key)) || Number(key) >= array.length) throw invalid('输入目标不存在');
     return array[Number(key)];
   };
-  let parent: any, key = '', type: ParamType = 'string', secret = false;
-  if (parts[0] === 'params' && parts.length === 3 && parts[2] === 'value') {
+  let parent: any, key = '', type: ActionParamType = 'string', secret = false;
+  if (parts[0] === 'actions' && parts.length === 5 && parts[2] === 'params' && parts[4] === 'default') {
+    const action = index(project.actions, parts[1]); parent = index(action?.params, parts[3]); key = 'default';
+    if (!object(parent) || !['string', 'number', 'boolean', 'enum', 'multiselect'].includes(parent.type)) throw invalid('操作参数类型无效');
+    type = parent.type; secret = parent.secret === true;
+  } else if (parts[0] === 'params' && parts.length === 3 && parts[2] === 'value') {
     parent = index(project.params, parts[1]); key = 'value';
     if (!object(parent) || !['string', 'number', 'boolean', 'enum'].includes(parent.type)) throw invalid('输入参数类型无效');
     type = parent.type; secret = parent.secret === true;
@@ -136,7 +146,7 @@ export function prepareImport(document: unknown, root: string, values: unknown =
   checkKeys(document); checkKeys(values);
   if (!object(document) || document.format !== 'devpanel.project' || document.version !== 1 || !object(document.project) || !Array.isArray(document.inputs)) throw invalid('不是受支持的 DevPanel 共享配置');
   if (Object.keys(document).some(k => !['format', 'version', 'project', 'inputs'].includes(k)) || Object.keys(document.project).some(k => !projectKeys.includes(k))) throw invalid('共享配置包含未知字段');
-  if (!object(values) || Object.values(values).some(v => !scalar(v))) throw invalid('本机输入必须是 ID 到标量值的 JSON 对象');
+  if (!object(values) || Object.values(values).some(v => !scalar(v) && !(Array.isArray(v) && v.every(x => typeof x === 'string')))) throw invalid('本机输入必须是 ID 到有效值的 JSON 对象');
   const project = structuredClone(document.project);
   const ids = new Set<string>(), targets = new Set<string>();
   const inputs: PortableConfigInput[] = [], missing: PortableConfigInput[] = [];
@@ -144,12 +154,12 @@ export function prepareImport(document: unknown, root: string, values: unknown =
     if (!object(entry) || typeof entry.id !== 'string' || !entry.id || forbidden.has(entry.id) || typeof entry.target !== 'string' || typeof entry.label !== 'string' || !['secret', 'path'].includes(entry.kind) || ids.has(entry.id) || targets.has(entry.target)) throw invalid('本机输入定义无效或重复');
     ids.add(entry.id); targets.add(entry.target);
     const input = entry as PortableConfigInput, slot = targetSlot(project, input);
-    if (input.kind === 'secret' && Object.hasOwn(slot.parent, slot.key)) throw invalid('秘密值必须移到独立本机输入文件');
+    if (input.kind === 'secret' && Object.hasOwn(slot.parent, slot.key) && !(slot.key === 'default' && object(slot.parent.default) && slot.parent.default.secret === true && Object.keys(slot.parent.default).length === 1)) throw invalid('秘密值必须移到独立本机输入文件');
     inputs.push(input);
     if (!Object.hasOwn(values, input.id)) { missing.push(input); continue; }
     const value = values[input.id];
     const expected = ['string', 'enum'].includes(slot.type) ? 'string' : slot.type;
-    if (typeof value !== expected || (typeof value === 'string' && (value.includes('\0') || (input.kind === 'path' && !value)))) throw invalid('本机输入值与目标类型不匹配');
+    if ((slot.type === 'multiselect' ? !Array.isArray(value) || value.some(v => typeof v !== 'string' || v.includes('\0')) : typeof value !== expected) || (typeof value === 'string' && (value.includes('\0') || (input.kind === 'path' && !value)))) throw invalid('本机输入值与目标类型不匹配');
     slot.parent[slot.key] = value;
   }
   if (Object.keys(values).some(k => !ids.has(k))) throw invalid('本机输入文件包含未声明的 ID');
@@ -175,7 +185,7 @@ export function changedPaths(before: unknown, after: unknown, path = ''): string
 }
 
 export function hideInputs<T>(value: T, inputs: unknown): T {
-  const strings = object(inputs) ? Object.values(inputs).filter((v): v is string => typeof v === 'string' && !!v).sort((a, b) => b.length - a.length) : [];
+  const strings = object(inputs) ? Object.values(inputs).flatMap(v => Array.isArray(v) ? [JSON.stringify(v), ...v] : [v]).filter((v): v is string => typeof v === 'string' && !!v).sort((a, b) => b.length - a.length) : [];
   const pattern = strings.length ? new RegExp(strings.map(v => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'g') : null;
   const walk = (item: any): any => typeof item === 'string' ? (pattern ? item.replace(pattern, '[LOCAL INPUT]') : item) : Array.isArray(item) ? item.map(walk) : object(item) ? Object.fromEntries(Object.entries(item).map(([k, v]) => [k, walk(v)])) : item;
   return walk(value);
